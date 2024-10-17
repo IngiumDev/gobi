@@ -1,0 +1,2 @@
+# gobi
+Genomorientierte Bioinformatik
