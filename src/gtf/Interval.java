@@ -1,3 +1,5 @@
+package gtf;
+
 import java.util.Objects;
 
 public class Interval {
@@ -5,7 +7,7 @@ public class Interval {
     private int start;
     private int end;
 
-    public Interval(int end, int start) {
+    public Interval(int start, int end) {
         this.end = end;
         this.start = start;
     }
@@ -25,7 +27,7 @@ public class Interval {
 
     @Override
     public String toString() {
-        return start+": "+end;
+        return start+":"+end;
     }
 
     public int getStart() {
