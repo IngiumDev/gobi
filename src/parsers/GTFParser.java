@@ -35,35 +35,16 @@ public class GTFParser {
         return annotation;
     }
 
-    // TODO: refactor and pull out the duplicate check if gene exists etc
     private static void processCDS(String[] data, Annotation annotation) {
         Map<String, String> attributes = parseAttributes(data[8]);
         String geneId = attributes.get("gene_id");
         String transcriptId = attributes.get("transcript_id");
 
-        // Check if gene exists
-        Gene gene = annotation.getGenes().get(geneId);
-        if (gene == null) {
-            gene = new Gene(geneId);
-            annotation.addGene(gene);
-        }
-
-        // Check if transcript exists
-        Transcript transcript = gene.getTranscript(transcriptId);
-        if (transcript == null) {
-            transcript = new Transcript(transcriptId);
-            gene.addTranscript(transcriptId, transcript);
-        }
-
-        // Check if exon exists
-
+        Gene gene = getOrCreateGene(annotation, geneId);
+        Transcript transcript = getOrCreateTranscript(gene, transcriptId);
         int exonNumber = Integer.parseInt(attributes.get("exon_number"));
         Exon exon = transcript.getExonByNumber(exonNumber);
-        if (exon == null) {
-            exon = new Exon();
-            exon.setExonNumber(exonNumber);
-            transcript.addExon(exon);
-        }
+        exon = getOrCreateExon(exon, exonNumber, transcript);
 
         CodingSequence cds = new CodingSequence(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
         exon.setCds(cds);
@@ -72,26 +53,23 @@ public class GTFParser {
 
     }
 
+    private static Exon getOrCreateExon(Exon exon, int exonNumber, Transcript transcript) {
+        if (exon == null) {
+            exon = new Exon();
+            exon.setExonNumber(exonNumber);
+            transcript.addExon(exon);
+        }
+        return exon;
+    }
+
     private static void processExon(String[] data, Annotation annotation) {
         Map<String, String> attributes = parseAttributes(data[8]);
         String geneId = attributes.get("gene_id");
         String transcriptId = attributes.get("transcript_id");
 
-        // Check if gene exists
-        Gene gene = annotation.getGenes().get(geneId);
-        if (gene == null) {
-            gene = new Gene(geneId);
-            annotation.addGene(gene);
-        }
+        Gene gene = getOrCreateGene(annotation, geneId);
+        Transcript transcript = getOrCreateTranscript(gene, transcriptId);
 
-        // Check if transcript exists
-        Transcript transcript = gene.getTranscript(transcriptId);
-        if (transcript == null) {
-            transcript = new Transcript(transcriptId);
-            gene.addTranscript(transcriptId, transcript);
-        }
-
-        // Check if exon exists
         int exonNumber = Integer.parseInt(attributes.get("exon_number"));
         Exon exon = transcript.getExonByNumber(exonNumber);
         if (exon == null) {
@@ -107,17 +85,22 @@ public class GTFParser {
 
     }
 
+    private static Transcript getOrCreateTranscript(Gene gene, String transcriptId) {
+        Transcript transcript = gene.getTranscript(transcriptId);
+        if (transcript == null) {
+            transcript = new Transcript(transcriptId);
+            gene.addTranscript(transcriptId, transcript);
+        }
+        return transcript;
+    }
+
     private static void processTranscript(String[] data, Annotation annotation) {
         Map<String, String> attributes = parseAttributes(data[8]);
         String geneId = attributes.get("gene_id");
         String transcriptId = attributes.get("transcript_id");
 
-        // Check if gene exists
-        Gene gene = annotation.getGenes().get(geneId);
-        if (gene == null) {
-            gene = new Gene(geneId);
-            annotation.addGene(gene);
-        }
+        Gene gene = getOrCreateGene(annotation, geneId);
+
         Transcript transcript = gene.getTranscript(transcriptId);
         if (transcript == null) {
             transcript = new Transcript(transcriptId);
@@ -125,6 +108,15 @@ public class GTFParser {
         } else {
             transcript.overwrite(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
         }
+    }
+
+    private static Gene getOrCreateGene(Annotation annotation, String geneId) {
+        Gene gene = annotation.getGenes().get(geneId);
+        if (gene == null) {
+            gene = new Gene(geneId);
+            annotation.addGene(gene);
+        }
+        return gene;
     }
 
     private static void processGene(String[] data, Annotation annotation) {
