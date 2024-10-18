@@ -3,7 +3,8 @@ package FileUtils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.TreeSet;
+import java.util.HashMap;
+import java.util.Map;
 
 public class FileReader {
     public static File getFile(String path) {
@@ -47,5 +48,17 @@ public class FileReader {
 
     public static ArrayList<String[]> readTSVFromFile(File file) {
         return readSeparatedLinesFromFile(file, "\t");
+    }
+
+    public static Map<String, String> parseAttributes(String data) {
+        Map<String, String> attributes = new HashMap<>();
+        for (String keyval : data.split("; ")) {
+            String[] keyvalSplit = keyval.trim().split(" ");
+            if (keyvalSplit.length == 2) {
+                attributes.put(keyvalSplit[0], keyvalSplit[1].replace("\"", ""));
+            }
+        }
+
+        return attributes;
     }
 }
