@@ -10,7 +10,6 @@ public class Exon extends AnnotationEntry implements Comparable<Exon> {
 
     }
 
-    // TODO: exons only have one CDS, so we can remove the TreeSet and use a single CodingSequence object, move list of CDS to Transcript
     @Override
     public int compareTo(Exon other) {
         return Integer.compare(this.getInterval().getStart(), other.getInterval().getStart());
