@@ -62,6 +62,5 @@ public class Gene extends AnnotationEntry {
 
         return introns;
     }
-    // TODO FIX
 
 }
