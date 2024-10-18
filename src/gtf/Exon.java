@@ -1,12 +1,16 @@
 package gtf;
 
 import java.util.Map;
-import java.util.TreeSet;
 
 public class Exon extends AnnotationEntry implements Comparable<Exon> {
     private int exonNumber;
-    private TreeSet<CodingSequence> cds;
+    private CodingSequence cds;
 
+    public Exon() {
+
+    }
+
+    // TODO: exons only have one CDS, so we can remove the TreeSet and use a single CodingSequence object, move list of CDS to Transcript
     @Override
     public int compareTo(Exon other) {
         return Integer.compare(this.getInterval().getStart(), other.getInterval().getStart());
@@ -24,17 +28,14 @@ public class Exon extends AnnotationEntry implements Comparable<Exon> {
 
     public Exon(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Map<String, String> attributes) {
         super(seqname, source, feature, interval, score, strand, frame, attributes);
-        cds = new TreeSet<>();
-    }
-    public boolean addCDS(CodingSequence cds) {
-        return this.cds.add(cds);
+
     }
 
-    public TreeSet<CodingSequence> getCds() {
+    public CodingSequence getCds() {
         return cds;
     }
 
-    public void setCds(TreeSet<CodingSequence> cds) {
+    public void setCds(CodingSequence cds) {
         this.cds = cds;
     }
 }

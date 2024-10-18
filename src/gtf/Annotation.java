@@ -15,7 +15,4 @@ public class Annotation {
         genes.put(gene.getId(), gene);
     }
 
-    public void processProteins() {
-        genes.values().parallelStream().forEach(Gene::processProteins);
-    }
 }

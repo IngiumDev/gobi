@@ -32,11 +32,9 @@ public class GTFParser {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        annotation.processProteins();
-
         return annotation;
     }
-
+    // TODO: refactor and pull out the duplicate check if gene exists etc
     private static void processCDS(String[] data, Annotation annotation) {
         Map<String, String> attributes = parseAttributes(data[8]);
         String geneId = attributes.get("gene_id");
@@ -57,17 +55,18 @@ public class GTFParser {
         }
 
         // Check if exon exists
+
         int exonNumber = Integer.parseInt(attributes.get("exon_number"));
         Exon exon = transcript.getExonByNumber(exonNumber);
         if (exon == null) {
-            exon = new Exon(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
+            exon = new Exon();
             exon.setExonNumber(exonNumber);
             transcript.addExon(exon);
         }
 
-        // Add CDS to exon
         CodingSequence cds = new CodingSequence(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
-        exon.addCDS(cds);
+        exon.setCds(cds);
+        transcript.addCds(cds);
 
 
     }
