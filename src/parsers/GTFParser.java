@@ -100,24 +100,21 @@ public class GTFParser {
 
     private static void processTranscript(String[] data, Annotation annotation) {
         Map<String, String> attributes = parseAttributes(data[8]);
-        Transcript thisTranscript = annotation.getGenes().get(attributes.get("gene_id")).getTranscripts().get(attributes.get("transcript_id"));
-        // Check if transcript already exists
-        if (thisTranscript != null) {
-            // Overwrite the gtf.AnnotationEntry fields with the new one
-            thisTranscript.overwrite(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
+        String geneId = attributes.get("gene_id");
+        String transcriptId = attributes.get("transcript_id");
+
+        // Check if gene exists
+        Gene gene = annotation.getGenes().get(geneId);
+        if (gene == null) {
+            gene = new Gene(geneId);
+            annotation.addGene(gene);
+        }
+        Transcript transcript = gene.getTranscript(transcriptId);
+        if (transcript == null) {
+            transcript = new Transcript(transcriptId);
+            gene.addTranscript(transcriptId, transcript);
         } else {
-            // check if gene exists
-            Gene gene = annotation.getGenes().get(attributes.get("gene_id"));
-            Transcript transcript = new Transcript(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
-            transcript.setId(transcript.getAttribute("transcript_id"));
-
-            if (gene == null) {
-                gene = new Gene(attributes.get("gene_id"));
-                annotation.addGene(gene);
-            }
-            gene.addTranscript(transcript.getId(), transcript);
-
-
+            transcript.overwrite(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
         }
     }
 
