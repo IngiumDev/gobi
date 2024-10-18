@@ -29,4 +29,12 @@ public class Exon extends AnnotationEntry implements Comparable<Exon> {
     public boolean addCDS(CodingSequence cds) {
         return this.cds.add(cds);
     }
+
+    public TreeSet<CodingSequence> getCds() {
+        return cds;
+    }
+
+    public void setCds(TreeSet<CodingSequence> cds) {
+        this.cds = cds;
+    }
 }

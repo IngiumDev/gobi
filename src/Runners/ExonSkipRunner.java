@@ -1,11 +1,18 @@
 package Runners;
 
 import gtf.Annotation;
+import gtf.Interval;
 import parsers.GTFParser;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.helper.HelpScreenException;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.Namespace;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import static gtf.Gene.getIntrons;
 
 public class ExonSkipRunner {
     public static void main(String[] args) {
@@ -29,7 +36,19 @@ public class ExonSkipRunner {
     }
 
     public static void start(Namespace res) {
+        System.out.println("Parsing GTF file");
         Annotation annotation = GTFParser.parseGTF(res.getString("gtf"));
-        System.out.println();
+        // Calculate the set of introns for each gene
+        System.out.println("Calculating introns");
+        Map<String, Set<Interval>> introns = new HashMap<>();
+        annotation.getGenes().values().parallelStream().forEach(gene -> {
+            introns.put(gene.getId(), getIntrons(gene));
+        });
+
+
+
+        System.out.println("processProteins");
+        annotation.processProteins();
+        System.out.println("done");
     }
 }
