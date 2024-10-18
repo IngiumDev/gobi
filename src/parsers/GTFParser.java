@@ -34,6 +34,7 @@ public class GTFParser {
         }
         return annotation;
     }
+
     // TODO: refactor and pull out the duplicate check if gene exists etc
     private static void processCDS(String[] data, Annotation annotation) {
         Map<String, String> attributes = parseAttributes(data[8]);
@@ -90,8 +91,16 @@ public class GTFParser {
             gene.addTranscript(transcriptId, transcript);
         }
 
-        // add exon to transcript
-        Exon exon = new Exon(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
+        // Check if exon exists
+        int exonNumber = Integer.parseInt(attributes.get("exon_number"));
+        Exon exon = transcript.getExonByNumber(exonNumber);
+        if (exon == null) {
+            exon = new Exon(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
+        } else {
+            exon.overwrite(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
+        }
+
+
         // Possible NPE here if exon_number is not present in the attributes
         exon.setExonNumber(Integer.parseInt(attributes.get("exon_number")));
         transcript.addExon(exon);
