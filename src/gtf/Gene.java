@@ -5,7 +5,6 @@ import java.util.*;
 public class Gene extends AnnotationEntry {
     private String id;
     private Map<String, Transcript> transcripts;
-    private Map<String, Set<Interval>> proteins;
 
     public Gene(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Map<String, String> attributes) {
         super(seqname, source, feature, interval, score, strand, frame, attributes);
@@ -63,21 +62,6 @@ public class Gene extends AnnotationEntry {
 
         return introns;
     }
+    // TODO FIX
 
-    public void processProteins() {
-        proteins = new HashMap<>();
-        for (Transcript transcript : transcripts.values()) {
-            Set<Interval> protein = new HashSet<>();
-            String proteinId = null;
-            for (Exon exon : transcript.getExons()) {
-                for (CodingSequence cds : exon.getCds()) {
-                    proteinId = cds.getAttribute("protein_id");
-                    protein.add(cds.getInterval());
-                }
-            }
-            if (proteinId != null && !protein.isEmpty()) {
-                proteins.put(proteinId, protein);
-            }
-        }
-    }
 }

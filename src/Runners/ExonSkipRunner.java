@@ -1,16 +1,13 @@
 package Runners;
 
-import gtf.Annotation;
-import gtf.Interval;
+import gtf.*;
 import parsers.GTFParser;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.helper.HelpScreenException;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.Namespace;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static gtf.Gene.getIntrons;
 
@@ -44,11 +41,12 @@ public class ExonSkipRunner {
         annotation.getGenes().values().parallelStream().forEach(gene -> {
             introns.put(gene.getId(), getIntrons(gene));
         });
+        // try to find exon with multiple cds
 
 
 
-        System.out.println("processProteins");
-        annotation.processProteins();
         System.out.println("done");
     }
+
+
 }
