@@ -1,13 +1,11 @@
 package gtf;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Gene extends AnnotationEntry {
     private String id;
     private Map<String, Transcript> transcripts;
-    //private ArrayList<Proteins>
+    private Map<String, Set<Interval>> proteins;
 
     public Gene(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Map<String, String> attributes) {
         super(seqname, source, feature, interval, score, strand, frame, attributes);
@@ -25,6 +23,7 @@ public class Gene extends AnnotationEntry {
     public Map<String, Transcript> getTranscripts() {
         return transcripts;
     }
+
     public Transcript getTranscript(String id) {
         return transcripts.get(id);
     }
@@ -41,5 +40,44 @@ public class Gene extends AnnotationEntry {
     public void addTranscript(String id, Transcript transcript) {
         transcripts.put(id, transcript);
 
+    }
+
+    public static Set<Interval> getIntrons(Gene gene) {
+        Set<Interval> introns = new HashSet<>();
+
+        for (Transcript transcript : gene.getTranscripts().values()) {
+            TreeSet<Exon> exons = transcript.getExons();
+            Exon previousExon = null;
+
+            for (Exon exon : exons) {
+                if (previousExon != null) {
+                    int intronStart = previousExon.getInterval().getEnd() + 1;
+                    int intronEnd = exon.getInterval().getStart() - 1;
+                    if (intronStart <= intronEnd) {
+                        introns.add(new Interval(intronStart, intronEnd));
+                    }
+                }
+                previousExon = exon;
+            }
+        }
+
+        return introns;
+    }
+
+    public void processProteins() {
+        proteins = new HashMap<>();
+        for (Transcript transcript : transcripts.values()) {
+            Set<Interval> protein = new HashSet<>();
+            String proteinId = null;
+            for (Exon exon : transcript.getExons()) {
+                for (CodingSequence cds : exon.getCds()) {
+                    proteinId = cds.getAttribute("protein_id");
+                    protein.add(cds.getInterval());
+                }
+            }
+            if (proteinId != null && !protein.isEmpty()) {
+                proteins.put(proteinId, protein);
+            }
+        }
     }
 }

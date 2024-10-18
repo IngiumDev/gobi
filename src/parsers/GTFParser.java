@@ -32,6 +32,7 @@ public class GTFParser {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        annotation.processProteins();
 
         return annotation;
     }

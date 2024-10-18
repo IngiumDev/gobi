@@ -4,7 +4,6 @@ import java.util.HashMap;
 
 public class Annotation {
     private HashMap<String, Gene> genes = new HashMap<String, Gene>();
-
     public HashMap<String, Gene> getGenes() {
         return genes;
     }
@@ -14,5 +13,9 @@ public class Annotation {
     }
     public void addGene(Gene gene) {
         genes.put(gene.getId(), gene);
+    }
+
+    public void processProteins() {
+        genes.values().parallelStream().forEach(Gene::processProteins);
     }
 }
