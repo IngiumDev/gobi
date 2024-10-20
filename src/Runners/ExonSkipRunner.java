@@ -124,10 +124,9 @@ exons) in any WT/SV pair.
 
     private static Set<ExonSkip> findExonSkippingEvens(Annotation annotation) {
         Set<ExonSkip> exonSkips = new HashSet<>();
-        for (Gene gene : annotation.getGenes().values()) {
+        annotation.getGenes().values().parallelStream().forEach(gene -> {
             for (Transcript transcript : gene.getTranscripts().values()) {
                 for (Interval intron : transcript.getIntrons()) {
-
                     // Check if the intron is a candidate for exon skipping
                     Set<String> SV = new HashSet<>();
                     Set<String> WT_start = new HashSet<>();
@@ -210,7 +209,7 @@ exons) in any WT/SV pair.
                     }
                 }
             }
-        }
+        });
         return exonSkips;
     }
 
