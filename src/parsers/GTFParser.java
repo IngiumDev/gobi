@@ -32,6 +32,7 @@ public class GTFParser {
             annotation.getGenes().values().parallelStream().forEach(gene -> {
                 gene.getTranscripts().values().parallelStream().forEach(Transcript::processIntrons);
             });
+            annotation.getGenes().values().parallelStream().forEach(Gene::processProteins);
 
         } catch (Exception e) {
             e.printStackTrace();

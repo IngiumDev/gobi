@@ -7,7 +7,9 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.Namespace;
 import parsers.GTFParser;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeSet;
 
 
 public class ExonSkipRunner {
@@ -81,12 +83,19 @@ exons) in any WT/SV pair.
         for (Gene gene : annotation.getGenes().values()) {
             for (Transcript transcript : gene.getTranscripts().values()) {
                 for (Interval intron : transcript.getIntrons()) {
+
                     // Check if the intron is a candidate for exon skipping
                     Set<String> SV = new HashSet<>();
                     Set<String> WT_start = new HashSet<>();
                     Set<String> WT_end = new HashSet<>();
                     Set<String> WT = new HashSet<>();
                     Set<Interval> WT_introns = new HashSet<>();
+
+                    int minSkippedExons = Integer.MAX_VALUE;
+                    int maxSkippedExons = Integer.MIN_VALUE;
+                    int minSkippedBases = Integer.MAX_VALUE;
+                    int maxSkippedBases = Integer.MIN_VALUE;
+
                     for (Transcript t : gene.getTranscripts().values()) {
                         // only consider transcripts with cds
                         if (t.getCds().size() == 0) {
@@ -96,14 +105,14 @@ exons) in any WT/SV pair.
 
                         for (Interval i : t.getIntrons()) {
                             // Check if the intron is the same as the candidate intron (SV)
-                            String id = t.getCds().getFirst().getAttribute("protein_id");
+                            String protein_id = t.getCds().getFirst().getAttribute("protein_id");
                             if (i.equals(intron)) {
-                                SV.add(id);
+                                SV.add(protein_id);
                             } else if (i.getStart() == intron.getStart()) {
-                                WT_start.add(id);
+                                WT_start.add(protein_id);
                                 WT_introns.add(i);
                             } else if (i.getEnd() == intron.getEnd()) {
-                                WT_end.add(id);
+                                WT_end.add(protein_id);
                                 WT_introns.add(i);
                             }
                         }
@@ -124,10 +133,36 @@ exons) in any WT/SV pair.
                         exonSkip.setNtrans(gene.getTranscripts().size());
                         exonSkip.setSV(new Interval(intron));
                         exonSkip.setWT(new TreeSet<>(WT_introns));
+                        exonSkip.setSV_prots(SV);
+                        exonSkip.setWT_prots(WT);
+                        // Calculate min and max skipped exons and bases
+
+                        for (String protein_id : WT) {
+                            // Get the transcript
+                            String transcript_id = gene.convertProteinToTranscript(protein_id);
+                            Transcript t = gene.getTranscript(transcript_id);
+                            int skippedExons = 0;
+                            int skippedBases = 0;
+                            // Find the number of exons that lie within the intron
+                            for (Exon exon : t.getExons()) {
+                                if (intron.getStart() <= exon.getInterval().getStart() && intron.getEnd() >= exon.getInterval().getEnd()) {
+                                    skippedExons++;
+                                    skippedBases += exon.getInterval().getLength();
+                                }
+                            }
+                            minSkippedExons = Math.min(minSkippedExons, skippedExons);
+                            maxSkippedExons = Math.max(maxSkippedExons, skippedExons);
+                            minSkippedBases = Math.min(minSkippedBases, skippedBases);
+                            maxSkippedBases = Math.max(maxSkippedBases, skippedBases);
+
+                        }
+
+                        exonSkip.setMax_skipped_exon(maxSkippedExons);
+                        exonSkip.setMin_skipped_exon(minSkippedExons);
+                        exonSkip.setMax_skipped_bases(maxSkippedBases);
+                        exonSkip.setMin_skipped_bases(minSkippedBases);
+
                         exonSkips.add(exonSkip);
-
-
-
                     }
                 }
             }
