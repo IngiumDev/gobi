@@ -35,6 +35,8 @@ public class ExonSkip {
     // the maximum number of skipped bases (joint length of skipped exons) in any WT/SV pair
     private int max_skipped_bases;
 
+
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
