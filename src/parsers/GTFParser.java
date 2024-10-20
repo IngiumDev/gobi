@@ -17,17 +17,10 @@ public class GTFParser {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.charAt(0) != '#') {
-                    String[] data = line.split("\t");
-                    switch (data[2]) {
-                        case "gene" -> processGene(data, annotation);
-                        case "transcript" -> processTranscript(data, annotation);
-                        case "exon" -> processExon(data, annotation);
-                        case "CDS" -> processCDS(data, annotation);
-                    }
-
+                    processGTFLine(line, annotation);
                 }
-
             }
+
             // Process introns
             annotation.getGenes().values().parallelStream().forEach(gene -> {
                 gene.getTranscripts().values().parallelStream().forEach(Transcript::processIntrons);
@@ -38,6 +31,16 @@ public class GTFParser {
             e.printStackTrace();
         }
         return annotation;
+    }
+
+    private static void processGTFLine(String line, Annotation annotation) {
+        String[] data = line.split("\t");
+        switch (data[2]) {
+            case "gene" -> processGene(data, annotation);
+            case "transcript" -> processTranscript(data, annotation);
+            case "exon" -> processExon(data, annotation);
+            case "CDS" -> processCDS(data, annotation);
+        }
     }
 
     private static void processCDS(String[] data, Annotation annotation) {
