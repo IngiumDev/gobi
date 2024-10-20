@@ -15,7 +15,11 @@ public class Exon extends AnnotationEntry implements Comparable<Exon> {
         return Integer.compare(this.getInterval().getStart(), other.getInterval().getStart());
     }
 
+    public Exon(int exonNumber,String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
+        super(seqname, source, strand, attributes);
+        this.exonNumber = exonNumber;
 
+    }
 
     public int getExonNumber() {
         return exonNumber;

@@ -39,6 +39,12 @@ public class Transcript extends AnnotationEntry {
         return id;
     }
 
+    public Transcript(String id,String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
+        super(seqname, source, strand, attributes);
+        exons = new TreeSet<>();
+        cds = new TreeSet<>();
+    }
+
     public void setId(String id) {
         this.id = id;
     }

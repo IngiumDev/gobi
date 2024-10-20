@@ -4,6 +4,7 @@ import java.util.Map;
 
 public abstract class AnnotationEntry {
     // TODO decouple strand from annotation entry and move it to Gene
+    // GTF line columns to escalate: seqname, source, strand
 
     // name of the chromosome or scaffold; chromosome names can be given with or without the 'chr' prefix. Important note: the seqname must be one used within Ensembl, i.e. a standard chromosome name or an Ensembl identifier such as a scaffold ID, without any additional content such as species or assembly. See the example GFF output below.
     private String seqname;
@@ -11,6 +12,14 @@ public abstract class AnnotationEntry {
     private String source;
     // feature type name, e.g. gtf.Gene, Variation, Similarity
     private String feature;
+
+    public AnnotationEntry(String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
+        this.seqname = seqname;
+        this.source = source;
+        this.strand = strand;
+        this.attributes = attributes;
+    }
+
     // gtf.Interval
     private Interval interval;
     // score - A floating point value.
