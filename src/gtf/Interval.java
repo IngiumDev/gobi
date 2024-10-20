@@ -11,7 +11,10 @@ public class Interval implements Comparable<Interval> {
         this.end = end;
         this.start = start;
     }
-
+    public Interval (Interval interval) {
+        this.start = interval.start;
+        this.end = interval.end;
+    }
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
