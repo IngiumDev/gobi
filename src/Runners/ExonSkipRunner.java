@@ -43,44 +43,6 @@ public class ExonSkipRunner {
         // Calculate the set of introns for each gene
         System.out.println("Calculating introns");
 
-        // try to find exon with multiple cds
-/* given a SV-intron candidate we have
-to check if there exists at least one WT
-Given Intron I as SV candidate:
- The wild types have two introns:
-1) one starting at I.getX1() -
-2) one ending at I.getX2()
-3) but not at the same time
-4)(that would be the SV-intron)
-→ if we calculate the set of isoforms having such introns for all three cases,
-we can simply derive the set of corresponding WT isoforms (or that this is empty)
-Calculate the following sets Set<String> (entries: cds ids):
-
-the set SV (CDS-s containing I)
-
-the set WT_start (CDS-s having introns starting I.getX1())
-
-the set WT_end (CDS-s having introns ending I.getX2())
- the set WT= (WT_start intersect WT_end) – SV
-→ if WT is not empty we have an exon skipping event.
-• id (gene id)
-• symbol (gene symbol)
-• chr (chromosome)
-• strand (+ or -)
-• nprots (number of annotated CDS in the gene)
-• ntrans (number of annotated transcripts in the gene)
-• SV (the SV intron as start:end)
-• WT (all the WT introns within the SV intron separated by | as start:end)
-• SV prots (ids of the SV CDS, separated by |)
-• WT prots (ids of the WT CDS, separated by |)
-• min skipped exon the minimal number of skipped exons in any WT/SV pair
-• max skipped exon the maximum number of skipped exons in any WT/SV pair
-• min skipped bases the minimal number of skipped bases (joint length of skipped exons)
-in any WT/SV pair
-• max skipped bases the maximum number of skipped bases (joint length of skipped
-exons) in any WT/SV pair.
-
-*/
         // Iterate through each gene, then through each intron
 
         Set<ExonSkip> exonSkips = findExonSkippingEvens(annotation);
@@ -109,7 +71,6 @@ exons) in any WT/SV pair.
                                 exonSkip.getWT().stream().map(Interval::toString).collect(Collectors.joining("|")) + "\t" +
                                 exonSkip.getWT_prots().stream().collect(Collectors.joining("|")) + "\t" +
                                 exonSkip.getSV_prots().stream().collect(Collectors.joining("|")) + "\t" +
-
                                 exonSkip.getMin_skipped_exon() + "\t" +
                                 exonSkip.getMax_skipped_exon() + "\t" +
                                 exonSkip.getMin_skipped_bases() + "\t" +
@@ -148,13 +109,15 @@ exons) in any WT/SV pair.
 
                         for (Interval i : t.getIntrons()) {
                             // Check if the intron is the same as the candidate intron (SV)
-                            String protein_id = t.getCds().getFirst().getAttribute("protein_id");
                             if (i.equals(intron)) {
+                                String protein_id = t.getCds().getFirst().getAttribute("protein_id");
                                 SV.add(protein_id);
                             } else if (i.getStart() == intron.getStart()) {
+                                String protein_id = t.getCds().getFirst().getAttribute("protein_id");
                                 WT_start.add(protein_id);
                                 WT_introns.add(i);
                             } else if (i.getEnd() == intron.getEnd()) {
+                                String protein_id = t.getCds().getFirst().getAttribute("protein_id");
                                 WT_end.add(protein_id);
                                 WT_introns.add(i);
                             }
@@ -168,9 +131,21 @@ exons) in any WT/SV pair.
                         // TODO add exon skip to the list
                         ExonSkip exonSkip = new ExonSkip();
                         exonSkip.setId(gene.getId());
-                        exonSkip.setSymbol(gene.getAttribute("gene_name"));
-                        exonSkip.setChr(gene.getSeqname());
-                        exonSkip.setStrand(gene.getStrand());
+                        // If gene is directly annoted
+                        // TODO: Migrate to moving data up the chain from exon to transcript to gene
+                        if (gene.getAttributes() != null) {
+
+                            exonSkip.setSymbol(gene.getAttribute("gene_name"));
+                            exonSkip.setChr(gene.getSeqname());
+                            exonSkip.setStrand(gene.getStrand());
+                        } else {
+                            // TODO Migrate away from storing strand in anything other than gene
+                            Exon firstExon = transcript.getExons().first();
+                            exonSkip.setSymbol(firstExon.getAttribute("gene_name"));
+                            exonSkip.setChr(firstExon.getSeqname());
+                            exonSkip.setStrand(firstExon.getStrand());
+                        }
+
                         // nprots is the number of transcripts where the cds is not empty
                         exonSkip.setNprots((int) gene.getTranscripts().values().stream().filter(t -> !t.getCds().isEmpty()).count());
                         exonSkip.setNtrans(gene.getTranscripts().size());
