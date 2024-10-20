@@ -30,7 +30,7 @@ public class Interval implements Comparable<Interval> {
 
     @Override
     public String toString() {
-        return start + ":" + end;
+        return start + ":" + (end+1);
     }
 
     public int getStart() {

@@ -7,9 +7,13 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.Namespace;
 import parsers.GTFParser;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 
 public class ExonSkipRunner {
@@ -78,8 +82,48 @@ exons) in any WT/SV pair.
 
 */
         // Iterate through each gene, then through each intron
+
+        Set<ExonSkip> exonSkips = findExonSkippingEvens(annotation);
+
+        // Write the exon skipping events to a file
+        System.out.println("Writing exon skipping events to file");
+        writeExonSkipToFile(res.getString("o"), exonSkips);
+
+
+        System.out.println("done");
+    }
+
+    public static void writeExonSkipToFile(String o, Set<ExonSkip> exonSkips) {
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(o))) {
+            writer.write("id\tsymbol\tchr\tstrand\tnprots\tntrans\tSV\tWT\tSV_prots\tWT_prots\tmin_skipped_exon\tmax_skipped_exon\tmin_skipped_bases\tmax_skipped_bases\n");
+            for (ExonSkip exonSkip : exonSkips) {
+                writer.write(
+                        exonSkip.getId() + "\t" +
+                                exonSkip.getSymbol() + "\t" +
+                                exonSkip.getChr() + "\t" +
+                                (exonSkip.getStrand() == StrandDirection.FORWARD ? "+" : "-") + "\t" +
+                                exonSkip.getNprots() + "\t" +
+                                exonSkip.getNtrans() + "\t" +
+                                exonSkip.getSV() + "\t" +
+                                exonSkip.getWT().stream().map(Interval::toString).collect(Collectors.joining("|")) + "\t" +
+                                exonSkip.getWT_prots().stream().collect(Collectors.joining("|")) + "\t" +
+                                exonSkip.getSV_prots().stream().collect(Collectors.joining("|")) + "\t" +
+
+                                exonSkip.getMin_skipped_exon() + "\t" +
+                                exonSkip.getMax_skipped_exon() + "\t" +
+                                exonSkip.getMin_skipped_bases() + "\t" +
+                                exonSkip.getMax_skipped_bases() + "\n"
+                );
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    private static Set<ExonSkip> findExonSkippingEvens(Annotation annotation) {
         Set<ExonSkip> exonSkips = new HashSet<>();
-        // Iterate through each gene, then for each gene iterate through each transcript so that we can iterate through the introns
         for (Gene gene : annotation.getGenes().values()) {
             for (Transcript transcript : gene.getTranscripts().values()) {
                 for (Interval intron : transcript.getIntrons()) {
@@ -167,8 +211,7 @@ exons) in any WT/SV pair.
                 }
             }
         }
-
-        System.out.println("done");
+        return exonSkips;
     }
 
 
