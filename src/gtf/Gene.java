@@ -45,10 +45,8 @@ public class Gene extends AnnotationEntry {
         Set<Interval> introns = new HashSet<>();
 
         for (Transcript transcript : gene.getTranscripts().values()) {
-            TreeSet<Exon> exons = transcript.getExons();
             Exon previousExon = null;
-
-            for (Exon exon : exons) {
+            for (Exon exon : transcript.getExons()) {
                 if (previousExon != null) {
                     int intronStart = previousExon.getInterval().getEnd() + 1;
                     int intronEnd = exon.getInterval().getStart() - 1;
