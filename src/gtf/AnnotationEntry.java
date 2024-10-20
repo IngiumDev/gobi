@@ -21,6 +21,62 @@ public abstract class AnnotationEntry {
     private FrameStarts frame;
     private Map<String, String> attributes;
 
+    public String getFeature() {
+        return feature;
+    }
+
+    public void setFeature(String feature) {
+        this.feature = feature;
+    }
+
+    public FrameStarts getFrame() {
+        return frame;
+    }
+
+    public void setFrame(FrameStarts frame) {
+        this.frame = frame;
+    }
+
+    public double getScore() {
+        return score;
+    }
+
+    public void setScore(double score) {
+        this.score = score;
+    }
+
+    public String getSeqname() {
+        return seqname;
+    }
+
+    public void setSeqname(String seqname) {
+        this.seqname = seqname;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public StrandDirection getStrand() {
+        return strand;
+    }
+
+    public void setStrand(StrandDirection strand) {
+        this.strand = strand;
+    }
+
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(Map<String, String> attributes) {
+        this.attributes = attributes;
+    }
+
     public AnnotationEntry(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Map<String, String> attributes) {
         this.seqname = seqname;
         this.source = source;

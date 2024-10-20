@@ -1,7 +1,7 @@
 package gtf;
 
-import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeSet;
 
 public class ExonSkip {
@@ -23,9 +23,9 @@ public class ExonSkip {
     // all the WT introns within the SV intron separated by | as start:end
     private TreeSet<Interval> WT;
     // ids of the SV CDS, separated by | (protein_id)
-    private List<String> SV_prots;
+    private Set<String> SV_prots;
     // ids of the WT CDS, separated by | (protein_id)
-    private List<String> WT_prots;
+    private Set<String> WT_prots;
     // the minimal number of skipped exons in any WT/SV pair
     private int min_skipped_exon;
     // the maximum number of skipped exons in any WT/SV pair
@@ -123,11 +123,11 @@ public class ExonSkip {
         this.SV = SV;
     }
 
-    public List<String> getSV_prots() {
+    public Set<String> getSV_prots() {
         return SV_prots;
     }
 
-    public void setSV_prots(List<String> SV_prots) {
+    public void setSV_prots(Set<String> SV_prots) {
         this.SV_prots = SV_prots;
     }
 
@@ -147,11 +147,11 @@ public class ExonSkip {
         this.WT = WT;
     }
 
-    public List<String> getWT_prots() {
+    public Set<String> getWT_prots() {
         return WT_prots;
     }
 
-    public void setWT_prots(List<String> WT_prots) {
+    public void setWT_prots(Set<String> WT_prots) {
         this.WT_prots = WT_prots;
     }
 

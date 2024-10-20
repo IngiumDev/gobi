@@ -7,10 +7,7 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.Namespace;
 import parsers.GTFParser;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 
 public class ExonSkipRunner {
@@ -89,12 +86,14 @@ exons) in any WT/SV pair.
                     Set<String> WT_start = new HashSet<>();
                     Set<String> WT_end = new HashSet<>();
                     Set<String> WT = new HashSet<>();
+                    Set<Interval> WT_introns = new HashSet<>();
                     for (Transcript t : gene.getTranscripts().values()) {
                         // only consider transcripts with cds
                         if (t.getCds().size() == 0) {
-                            System.out.println("No CDS found for transcript " + t.getId());
+                            //System.out.println("No CDS found for transcript " + t.getId());
                             continue;
                         }
+
                         for (Interval i : t.getIntrons()) {
                             // Check if the intron is the same as the candidate intron (SV)
                             String id = t.getCds().getFirst().getAttribute("protein_id");
@@ -102,8 +101,10 @@ exons) in any WT/SV pair.
                                 SV.add(id);
                             } else if (i.getStart() == intron.getStart()) {
                                 WT_start.add(id);
+                                WT_introns.add(i);
                             } else if (i.getEnd() == intron.getEnd()) {
                                 WT_end.add(id);
+                                WT_introns.add(i);
                             }
                         }
                     }
@@ -113,6 +114,19 @@ exons) in any WT/SV pair.
                     if (!WT.isEmpty()) {
                         // We have an exon skipping event
                         // TODO add exon skip to the list
+                        ExonSkip exonSkip = new ExonSkip();
+                        exonSkip.setId(gene.getId());
+                        exonSkip.setSymbol(gene.getAttribute("gene_name"));
+                        exonSkip.setChr(gene.getSeqname());
+                        exonSkip.setStrand(gene.getStrand());
+                        // nprots is the number of transcripts where the cds is not empty
+                        exonSkip.setNprots((int) gene.getTranscripts().values().stream().filter(t -> !t.getCds().isEmpty()).count());
+                        exonSkip.setNtrans(gene.getTranscripts().size());
+                        exonSkip.setSV(new Interval(intron));
+                        exonSkip.setWT(new TreeSet<>(WT_introns));
+                        exonSkips.add(exonSkip);
+
+
 
                     }
                 }
