@@ -44,7 +44,7 @@ public class Gene extends AnnotationEntry {
     }
 
     public void processProteins() {
-        protein_to_transcript = new HashMap<String, String>();
+        protein_to_transcript = new HashMap<>();
         for (Transcript transcript : transcripts.values()) {
             if (!transcript.getCds().isEmpty()) {
                 String protein_id = transcript.getCds().getFirst().getAttribute("protein_id");

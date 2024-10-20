@@ -22,9 +22,7 @@ public class GTFParser {
             }
 
             // Process introns
-            annotation.getGenes().values().parallelStream().forEach(gene -> {
-                gene.getTranscripts().values().parallelStream().forEach(Transcript::processIntrons);
-            });
+            annotation.getGenes().values().parallelStream().forEach(gene -> gene.getTranscripts().values().parallelStream().forEach(Transcript::processIntrons));
             annotation.getGenes().values().parallelStream().forEach(Gene::processProteins);
 
         } catch (Exception e) {
@@ -148,7 +146,7 @@ public class GTFParser {
         if (Objects.equals(data, ".")) {
             return 0;
         } else {
-            return Double.valueOf(data);
+            return Double.parseDouble(data);
         }
     }
 
