@@ -2,7 +2,7 @@ package gtf;
 
 import java.util.Objects;
 
-public class Interval {
+public class Interval implements Comparable<Interval> {
     // one-based, inclusive
     private int start;
     private int end;
@@ -27,7 +27,7 @@ public class Interval {
 
     @Override
     public String toString() {
-        return start+":"+end;
+        return start + ":" + end;
     }
 
     public int getStart() {
@@ -45,7 +45,14 @@ public class Interval {
     public void setEnd(int end) {
         this.end = end;
     }
+
     public int getLength() {
         return end - start + 1;
+    }
+
+
+    @Override
+    public int compareTo(Interval o) {
+        return Integer.compare(this.start, o.start);
     }
 }

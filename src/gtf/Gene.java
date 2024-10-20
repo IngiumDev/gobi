@@ -41,24 +41,5 @@ public class Gene extends AnnotationEntry {
 
     }
 
-    public static Set<Interval> getIntrons(Gene gene) {
-        Set<Interval> introns = new HashSet<>();
-
-        for (Transcript transcript : gene.getTranscripts().values()) {
-            Exon previousExon = null;
-            for (Exon exon : transcript.getExons()) {
-                if (previousExon != null) {
-                    int intronStart = previousExon.getInterval().getEnd() + 1;
-                    int intronEnd = exon.getInterval().getStart() - 1;
-                    if (intronStart <= intronEnd) {
-                        introns.add(new Interval(intronStart, intronEnd));
-                    }
-                }
-                previousExon = exon;
-            }
-        }
-
-        return introns;
-    }
 
 }

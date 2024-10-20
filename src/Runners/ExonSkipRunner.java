@@ -1,15 +1,17 @@
 package Runners;
 
 import gtf.*;
-import parsers.GTFParser;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.helper.HelpScreenException;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.Namespace;
+import parsers.GTFParser;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-import static gtf.Gene.getIntrons;
 
 public class ExonSkipRunner {
     public static void main(String[] args) {
@@ -26,7 +28,7 @@ public class ExonSkipRunner {
             Namespace res = parser.parseArgs(args);
             start(res);
         } catch (HelpScreenException e) {
-        parser.printHelp();
+            parser.printHelp();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -37,13 +39,85 @@ public class ExonSkipRunner {
         Annotation annotation = GTFParser.parseGTF(res.getString("gtf"));
         // Calculate the set of introns for each gene
         System.out.println("Calculating introns");
-        Map<String, Set<Interval>> introns = new HashMap<>();
-        annotation.getGenes().values().parallelStream().forEach(gene -> {
-            introns.put(gene.getId(), getIntrons(gene));
-        });
+
         // try to find exon with multiple cds
+/* given a SV-intron candidate we have
+to check if there exists at least one WT
+Given Intron I as SV candidate:
+ The wild types have two introns:
+1) one starting at I.getX1() -
+2) one ending at I.getX2()
+3) but not at the same time
+4)(that would be the SV-intron)
+→ if we calculate the set of isoforms having such introns for all three cases,
+we can simply derive the set of corresponding WT isoforms (or that this is empty)
+Calculate the following sets Set<String> (entries: cds ids):
+
+the set SV (CDS-s containing I)
+
+the set WT_start (CDS-s having introns starting I.getX1())
+
+the set WT_end (CDS-s having introns ending I.getX2())
+ the set WT= (WT_start intersect WT_end) – SV
+→ if WT is not empty we have an exon skipping event.
+• id (gene id)
+• symbol (gene symbol)
+• chr (chromosome)
+• strand (+ or -)
+• nprots (number of annotated CDS in the gene)
+• ntrans (number of annotated transcripts in the gene)
+• SV (the SV intron as start:end)
+• WT (all the WT introns within the SV intron separated by | as start:end)
+• SV prots (ids of the SV CDS, separated by |)
+• WT prots (ids of the WT CDS, separated by |)
+• min skipped exon the minimal number of skipped exons in any WT/SV pair
+• max skipped exon the maximum number of skipped exons in any WT/SV pair
+• min skipped bases the minimal number of skipped bases (joint length of skipped exons)
+in any WT/SV pair
+• max skipped bases the maximum number of skipped bases (joint length of skipped
+exons) in any WT/SV pair.
 
+*/
+        // Iterate through each gene, then through each intron
+        Set<ExonSkip> exonSkips = new HashSet<>();
+        // Iterate through each gene, then for each gene iterate through each transcript so that we can iterate through the introns
+        for (Gene gene : annotation.getGenes().values()) {
+            for (Transcript transcript : gene.getTranscripts().values()) {
+                for (Interval intron : transcript.getIntrons()) {
+                    // Check if the intron is a candidate for exon skipping
+                    Set<String> SV = new HashSet<>();
+                    Set<String> WT_start = new HashSet<>();
+                    Set<String> WT_end = new HashSet<>();
+                    Set<String> WT = new HashSet<>();
+                    for (Transcript t : gene.getTranscripts().values()) {
+                        // only consider transcripts with cds
+                        if (t.getCds().size() == 0) {
+                            System.out.println("No CDS found for transcript " + t.getId());
+                            continue;
+                        }
+                        for (Interval i : t.getIntrons()) {
+                            // Check if the intron is the same as the candidate intron (SV)
+                            String id = t.getCds().getFirst().getAttribute("protein_id");
+                            if (i.equals(intron)) {
+                                SV.add(id);
+                            } else if (i.getStart() == intron.getStart()) {
+                                WT_start.add(id);
+                            } else if (i.getEnd() == intron.getEnd()) {
+                                WT_end.add(id);
+                            }
+                        }
+                    }
+                    WT.addAll(WT_start);
+                    WT.retainAll(WT_end);
+                    WT.removeAll(SV);
+                    if (!WT.isEmpty()) {
+                        // We have an exon skipping event
+                        // TODO add exon skip to the list
 
+                    }
+                }
+            }
+        }
 
         System.out.println("done");
     }

@@ -25,10 +25,14 @@ public class GTFParser {
                         case "CDS" -> processCDS(data, annotation);
                     }
 
-
                 }
 
             }
+            // Process introns
+            annotation.getGenes().values().parallelStream().forEach(gene -> {
+                gene.getTranscripts().values().parallelStream().forEach(Transcript::processIntrons);
+            });
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -103,11 +107,13 @@ public class GTFParser {
 
         Transcript transcript = gene.getTranscript(transcriptId);
         if (transcript == null) {
-            transcript = new Transcript(transcriptId);
+            transcript = new Transcript(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
+            transcript.setId(transcriptId);
             gene.addTranscript(transcriptId, transcript);
         } else {
             transcript.overwrite(data[0], data[1], data[2], new Interval(Integer.parseInt(data[3]), Integer.parseInt(data[4])), getScore(data[5]), getStrand(data[6]), getFrame(data[7]), attributes);
         }
+
     }
 
     private static Gene getOrCreateGene(Annotation annotation, String geneId) {
