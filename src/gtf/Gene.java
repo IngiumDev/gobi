@@ -18,6 +18,12 @@ public class Gene extends AnnotationEntry {
         transcripts = new HashMap<>();
     }
 
+    public Gene(String id, String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
+        super(seqname, source, strand, attributes);
+        transcripts = new HashMap<>();
+
+    }
+
     public String getId() {
         return id;
     }
@@ -54,6 +60,7 @@ public class Gene extends AnnotationEntry {
             }
         }
     }
+
     public String convertProteinToTranscript(String protein_id) {
         return protein_to_transcript.get(protein_id);
     }
