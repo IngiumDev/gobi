@@ -61,17 +61,13 @@ public class ExonSkip {
 
                         for (Interval i : t.getIntrons()) {
                             // Check if the intron is the same as the candidate intron (SV)
-                            String protein_id;
                             if (i.equals(intron)) {
-                                protein_id = t.getCds().getFirst().getAttribute("protein_id");
-                                SV.add(protein_id);
+                                SV.add(t.getCds().getFirst().getAttribute("protein_id"));
                             } else if (i.getStart() == intron.getStart()) {
-                                protein_id = t.getCds().getFirst().getAttribute("protein_id");
-                                WT_start.add(protein_id);
+                                WT_start.add(t.getCds().getFirst().getAttribute("protein_id"));
                                 WT_introns.add(i);
                             } else if (i.getEnd() == intron.getEnd()) {
-                                protein_id = t.getCds().getFirst().getAttribute("protein_id");
-                                WT_end.add(protein_id);
+                                WT_end.add(t.getCds().getFirst().getAttribute("protein_id"));
                                 WT_introns.add(i);
                             }
                         }

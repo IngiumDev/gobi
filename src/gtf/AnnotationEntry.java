@@ -13,6 +13,7 @@ public abstract class AnnotationEntry {
     // feature type name, e.g. gtf.Gene, Variation, Similarity
     private String feature;
 
+
     public AnnotationEntry(String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
         this.seqname = seqname;
         this.source = source;
