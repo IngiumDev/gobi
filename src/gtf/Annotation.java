@@ -1,10 +1,11 @@
 package gtf;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class Annotation {
-    private HashMap<String, Gene> genes = new HashMap<String, Gene>();
-    public HashMap<String, Gene> getGenes() {
+    private Map<String, Gene> genes = new HashMap<>();
+    public Map<String, Gene> getGenes() {
         return genes;
     }
 
