@@ -1,6 +1,7 @@
 package gtf;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 public class Transcript extends AnnotationEntry {
@@ -8,6 +9,7 @@ public class Transcript extends AnnotationEntry {
     // Sorted by start position
     private TreeSet<Exon> exons;
     private TreeSet<CodingSequence> cds;
+    private Set<Interval> introns;
 
     public Transcript(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Map<String, String> attributes) {
         super(seqname, source, feature, interval, score, strand, frame, attributes);
@@ -63,4 +65,34 @@ public class Transcript extends AnnotationEntry {
         return this.cds.add(cds);
     }
 
+    public TreeSet<CodingSequence> getCds() {
+        return cds;
+    }
+
+    public void setCds(TreeSet<CodingSequence> cds) {
+        this.cds = cds;
+    }
+
+    public void processIntrons() {
+        introns = new TreeSet<>();
+        CodingSequence previousExon = null;
+        for (CodingSequence exon : cds) {
+            if (previousExon != null) {
+                int intronStart = previousExon.getInterval().getEnd() + 1;
+                int intronEnd = exon.getInterval().getStart() - 1;
+                if (intronStart <= intronEnd) {
+                    introns.add(new Interval(intronStart, intronEnd));
+                }
+            }
+            previousExon = exon;
+        }
+    }
+
+    public Set<Interval> getIntrons() {
+        return introns;
+    }
+
+    public void setIntrons(Set<Interval> introns) {
+        this.introns = introns;
+    }
 }
