@@ -62,4 +62,5 @@ public class Transcript extends AnnotationEntry {
     public boolean addCds(CodingSequence cds) {
         return this.cds.add(cds);
     }
+
 }
