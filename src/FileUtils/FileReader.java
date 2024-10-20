@@ -50,15 +50,20 @@ public class FileReader {
         return readSeparatedLinesFromFile(file, "\t");
     }
 
-    public static Map<String, String> parseAttributes(String data) {
+    public static Map<String, String> parseAttributes(String attributeString) {
         Map<String, String> attributes = new HashMap<>();
-        for (String keyval : data.split("; ")) {
-            String[] keyvalSplit = keyval.trim().split(" ");
-            if (keyvalSplit.length == 2) {
-                attributes.put(keyvalSplit[0], keyvalSplit[1].replace("\"", ""));
+        String[] parts = attributeString.split(";");
+        for (String part : parts) {
+            part = part.trim();
+            if (!part.isEmpty()) {
+                String[] keyValue = part.split(" ", 2);
+                if (keyValue.length == 2) {
+                    String key = keyValue[0].trim();
+                    String value = keyValue[1].trim().replaceAll("^\"|\"$", ""); // Remove surrounding quotes
+                    attributes.put(key, value);
+                }
             }
         }
-
         return attributes;
     }
 }
