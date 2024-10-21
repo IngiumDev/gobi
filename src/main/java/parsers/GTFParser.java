@@ -1,6 +1,13 @@
 package parsers;
 
-import gtf.*;
+import gtf.CodingSequence;
+import gtf.GTFAnnotation;
+import gtf.structs.Exon;
+import gtf.structs.Gene;
+import gtf.structs.Interval;
+import gtf.structs.Transcript;
+import gtf.types.FrameStarts;
+import gtf.types.StrandDirection;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -12,9 +19,16 @@ import static FileUtils.FileReader.parseAttributes;
 
 public class GTFParser {
 
-    public final static String[] ATTRIBUTES_TO_ESCALATE_TO_TRANSCRIPT = {"gene_id", "gene_name", "gene_source", "gene_biotype", "transcript_id", "transcript_name", "transcript_source"};
-    public final static String[] ATTRIBUTES_TO_ESCALATE_TO_GENE = {"gene_id", "gene_name", "gene_source", "gene_biotype"};
+    public static final String GENE_ID = "gene_id";
+    public static final String TRANSCRIPT_ID = "transcript_id";
+    public static final String GENE_NAME = "gene_name";
+    public static final String GENE_SOURCE = "gene_source";
+    public static final String GENE_BIOTYPE = "gene_biotype";
+    public static final String TRANSCRIPT_NAME = "transcript_name";
+    public static final String TRANSCRIPT_SOURCE = "transcript_source";
+    public final static String[] ATTRIBUTES_TO_ESCALATE_TO_TRANSCRIPT = {GENE_ID, GENE_NAME, GENE_SOURCE, GENE_BIOTYPE, TRANSCRIPT_ID, TRANSCRIPT_NAME, TRANSCRIPT_SOURCE};
     public final static String[] ATTRIBUTES_TO_ESCALATE_TO_EXON = ATTRIBUTES_TO_ESCALATE_TO_TRANSCRIPT;
+    public final static String[] ATTRIBUTES_TO_ESCALATE_TO_GENE = {GENE_ID, GENE_NAME, GENE_SOURCE, GENE_BIOTYPE};
     public static final int FEATURE_COL = 2;
     public static final int SEQNAME_COL = 0;
     public static final int SOURCE_COL = 1;
@@ -24,6 +38,8 @@ public class GTFParser {
     public static final int SCORE_COL = 5;
     public static final int FRAME_COL = 7;
     public static final int ATTRIBUTE_COL = 8;
+    public static final String EXON_NUMBER = "exon_number";
+    public static final String PROTEIN_ID = "protein_id";
 
     // GTF line columns to escalate: seqname, source, strand
     public static GTFAnnotation parseGTF(String gtfFile) {
@@ -31,7 +47,7 @@ public class GTFParser {
         try (BufferedReader br = new BufferedReader(new FileReader(gtfFile))) {
             String line;
             while ((line = br.readLine()) != null) {
-                if (line.charAt(SEQNAME_COL) != '#') {
+                if (line.charAt(1) != '#') {
                     processGTFLine(line, GTFAnnotation);
                 }
             }
@@ -58,70 +74,78 @@ public class GTFParser {
 
     private static void processCDS(String[] data, GTFAnnotation GTFAnnotation) {
         Map<String, String> attributes = parseAttributes(data[ATTRIBUTE_COL]);
-        String geneId = attributes.get("gene_id");
-        String transcriptId = attributes.get("transcript_id");
+        String geneId = attributes.get(GENE_ID);
+        String transcriptId = attributes.get(TRANSCRIPT_ID);
 
-        Gene gene = getOrCreateGene(GTFAnnotation, geneId,data[SEQNAME_COL], data[SOURCE_COL], getStrand(data[STRAND_COL]), attributes);
-        Transcript transcript = getOrCreateTranscript(gene, transcriptId, data[SEQNAME_COL], data[SOURCE_COL], getStrand(data[STRAND_COL]), attributes);
-        int exonNumber = Integer.parseInt(attributes.get("exon_number"));
+        Gene gene = getOrCreateGene(GTFAnnotation, geneId, data[SEQNAME_COL], data[SOURCE_COL], parseStrand(data[STRAND_COL]), attributes);
+        Transcript transcript = getOrCreateTranscript(gene, transcriptId, data[SEQNAME_COL], data[SOURCE_COL], parseStrand(data[STRAND_COL]), attributes);
+        int exonNumber = Integer.parseInt(attributes.get(EXON_NUMBER));
 
-        Exon exon = getOrCreateExon(exonNumber, transcript, data[SEQNAME_COL], data[SOURCE_COL], getStrand(data[STRAND_COL]), attributes);
+        Exon exon = getOrCreateExon(exonNumber, transcript, data[SEQNAME_COL], data[SOURCE_COL], parseStrand(data[STRAND_COL]), attributes);
 
-        CodingSequence cds = new CodingSequence(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), getScore(data[SCORE_COL]), getStrand(data[STRAND_COL]), getFrame(data[FRAME_COL]), attributes);
-        exon.setCds(cds);
-        transcript.addCds(cds);
+        createNewCDS(data, attributes, exon, transcript);
 
 
     }
 
-    private static Exon getOrCreateExon( int exonNumber, Transcript transcript, String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
+    private static void createNewCDS(String[] data, Map<String, String> attributes, Exon exon, Transcript transcript) {
+        CodingSequence cds = new CodingSequence(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
+        exon.setCds(cds);
+        transcript.addCds(cds);
+    }
+
+    private static Exon getOrCreateExon(int exonNumber, Transcript transcript, String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
         Exon exon = transcript.getExonByNumber(exonNumber);
         if (exon == null) {
-            Map<String, String> escalated_attributes = new HashMap<>();
-            for (String key : ATTRIBUTES_TO_ESCALATE_TO_EXON) {
-                if (attributes.containsKey(key)) {
-                    escalated_attributes.put(key, attributes.get(key));
-                }
-            }
-            exon = new Exon(exonNumber, seqname, source, strand, escalated_attributes);
+            exon = new Exon(exonNumber, seqname, source, strand, escalateAttributes(attributes, ATTRIBUTES_TO_ESCALATE_TO_EXON));
             transcript.addExon(exon);
         }
         return exon;
     }
 
+    public static Map<String, String> escalateAttributes(Map<String, String> attributes, String[] keys) {
+        Map<String, String> escalated_attributes = new HashMap<>();
+        for (String key : keys) {
+            if (attributes.containsKey(key)) {
+                escalated_attributes.put(key, attributes.get(key));
+            }
+        }
+        return escalated_attributes;
+    }
+
     private static void processExon(String[] data, GTFAnnotation GTFAnnotation) {
         Map<String, String> attributes = parseAttributes(data[ATTRIBUTE_COL]);
-        String geneId = attributes.get("gene_id");
-        String transcriptId = attributes.get("transcript_id");
+        String geneId = attributes.get(GENE_ID);
+        String transcriptId = attributes.get(TRANSCRIPT_ID);
 
-        Gene gene = getOrCreateGene(GTFAnnotation, geneId,data[SEQNAME_COL], data[SOURCE_COL], getStrand(data[STRAND_COL]), attributes);
-        Transcript transcript = getOrCreateTranscript(gene, transcriptId, data[SEQNAME_COL], data[SOURCE_COL], getStrand(data[STRAND_COL]), attributes);
+        Gene gene = getOrCreateGene(GTFAnnotation, geneId, data[SEQNAME_COL], data[SOURCE_COL], parseStrand(data[STRAND_COL]), attributes);
+        Transcript transcript = getOrCreateTranscript(gene, transcriptId, data[SEQNAME_COL], data[SOURCE_COL], parseStrand(data[STRAND_COL]), attributes);
 
-        int exonNumber = Integer.parseInt(attributes.get("exon_number"));
+        int exonNumber = Integer.parseInt(attributes.get(EXON_NUMBER));
         Exon exon = transcript.getExonByNumber(exonNumber);
         if (exon == null) {
-            exon = new Exon(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), getScore(data[SCORE_COL]), getStrand(data[STRAND_COL]), getFrame(data[FRAME_COL]), attributes);
+            createNewExon(data, attributes, transcript);
         } else {
-            exon.overwrite(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), getScore(data[SCORE_COL]), getStrand(data[STRAND_COL]), getFrame(data[FRAME_COL]), attributes);
+            overwriteExon(data, exon, attributes);
         }
 
+    }
 
-        // Possible NPE here if exon_number is not present in the attributes
-        exon.setExonNumber(Integer.parseInt(attributes.get("exon_number")));
+    private static void overwriteExon(String[] data, Exon exon, Map<String, String> attributes) {
+        exon.overwrite(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
+    }
+
+    private static void createNewExon(String[] data, Map<String, String> attributes, Transcript transcript) {
+        Exon exon;
+        exon = new Exon(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
+        exon.setExonNumber(Integer.parseInt(attributes.get(EXON_NUMBER)));
         transcript.addExon(exon);
-
     }
 
     private static Transcript getOrCreateTranscript(Gene gene, String transcriptId, String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
         Transcript transcript = gene.getTranscript(transcriptId);
         if (transcript == null) {
-            HashMap<String, String> escalated_attributes = new HashMap<>();
-            for (String key : ATTRIBUTES_TO_ESCALATE_TO_TRANSCRIPT) {
-                if (attributes.containsKey(key)) {
-                    escalated_attributes.put(key, attributes.get(key));
-                }
-            }
-            transcript = new Transcript(transcriptId, seqname, source, strand, escalated_attributes);
+            transcript = new Transcript(transcriptId, seqname, source, strand, escalateAttributes(attributes, ATTRIBUTES_TO_ESCALATE_TO_TRANSCRIPT));
             gene.addTranscript(transcriptId, transcript);
         }
         return transcript;
@@ -129,33 +153,35 @@ public class GTFParser {
 
     private static void processTranscript(String[] data, GTFAnnotation GTFAnnotation) {
         Map<String, String> attributes = parseAttributes(data[ATTRIBUTE_COL]);
-        String geneId = attributes.get("gene_id");
-        String transcriptId = attributes.get("transcript_id");
+        String geneId = attributes.get(GENE_ID);
+        String transcriptId = attributes.get(TRANSCRIPT_ID);
 
-        Gene gene = getOrCreateGene(GTFAnnotation, geneId, data[SEQNAME_COL], data[SOURCE_COL],getStrand(data[STRAND_COL]), attributes);
+        Gene gene = getOrCreateGene(GTFAnnotation, geneId, data[SEQNAME_COL], data[SOURCE_COL], parseStrand(data[STRAND_COL]), attributes);
 
         Transcript transcript = gene.getTranscript(transcriptId);
         if (transcript == null) {
-            transcript = new Transcript(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), getScore(data[SCORE_COL]), getStrand(data[STRAND_COL]), getFrame(data[FRAME_COL]), attributes);
-            transcript.setId(transcriptId);
-            gene.addTranscript(transcriptId, transcript);
+            createNewTranscript(data, attributes, transcriptId, gene);
         } else {
-            transcript.overwrite(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), getScore(data[SCORE_COL]), getStrand(data[STRAND_COL]), getFrame(data[FRAME_COL]), attributes);
+            overwriteTranscript(data, transcript, attributes);
         }
 
+    }
+
+    private static void overwriteTranscript(String[] data, Transcript transcript, Map<String, String> attributes) {
+        transcript.overwrite(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
+    }
+
+    private static void createNewTranscript(String[] data, Map<String, String> attributes, String transcriptId, Gene gene) {
+        Transcript transcript;
+        transcript = new Transcript(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
+        transcript.setId(transcriptId);
+        gene.addTranscript(transcriptId, transcript);
     }
 
     private static Gene getOrCreateGene(GTFAnnotation GTFAnnotation, String geneId, String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
         Gene gene = GTFAnnotation.getGenes().get(geneId);
         if (gene == null) {
-            // Only copy the attributes in ATTRIBUTES_TO_ESCALATE_TO_GENE
-            HashMap<String, String> escalated_attributes = new HashMap<>();
-            for (String key : ATTRIBUTES_TO_ESCALATE_TO_GENE) {
-                if (attributes.containsKey(key)) {
-                    escalated_attributes.put(key, attributes.get(key));
-                }
-            }
-            gene = new Gene(geneId, seqname, source, strand, escalated_attributes);
+            gene = new Gene(geneId, seqname, source, strand, escalateAttributes(attributes, ATTRIBUTES_TO_ESCALATE_TO_GENE));
             GTFAnnotation.addGene(gene);
         }
         return gene;
@@ -163,20 +189,28 @@ public class GTFParser {
 
     private static void processGene(String[] data, GTFAnnotation GTFAnnotation) {
         Map<String, String> attributes = parseAttributes(data[ATTRIBUTE_COL]);
-        Gene thisGene = GTFAnnotation.getGenes().get(attributes.get("gene_id"));
+        Gene thisGene = GTFAnnotation.getGenes().get(attributes.get(GENE_ID));
         // Check if gene already exists
-        if (thisGene != null) {
-            // Overwrite the gtf.AnnotationEntry fields with the new one
-            thisGene.overwrite(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), getScore(data[SCORE_COL]), getStrand(data[STRAND_COL]), getFrame(data[FRAME_COL]), attributes);
+        if (thisGene == null) {
+            createNewGene(data, GTFAnnotation, attributes);
         } else {
-            Gene gene = new Gene(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), getScore(data[SCORE_COL]), getStrand(data[STRAND_COL]), getFrame(data[FRAME_COL]), attributes);
-            gene.setId(gene.getAttribute("gene_id"));
-            GTFAnnotation.addGene(gene);
+            // Overwrite the gtf.structs.AnnotationEntry fields with the new one
+            overwriteGene(data, thisGene, attributes);
         }
 
     }
 
-    public static double getScore(String data) {
+    private static void overwriteGene(String[] data, Gene thisGene, Map<String, String> attributes) {
+        thisGene.overwrite(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
+    }
+
+    private static void createNewGene(String[] data, GTFAnnotation GTFAnnotation, Map<String, String> attributes) {
+        Gene gene = new Gene(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
+        gene.setId(gene.getAttribute(GENE_ID));
+        GTFAnnotation.addGene(gene);
+    }
+
+    public static double parseScore(String data) {
         if (Objects.equals(data, ".")) {
             return SEQNAME_COL;
         } else {
@@ -184,7 +218,7 @@ public class GTFParser {
         }
     }
 
-    public static StrandDirection getStrand(String data) {
+    public static StrandDirection parseStrand(String data) {
         return switch (data) {
             case "+" -> StrandDirection.FORWARD;
             case "-" -> StrandDirection.REVERSE;
@@ -192,7 +226,7 @@ public class GTFParser {
         };
     }
 
-    public static FrameStarts getFrame(String data) {
+    public static FrameStarts parseFrame(String data) {
         return switch (data) {
             case "." -> FrameStarts.NONE;
             case "0" -> FrameStarts.ZERO;

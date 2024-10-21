@@ -1,6 +1,10 @@
 package gtf;
 
-import java.util.HashMap;
+import gtf.structs.AnnotationEntry;
+import gtf.structs.Interval;
+import gtf.types.FrameStarts;
+import gtf.types.StrandDirection;
+
 import java.util.Map;
 
 public class CodingSequence extends AnnotationEntry implements Comparable<CodingSequence> {

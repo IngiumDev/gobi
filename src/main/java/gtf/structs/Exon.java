@@ -1,4 +1,8 @@
-package gtf;
+package gtf.structs;
+
+import gtf.CodingSequence;
+import gtf.types.FrameStarts;
+import gtf.types.StrandDirection;
 
 import java.util.Map;
 
@@ -15,7 +19,7 @@ public class Exon extends AnnotationEntry implements Comparable<Exon> {
         return Integer.compare(this.getInterval().getStart(), other.getInterval().getStart());
     }
 
-    public Exon(int exonNumber,String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
+    public Exon(int exonNumber, String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
         super(seqname, source, strand, attributes);
         this.exonNumber = exonNumber;
 

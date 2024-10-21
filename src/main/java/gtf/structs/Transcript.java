@@ -1,4 +1,8 @@
-package gtf;
+package gtf.structs;
+
+import gtf.CodingSequence;
+import gtf.types.FrameStarts;
+import gtf.types.StrandDirection;
 
 import java.util.Map;
 import java.util.Set;

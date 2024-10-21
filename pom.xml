@@ -33,7 +33,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>Runners.ExonSkipRunner</mainClass>
+                                    <mainClass>runners.ExonSkipRunner</mainClass>
                                 </manifest>
                             </archive>
                             <finalName>ExonSkipRunner</finalName>
@@ -52,7 +52,7 @@
                                 <configuration>
                                     <transformers>
                                         <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                            <mainClass>Runners.ExonSkipRunner</mainClass>
+                                            <mainClass>runners.ExonSkipRunner</mainClass>
                                         </transformer>
                                     </transformers>
                                     <finalName>ExonSkipRunner</finalName>

@@ -1,4 +1,4 @@
-package gtf;
+package gtf.structs;
 
 import java.util.Objects;
 

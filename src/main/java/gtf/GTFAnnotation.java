@@ -1,5 +1,7 @@
 package gtf;
 
+import gtf.structs.Gene;
+
 import java.util.HashMap;
 import java.util.Map;
 
