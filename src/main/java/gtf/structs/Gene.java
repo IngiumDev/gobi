@@ -1,4 +1,7 @@
-package gtf;
+package gtf.structs;
+
+import gtf.types.FrameStarts;
+import gtf.types.StrandDirection;
 
 import java.util.HashMap;
 import java.util.Map;

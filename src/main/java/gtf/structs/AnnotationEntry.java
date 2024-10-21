@@ -1,4 +1,7 @@
-package gtf;
+package gtf.structs;
+
+import gtf.types.FrameStarts;
+import gtf.types.StrandDirection;
 
 import java.util.Map;
 
@@ -10,7 +13,7 @@ public abstract class AnnotationEntry {
     private String seqname;
     // name of the program that generated this feature, or the data source (database or project name)
     private String source;
-    // feature type name, e.g. gtf.Gene, Variation, Similarity
+    // feature type name, e.g. gtf.structs.Gene, Variation, Similarity
     private String feature;
 
 
@@ -21,7 +24,7 @@ public abstract class AnnotationEntry {
         this.attributes = attributes;
     }
 
-    // gtf.Interval
+    // gtf.structs.Interval
     private Interval interval;
     // score - A floating point value.
     private double score;

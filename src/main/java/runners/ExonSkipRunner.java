@@ -1,6 +1,8 @@
-package Runners;
+package runners;
 
 import gtf.*;
+import gtf.structs.Interval;
+import gtf.types.StrandDirection;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.helper.HelpScreenException;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -44,8 +46,9 @@ public class ExonSkipRunner {
         System.out.println("Calculating introns");
 
         // Iterate through each gene, then through each intron
-
+        startTime = System.currentTimeMillis();
         Set<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
+        System.out.println("exonskipping calculated in " + (System.currentTimeMillis() - startTime) + "ms");
 
         // Write the exon skipping events to a file
         System.out.println("Writing exon skipping events to file");
