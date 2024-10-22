@@ -9,8 +9,11 @@ import gtf.structs.Transcript;
 import gtf.types.FrameStarts;
 import gtf.types.StrandDirection;
 
+
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -44,23 +47,29 @@ public class GTFParser {
     // GTF line columns to escalate: seqname, source, strand
     public static GTFAnnotation parseGTF(String gtfFile) {
         GTFAnnotation GTFAnnotation = new GTFAnnotation();
-        try (BufferedReader br = new BufferedReader(new FileReader(gtfFile))) {
+        try (BufferedReader br = Files.newBufferedReader(Paths.get(gtfFile))) {
+            long start = System.currentTimeMillis();
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.charAt(0) != '#') {
                     processGTFLine(line, GTFAnnotation);
                 }
             }
+            long end = System.currentTimeMillis();
+            System.out.println("Time to parse GTF: " + (end - start) + "ms");
 
             // Process introns
+            start = System.currentTimeMillis();
             GTFAnnotation.getGenes().values().parallelStream().forEach(gene -> gene.getTranscripts().values().parallelStream().forEach(Transcript::processIntrons));
             GTFAnnotation.getGenes().values().parallelStream().forEach(Gene::processProteins);
-
+            end = System.currentTimeMillis();
+            System.out.println("Time to process introns: " + (end - start) + "ms");
         } catch (Exception e) {
             e.printStackTrace();
         }
         return GTFAnnotation;
     }
+
 
     private static void processGTFLine(String line, GTFAnnotation GTFAnnotation) {
         String[] data = line.split("\t");
