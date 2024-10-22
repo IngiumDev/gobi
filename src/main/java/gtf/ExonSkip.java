@@ -62,9 +62,14 @@ public class ExonSkip {
 
     public static Set<ExonSkip> findExonSkippingEvents(GTFAnnotation gtfAnnotation) {
         Set<ExonSkip> exonSkips = new HashSet<>();
+        long start = System.currentTimeMillis();
         gtfAnnotation.getGenes().values().parallelStream().forEach(gene -> {
+            HashSet<Interval> checkedIntrons = new HashSet<>();
             for (Transcript transcript : gene.getTranscripts().values()) {
                 for (Interval intron : transcript.getIntrons()) {
+                    if (checkedIntrons.contains(intron)) {
+                        continue;
+                    }
                     // Check if the intron is a candidate for exon skipping
                     Set<String> spliceVariantProteins = new HashSet<>();
                     Set<String> wildTypeStartProteins = new HashSet<>();
@@ -77,15 +82,19 @@ public class ExonSkip {
                     // (WT_start intersect WT_end) – SV Folie 22/26
                     Set<String> wildTypeProteins = new HashSet<>(wildTypeStartProteins);
                     wildTypeProteins.retainAll(wildTypeEndProteins);
-                    wildTypeProteins.removeAll(spliceVariantProteins);
+                    // Not needed since we aren't adding SV proteins to the WT proteins due to the if condition
+                    //wildTypeProteins.removeAll(spliceVariantProteins);
+
 
                     if (!wildTypeProteins.isEmpty()) {
                         ExonSkip exonSkip = createExonSkipEvent(gene, intron, wildTypeProteins, wildTypeIntrons, spliceVariantProteins);
                         exonSkips.add(exonSkip);
                     }
+                    checkedIntrons.add(intron);
                 }
             }
         });
+        System.out.println("Time taken: " + (System.currentTimeMillis() - start) + "ms");
         return exonSkips;
     }
 
@@ -136,7 +145,7 @@ public class ExonSkip {
         return new SkippedExonsBases(minSkippedExons, maxSkippedExons, minSkippedBases, maxSkippedBases);
     }
 
-    private static void findMatchingTranscriptsForIntron(Gene gene, Interval intron, Set<String> spliceVariantProteins, Set<String> wildTypeStartProteins, Set<Interval> wildTypeIntrons, Set<String> wildTypeEndProteins) {
+    private static void findMatchingTranscriptsForIntron(Gene gene, Interval intronCandidate, Set<String> spliceVariantProteins, Set<String> wildTypeStartProteins, Set<Interval> wildTypeIntrons, Set<String> wildTypeEndProteins) {
         for (Transcript transcriptToCheck : gene.getTranscripts().values()) {
             // only consider transcripts with cds
             if (transcriptToCheck.getCds().isEmpty()) {
@@ -147,18 +156,16 @@ public class ExonSkip {
             for (Interval intronToCheck : transcriptToCheck.getIntrons()) {
                 // Check if the intron is the same as the candidate intron (SV)
 
-                // TODO: check if an intron is in the middle (so doesn't match start or end)
-                // TODO: do we even need to do the set operations
-                if (intronToCheck.equals(intron)) {
+                if (intronToCheck.equals(intronCandidate)) {
                     spliceVariantProteins.add(transcriptToCheck.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
-                } else if (intronToCheck.getStart() == intron.getStart()) {
+                } else if (intronToCheck.getStart() == intronCandidate.getStart()) {
                     wildTypeStartProteins.add(transcriptToCheck.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
                     wildTypeIntrons.add(intronToCheck);
-                } else if (intronToCheck.getEnd() == intron.getEnd()) {
+                } else if (intronToCheck.getEnd() == intronCandidate.getEnd()) {
                     wildTypeEndProteins.add(transcriptToCheck.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
                     wildTypeIntrons.add(intronToCheck);
                     // if it is the end intron, add it to the wildTypeIntrons
-                } else if (intronToCheck.getStart() > intron.getStart() && intronToCheck.getEnd() < intron.getEnd()) {
+                } else if (intronToCheck.getStart() > intronCandidate.getStart() && intronToCheck.getEnd() < intronCandidate.getEnd()) {
                     wildTypeIntrons.add(intronToCheck);
                 }
             }
