@@ -47,7 +47,7 @@ public class GTFParser {
         try (BufferedReader br = new BufferedReader(new FileReader(gtfFile))) {
             String line;
             while ((line = br.readLine()) != null) {
-                if (line.charAt(1) != '#') {
+                if (line.charAt(0) != '#') {
                     processGTFLine(line, GTFAnnotation);
                 }
             }

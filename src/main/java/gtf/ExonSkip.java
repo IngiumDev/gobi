@@ -71,7 +71,7 @@ public class ExonSkip {
                     Set<String> wildTypeEndProteins = new HashSet<>();
                     Set<Interval> wildTypeIntrons = new HashSet<>();
 
-
+                    // TODO check if the intro has already been processed in a set
                     findMatchingTranscriptsForIntron(gene, intron, spliceVariantProteins, wildTypeStartProteins, wildTypeIntrons, wildTypeEndProteins);
 
                     // (WT_start intersect WT_end) – SV Folie 22/26
@@ -137,23 +137,29 @@ public class ExonSkip {
     }
 
     private static void findMatchingTranscriptsForIntron(Gene gene, Interval intron, Set<String> spliceVariantProteins, Set<String> wildTypeStartProteins, Set<Interval> wildTypeIntrons, Set<String> wildTypeEndProteins) {
-        for (Transcript t : gene.getTranscripts().values()) {
+        for (Transcript transcriptToCheck : gene.getTranscripts().values()) {
             // only consider transcripts with cds
-            if (t.getCds().isEmpty()) {
+            if (transcriptToCheck.getCds().isEmpty()) {
                 //System.out.println("No CDS found for transcript " + t.getId());
                 continue;
             }
 
-            for (Interval i : t.getIntrons()) {
+            for (Interval intronToCheck : transcriptToCheck.getIntrons()) {
                 // Check if the intron is the same as the candidate intron (SV)
-                if (i.equals(intron)) {
-                    spliceVariantProteins.add(t.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
-                } else if (i.getStart() == intron.getStart()) {
-                    wildTypeStartProteins.add(t.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
-                    wildTypeIntrons.add(i);
-                } else if (i.getEnd() == intron.getEnd()) {
-                    wildTypeEndProteins.add(t.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
-                    wildTypeIntrons.add(i);
+
+                // TODO: check if an intron is in the middle (so doesn't match start or end)
+                // TODO: do we even need to do the set operations
+                if (intronToCheck.equals(intron)) {
+                    spliceVariantProteins.add(transcriptToCheck.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
+                } else if (intronToCheck.getStart() == intron.getStart()) {
+                    wildTypeStartProteins.add(transcriptToCheck.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
+                    wildTypeIntrons.add(intronToCheck);
+                } else if (intronToCheck.getEnd() == intron.getEnd()) {
+                    wildTypeEndProteins.add(transcriptToCheck.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
+                    wildTypeIntrons.add(intronToCheck);
+                    // if it is the end intron, add it to the wildTypeIntrons
+                } else if (intronToCheck.getStart() > intron.getStart() && intronToCheck.getEnd() < intron.getEnd()) {
+                    wildTypeIntrons.add(intronToCheck);
                 }
             }
         }
