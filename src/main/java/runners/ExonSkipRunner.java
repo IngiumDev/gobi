@@ -6,6 +6,7 @@ import gtf.types.StrandDirection;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.helper.HelpScreenException;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 import parsers.GTFParser;
 
@@ -30,10 +31,8 @@ public class ExonSkipRunner {
         try {
             Namespace res = parser.parseArgs(args);
             start(res);
-        } catch (HelpScreenException e) {
+        } catch (ArgumentParserException e) {
             parser.printHelp();
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 

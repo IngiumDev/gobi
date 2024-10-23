@@ -12,6 +12,7 @@ import gtf.types.StrandDirection;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -64,7 +65,7 @@ public class GTFParser {
             GTFAnnotation.getGenes().values().parallelStream().forEach(Gene::processProteins);
             end = System.currentTimeMillis();
             System.out.println("Time to process introns: " + (end - start) + "ms");
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return GTFAnnotation;
