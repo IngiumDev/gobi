@@ -105,7 +105,7 @@ public class ExonSkip {
                 .setSymbol(gene.getAttribute(GTFParser.GENE_NAME))
                 .setChr(gene.getSeqname())
                 .setStrand(gene.getStrand())
-                .setNprots((int) gene.getTranscripts().values().stream().filter(t -> !t.getCds().isEmpty()).count())
+                .setNprots(gene.getProtein_to_transcript().size())
                 .setNtrans(gene.getTranscripts().size())
                 .setSV(new Interval(intron))
                 .setWT(new TreeSet<>(wildTypeIntrons))
@@ -130,7 +130,7 @@ public class ExonSkip {
             int skippedExons = 0;
             int skippedBases = 0;
             // Find the number of exons that lie within the intron
-            for (Exon exon : t.getExons()) {
+            for (CodingSequence exon : t.getCds()) {
                 if (intron.getStart() <= exon.getInterval().getStart() && intron.getEnd() >= exon.getInterval().getEnd()) {
                     skippedExons++;
                     skippedBases += exon.getInterval().getLength();

@@ -68,5 +68,11 @@ public class Gene extends AnnotationEntry {
         return protein_to_transcript.get(protein_id);
     }
 
+    public Map<String, String> getProtein_to_transcript() {
+        return protein_to_transcript;
+    }
 
+    public void setProtein_to_transcript(Map<String, String> protein_to_transcript) {
+        this.protein_to_transcript = protein_to_transcript;
+    }
 }
