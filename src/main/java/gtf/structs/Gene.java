@@ -23,6 +23,7 @@ public class Gene extends AnnotationEntry {
 
     public Gene(String id, String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
         super(seqname, source, strand, attributes);
+        this.id = id;
         transcripts = new HashMap<>();
 
     }
