@@ -41,8 +41,10 @@ public class ExonSkipRunner {
         GTFAnnotation GTFAnnotation = GTFParser.parseGTF(res.getString("gtf"));
 
         // Iterate through each gene, then through each intron
+        long start = System.currentTimeMillis();
         Set<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
-
+        long end = System.currentTimeMillis();
+        System.out.println("Time taken: " + (end - start) + "ms");
         // Write the exon skipping events to a file
         writeExonSkipToFile(res.getString("o"), exonSkips);
 
