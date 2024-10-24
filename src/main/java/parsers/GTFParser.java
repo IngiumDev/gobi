@@ -11,7 +11,6 @@ import gtf.types.StrandDirection;
 
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -45,6 +44,8 @@ public class GTFParser {
     public static final String EXON_NUMBER = "exon_number";
     public static final String PROTEIN_ID = "protein_id";
 
+    // TODO: What if protein_id doesn't exist?
+    // TODO: move attributes to class, destroy attributes
     // GTF line columns to escalate: seqname, source, strand
     public static GTFAnnotation parseGTF(String gtfFile) {
         GTFAnnotation GTFAnnotation = new GTFAnnotation();
@@ -184,7 +185,7 @@ public class GTFParser {
     private static void createNewTranscript(String[] data, Map<String, String> attributes, String transcriptId, Gene gene) {
         Transcript transcript;
         transcript = new Transcript(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
-        transcript.setId(transcriptId);
+        transcript.setTranscriptId(transcriptId);
         gene.addTranscript(transcriptId, transcript);
     }
 
@@ -216,7 +217,7 @@ public class GTFParser {
 
     private static void createNewGene(String[] data, GTFAnnotation GTFAnnotation, Map<String, String> attributes) {
         Gene gene = new Gene(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
-        gene.setId(gene.getAttribute(GENE_ID));
+        gene.setGeneId(gene.getAttribute(GENE_ID));
         GTFAnnotation.addGene(gene);
     }
 

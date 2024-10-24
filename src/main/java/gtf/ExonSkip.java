@@ -1,6 +1,5 @@
 package gtf;
 
-import gtf.structs.Exon;
 import gtf.structs.Gene;
 import gtf.structs.Interval;
 import gtf.structs.Transcript;
@@ -101,7 +100,7 @@ public class ExonSkip {
     private static ExonSkip createExonSkipEvent(Gene gene, Interval intron, Set<String> WT, Set<Interval> wildTypeIntrons, Set<String> spliceVariantProteins) {
         SkippedExonsBases skippedExonsBases = calculateSkippedExonsAndBases(gene, intron, WT);
         return new Builder()
-                .setId(gene.getId())
+                .setId(gene.getGeneId())
                 .setSymbol(gene.getAttribute(GTFParser.GENE_NAME))
                 .setChr(gene.getSeqname())
                 .setStrand(gene.getStrand())

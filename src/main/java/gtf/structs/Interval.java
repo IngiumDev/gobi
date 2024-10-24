@@ -53,7 +53,7 @@ public class Interval implements Comparable<Interval> {
         return end - start + 1;
     }
 
-
+    // TODO look into adding second parameter to compare by end
     @Override
     public int compareTo(Interval o) {
         return Integer.compare(this.start, o.start);

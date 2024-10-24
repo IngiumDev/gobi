@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 public class Transcript extends AnnotationEntry {
-    private String id;
+    private String transcriptId;
     // Sorted by start position
     private TreeSet<Exon> exons;
     private TreeSet<CodingSequence> cds;
@@ -21,8 +21,8 @@ public class Transcript extends AnnotationEntry {
         cds = new TreeSet<>();
     }
 
-    public Transcript(String id) {
-        this.id = id;
+    public Transcript(String transcriptId) {
+        this.transcriptId = transcriptId;
         exons = new TreeSet<>();
         cds = new TreeSet<>();
     }
@@ -39,19 +39,19 @@ public class Transcript extends AnnotationEntry {
         return exons.add(exon);
     }
 
-    public String getId() {
-        return id;
+    public String getTranscriptId() {
+        return transcriptId;
     }
 
-    public Transcript(String id,String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
+    public Transcript(String transcriptId, String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
         super(seqname, source, strand, attributes);
         exons = new TreeSet<>();
         cds = new TreeSet<>();
-        this.id = id;
+        this.transcriptId = transcriptId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setTranscriptId(String transcriptId) {
+        this.transcriptId = transcriptId;
     }
 
     public boolean hasExonWithNumber(int exonNumber) {

@@ -15,7 +15,7 @@ public class GTFAnnotation {
         this.genes = genes;
     }
     public void addGene(Gene gene) {
-        genes.put(gene.getId(), gene);
+        genes.put(gene.getGeneId(), gene);
     }
 
 }
