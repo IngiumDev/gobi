@@ -1,6 +1,6 @@
 package parsers;
 
-import gtf.CodingSequence;
+import gtf.structs.CodingSequence;
 import gtf.GTFAnnotation;
 import gtf.structs.Exon;
 import gtf.structs.Gene;
@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static FileUtils.FileReader.parseAttributes;
+import static gtf.structs.Attribute.parseAttributes;
 
 public class GTFParser {
 
@@ -185,7 +185,7 @@ public class GTFParser {
     private static void createNewTranscript(String[] data, Map<String, String> attributes, String transcriptId, Gene gene) {
         Transcript transcript;
         transcript = new Transcript(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
-        transcript.setTranscriptId(transcriptId);
+        transcript.setTranscriptID(transcriptId);
         gene.addTranscript(transcriptId, transcript);
     }
 
@@ -217,7 +217,7 @@ public class GTFParser {
 
     private static void createNewGene(String[] data, GTFAnnotation GTFAnnotation, Map<String, String> attributes) {
         Gene gene = new Gene(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
-        gene.setGeneId(gene.getAttribute(GENE_ID));
+        gene.setGeneID(gene.getAttribute(GENE_ID));
         GTFAnnotation.addGene(gene);
     }
 
