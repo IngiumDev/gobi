@@ -1,41 +1,32 @@
 package gtf.structs;
 
-import gtf.CodingSequence;
 import gtf.types.FrameStarts;
 import gtf.types.StrandDirection;
 
-import java.util.Map;
-
 public class Exon extends AnnotationEntry implements Comparable<Exon> {
-    private int exonNumber;
+    private final String exonID; // rarely used
+    private final String exonNumber;
     private CodingSequence cds;
 
-    public Exon() {
-
+    // If we read a EXON line
+    public Exon(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Attribute attribute) {
+        super(seqname, source, feature, interval, score, strand, frame);
+        this.exonNumber = attribute.getExonNumber();
+        this.exonID = attribute.getExonID();
     }
 
-    @Override
-    public int compareTo(Exon other) {
-        return Integer.compare(this.getInterval().getStart(), other.getInterval().getStart());
+    // If we read a CDS line
+    public Exon(Attribute attribute) {
+        this.exonNumber = attribute.getExonNumber();
+        this.exonID = attribute.getExonID();
     }
 
-    public Exon(int exonNumber, String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
-        super(seqname, source, strand, attributes);
-        this.exonNumber = exonNumber;
-
+    public String getExonID() {
+        return exonID;
     }
 
-    public int getExonNumber() {
+    public String getExonNumber() {
         return exonNumber;
-    }
-
-    public void setExonNumber(int exonNumber) {
-        this.exonNumber = exonNumber;
-    }
-
-    public Exon(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Map<String, String> attributes) {
-        super(seqname, source, feature, interval, score, strand, frame, attributes);
-
     }
 
     public CodingSequence getCds() {
@@ -44,5 +35,10 @@ public class Exon extends AnnotationEntry implements Comparable<Exon> {
 
     public void setCds(CodingSequence cds) {
         this.cds = cds;
+    }
+
+    @Override
+    public int compareTo(Exon other) {
+        return Integer.compare(this.getInterval().getStart(), other.getInterval().getStart());
     }
 }

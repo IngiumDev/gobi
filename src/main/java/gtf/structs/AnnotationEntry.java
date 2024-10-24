@@ -16,15 +16,6 @@ public abstract class AnnotationEntry {
     private String source;
     // feature type name, e.g. gtf.structs.Gene, Variation, Similarity
     private String feature;
-
-
-    public AnnotationEntry(String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
-        this.seqname = seqname;
-        this.source = source;
-        this.strand = strand;
-        this.attributes = attributes;
-    }
-
     // gtf.structs.Interval
     private Interval interval;
     // score - A floating point value.
@@ -33,30 +24,19 @@ public abstract class AnnotationEntry {
     private StrandDirection strand;
     // frame - One of '0', '1' or '2'. '0' indicates that the first base of the feature is the first base of a codon, '1' that the second base is the first base of a codon, and so on..
     private FrameStarts frame;
-    private Map<String, String> attributes;
 
-    public String getFeature() {
-        return feature;
-    }
 
-    public void setFeature(String feature) {
+    public AnnotationEntry(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame) {
+        this.seqname = seqname;
+        this.source = source;
         this.feature = feature;
-    }
-
-    public FrameStarts getFrame() {
-        return frame;
-    }
-
-    public void setFrame(FrameStarts frame) {
+        this.interval = interval;
+        this.score = score;
+        this.strand = strand;
         this.frame = frame;
     }
 
-    public double getScore() {
-        return score;
-    }
-
-    public void setScore(double score) {
-        this.score = score;
+    public AnnotationEntry() {
     }
 
     public String getSeqname() {
@@ -75,39 +55,12 @@ public abstract class AnnotationEntry {
         this.source = source;
     }
 
-    public StrandDirection getStrand() {
-        return strand;
+    public String getFeature() {
+        return feature;
     }
 
-    public void setStrand(StrandDirection strand) {
-        this.strand = strand;
-    }
-
-    public Map<String, String> getAttributes() {
-        return attributes;
-    }
-
-    public void setAttributes(Map<String, String> attributes) {
-        this.attributes = attributes;
-    }
-
-    public AnnotationEntry(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Map<String, String> attributes) {
-        this.seqname = seqname;
-        this.source = source;
+    public void setFeature(String feature) {
         this.feature = feature;
-        this.interval = interval;
-        this.score = score;
-        this.strand = strand;
-        this.frame = frame;
-        this.attributes = attributes;
-    }
-
-
-    public String getAttribute(String key) {
-        return attributes.get(key);
-    }
-
-    public AnnotationEntry() {
     }
 
     public Interval getInterval() {
@@ -118,7 +71,31 @@ public abstract class AnnotationEntry {
         this.interval = interval;
     }
 
-    public void overwrite(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Map<String, String> attributes) {
+    public double getScore() {
+        return score;
+    }
+
+    public void setScore(double score) {
+        this.score = score;
+    }
+
+    public StrandDirection getStrand() {
+        return strand;
+    }
+
+    public void setStrand(StrandDirection strand) {
+        this.strand = strand;
+    }
+
+    public FrameStarts getFrame() {
+        return frame;
+    }
+
+    public void setFrame(FrameStarts frame) {
+        this.frame = frame;
+    }
+
+    public void overwrite(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame) {
         this.seqname = seqname;
         this.source = source;
         this.feature = feature;
@@ -126,6 +103,5 @@ public abstract class AnnotationEntry {
         this.score = score;
         this.strand = strand;
         this.frame = frame;
-        this.attributes = attributes;
     }
 }

@@ -1,6 +1,5 @@
 package gtf.structs;
 
-import gtf.CodingSequence;
 import gtf.types.FrameStarts;
 import gtf.types.StrandDirection;
 
@@ -9,101 +8,49 @@ import java.util.Set;
 import java.util.TreeSet;
 
 public class Transcript extends AnnotationEntry {
-    private String transcriptId;
+    // TODO: think about where to store cds once
+    private String transcriptID;
+    private String transcriptName;
     // Sorted by start position
     private TreeSet<Exon> exons;
     private TreeSet<CodingSequence> cds;
-    private Set<Interval> introns;
 
-    public Transcript(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Map<String, String> attributes) {
-        super(seqname, source, feature, interval, score, strand, frame, attributes);
-        exons = new TreeSet<>();
-        cds = new TreeSet<>();
+    // If we read a transcript line
+    public Transcript(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Attribute attribute) {
+        super(seqname, source, feature, interval, score, strand, frame);
+        this.transcriptID = attribute.getTranscriptID();
+        this.transcriptName = attribute.getTranscriptName();
+        this.exons = new TreeSet<>();
+        this.cds = new TreeSet<>();
+    }
+    // If we read an exon or CDS line
+    public Transcript(Attribute attribute) {
+        this.transcriptID = attribute.getTranscriptID();
+        this.transcriptName = attribute.getTranscriptName();
+        this.exons = new TreeSet<>();
+        this.cds = new TreeSet<>();
     }
 
-    public Transcript(String transcriptId) {
-        this.transcriptId = transcriptId;
-        exons = new TreeSet<>();
-        cds = new TreeSet<>();
+    public boolean addExon(Exon exon) {
+        return exons.add(exon);
+    }
+    public boolean addCds(CodingSequence cds) {
+        return this.cds.add(cds);
+    }
+
+    public String getTranscriptName() {
+        return transcriptName;
+    }
+
+    public String getTranscriptID() {
+        return transcriptID;
     }
 
     public TreeSet<Exon> getExons() {
         return exons;
     }
 
-    public void setExons(TreeSet<Exon> exons) {
-        this.exons = exons;
-    }
-
-    public boolean addExon(Exon exon) {
-        return exons.add(exon);
-    }
-
-    public String getTranscriptId() {
-        return transcriptId;
-    }
-
-    public Transcript(String transcriptId, String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
-        super(seqname, source, strand, attributes);
-        exons = new TreeSet<>();
-        cds = new TreeSet<>();
-        this.transcriptId = transcriptId;
-    }
-
-    public void setTranscriptId(String transcriptId) {
-        this.transcriptId = transcriptId;
-    }
-
-    public boolean hasExonWithNumber(int exonNumber) {
-        for (Exon exon : exons) {
-            if (exon.getExonNumber() == exonNumber) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public Exon getExonByNumber(int exonNumber) {
-        for (Exon exon : exons) {
-            if (exon.getExonNumber() == exonNumber) {
-                return exon;
-            }
-        }
-        return null;
-    }
-
-    public boolean addCds(CodingSequence cds) {
-        return this.cds.add(cds);
-    }
-
     public TreeSet<CodingSequence> getCds() {
         return cds;
-    }
-
-    public void setCds(TreeSet<CodingSequence> cds) {
-        this.cds = cds;
-    }
-
-    public void processIntrons() {
-        introns = new TreeSet<>();
-        CodingSequence previousExon = null;
-        for (CodingSequence exon : cds) {
-            if (previousExon != null) {
-                int intronStart = previousExon.getInterval().getEnd() + 1;
-                int intronEnd = exon.getInterval().getStart() - 1;
-                if (intronStart <= intronEnd) {
-                    introns.add(new Interval(intronStart, intronEnd));
-                }
-            }
-            previousExon = exon;
-        }
-    }
-
-    public Set<Interval> getIntrons() {
-        return introns;
-    }
-
-    public void setIntrons(Set<Interval> introns) {
-        this.introns = introns;
     }
 }
