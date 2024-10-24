@@ -8,8 +8,9 @@ public class Interval implements Comparable<Interval> {
     private int end;
 
     public Interval(int start, int end) {
-        this.end = end;
         this.start = start;
+        this.end = end;
+
     }
     public Interval (Interval interval) {
         this.start = interval.start;
@@ -56,6 +57,10 @@ public class Interval implements Comparable<Interval> {
     // TODO look into adding second parameter to compare by end
     @Override
     public int compareTo(Interval o) {
-        return Integer.compare(this.start, o.start);
+        int startComparison = Integer.compare(this.start, o.start);
+        if (startComparison != 0) {
+            return startComparison;
+        }
+        return Integer.compare(this.end, o.end); // Compare by end if starts are equal
     }
 }

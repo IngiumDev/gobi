@@ -5,12 +5,12 @@ import gtf.structs.Gene;
 import gtf.structs.Interval;
 import gtf.structs.Transcript;
 import gtf.types.StrandDirection;
-import parsers.GTFParser;
 
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 public class ExonSkip {
 
@@ -64,33 +64,16 @@ public class ExonSkip {
         Set<ExonSkip> exonSkips = new HashSet<>();
         long start = System.currentTimeMillis();
         gtfAnnotation.getGenes().values().parallelStream().forEach(gene -> {
-            HashSet<Interval> checkedIntrons = new HashSet<>();
-            for (Transcript transcript : gene.getTranscripts().values()) {
-                for (Interval intron : transcript.getIntrons()) {
-                    if (checkedIntrons.contains(intron)) {
-                        continue;
-                    }
-                    // Check if the intron is a candidate for exon skipping
-                    Set<String> spliceVariantProteins = new HashSet<>();
-                    Set<String> wildTypeStartProteins = new HashSet<>();
-                    Set<String> wildTypeEndProteins = new HashSet<>();
-                    Set<Interval> wildTypeIntrons = new HashSet<>();
+            for (Interval intron : gene.getIntrons()) {
+                Set<String> spliceVariantTranscripts = new HashSet<>();
+                Set<String> wildTypeTranscripts = new HashSet<>();
+                Set<String> wildTypeEndTranscripts = new HashSet<>();
+                Set<Interval> wildTypeIntrons = new TreeSet<>();
+                checkIntronCandidate(gene, intron, spliceVariantTranscripts, wildTypeTranscripts, wildTypeIntrons);
 
-                    // TODO check if the intro has already been processed in a set
-                    findMatchingTranscriptsForIntron(gene, intron, spliceVariantProteins, wildTypeStartProteins, wildTypeIntrons, wildTypeEndProteins);
-
-                    // (WT_start intersect WT_end) – SV Folie 22/26
-                    Set<String> wildTypeProteins = new HashSet<>(wildTypeStartProteins);
-                    wildTypeProteins.retainAll(wildTypeEndProteins);
-                    // Not needed since we aren't adding SV proteins to the WT proteins due to the if condition
-                    //wildTypeProteins.removeAll(spliceVariantProteins);
-
-
-                    if (!wildTypeProteins.isEmpty()) {
-                        ExonSkip exonSkip = createExonSkipEvent(gene, intron, wildTypeProteins, wildTypeIntrons, spliceVariantProteins);
-                        exonSkips.add(exonSkip);
-                    }
-                    checkedIntrons.add(intron);
+                if (!spliceVariantTranscripts.isEmpty() && !wildTypeTranscripts.isEmpty()) {
+                    ExonSkip exonSkip = createExonSkipEvent(gene, intron, spliceVariantTranscripts, wildTypeIntrons, wildTypeTranscripts);
+                    exonSkips.add(exonSkip);
                 }
             }
         });
@@ -98,19 +81,59 @@ public class ExonSkip {
         return exonSkips;
     }
 
-    private static ExonSkip createExonSkipEvent(Gene gene, Interval intron, Set<String> WT, Set<Interval> wildTypeIntrons, Set<String> spliceVariantProteins) {
-        SkippedExonsBases skippedExonsBases = calculateSkippedExonsAndBases(gene, intron, WT);
+    private static void checkIntronCandidate(Gene gene, Interval intronCandidate, Set<String> spliceVariantTranscripts, Set<String> wildTypeTranscripts, Set<Interval> wildTypeIntrons) {
+        for (Transcript transcriptToCheck : gene.getTranscripts().values()) {
+            Set<Interval> intronsToAdd = new TreeSet<>();
+
+            int intronCandidateStart = intronCandidate.getStart();
+            int intronCandidateEnd = intronCandidate.getEnd();
+            boolean isStartIntron = false;
+            boolean isEndIntron = false;
+            CodingSequence previousCds = null;
+
+            for (CodingSequence cds : transcriptToCheck.getCds()) {
+                if (previousCds != null) {
+                    if (previousCds.getInterval().getEnd() + 1 >= intronCandidateStart && cds.getInterval().getStart() - 1 <= intronCandidateEnd ) {
+                        if (previousCds.getInterval().getEnd() + 1 == intronCandidateStart && cds.getInterval().getStart() -1 == intronCandidateEnd) {
+                            spliceVariantTranscripts.add(transcriptToCheck.getTranscriptID());
+
+                            break;
+                        } else if (previousCds.getInterval().getEnd() + 1 == intronCandidateStart) {
+                            isStartIntron = true;
+                            intronsToAdd.add(new Interval(previousCds.getInterval().getEnd() + 1, cds.getInterval().getStart() - 1));
+                        } else if (cds.getInterval().getStart() - 1 == intronCandidateEnd) {
+                            isEndIntron = true;
+                            intronsToAdd.add(new Interval(previousCds.getInterval().getEnd() +1, cds.getInterval().getStart() - 1));
+                        } else {
+                            intronsToAdd.add(new Interval(previousCds.getInterval().getEnd() + 1, cds.getInterval().getStart() - 1));
+                        }
+                    }
+                }
+                previousCds = cds;
+            }
+            if (isStartIntron && isEndIntron) {
+                wildTypeTranscripts.add(transcriptToCheck.getTranscriptID());
+                wildTypeIntrons.addAll(intronsToAdd);
+            }
+        }
+
+    }
+
+    private static ExonSkip createExonSkipEvent(Gene gene, Interval intron, Set<String> wildTypeTranscripts, Set<Interval> wildTypeIntrons, Set<String> spliceVariantTranscripts) {
+        SkippedExonsBases skippedExonsBases = calculateSkippedExonsAndBases(gene, intron, spliceVariantTranscripts);
+        Set<String> spliceVariantProteins = convertTranscriptToProteinID(gene, spliceVariantTranscripts);
+        Set<String> wildTypeProteins = convertTranscriptToProteinID(gene, wildTypeTranscripts);
         return new Builder()
                 .setId(gene.getGeneID())
-                .setSymbol(gene.getAttribute(GTFParser.GENE_NAME))
+                .setSymbol(gene.getGeneName())
                 .setChr(gene.getSeqname())
                 .setStrand(gene.getStrand())
-                .setNprots(gene.getProtein_to_transcript().size())
+                .setNprots((int) gene.getTranscripts().values().stream().map(Transcript::getCds).filter(cds -> cds != null && !cds.isEmpty()).count())
                 .setNtrans(gene.getTranscripts().size())
                 .setSV(new Interval(intron))
                 .setWT(new TreeSet<>(wildTypeIntrons))
                 .setSV_prots(spliceVariantProteins)
-                .setWT_prots(WT)
+                .setWT_prots(wildTypeProteins)
                 .setMax_skipped_exon(skippedExonsBases.maxSkippedExons())
                 .setMin_skipped_exon(skippedExonsBases.minSkippedExons())
                 .setMax_skipped_bases(skippedExonsBases.maxSkippedBases())
@@ -118,22 +141,37 @@ public class ExonSkip {
                 .build();
     }
 
-    private static SkippedExonsBases calculateSkippedExonsAndBases(Gene gene, Interval intron, Set<String> WT) {
+    private static Set<String> convertTranscriptToProteinID(Gene gene, Set<String> transcriptIDs) {
+        return transcriptIDs.stream()
+                .map(gene::getTranscript)
+                .map(transcript -> {
+                    String proteinID = transcript.getCds().getFirst().getProteinID();
+                    if (proteinID != null) {
+                        return proteinID;
+                    }
+                    String ccdsID = transcript.getCds().getFirst().getCcdsID();
+                     if (ccdsID != null) {
+                         return ccdsID;
+                     }                      return "NONE";
+                }).collect(Collectors.toSet());
+    }
+
+    private static SkippedExonsBases calculateSkippedExonsAndBases(Gene gene, Interval intron, Set<String> wildTypeTranscripts) {
         int minSkippedExons = Integer.MAX_VALUE;
         int maxSkippedExons = Integer.MIN_VALUE;
         int minSkippedBases = Integer.MAX_VALUE;
         int maxSkippedBases = Integer.MIN_VALUE;
-        for (String protein_id : WT) {
+        for (String transcript_id : wildTypeTranscripts) {
             // Get the transcript
-            String transcript_id = gene.convertProteinToTranscript(protein_id);
             Transcript t = gene.getTranscript(transcript_id);
             int skippedExons = 0;
             int skippedBases = 0;
             // Find the number of exons that lie within the intron
-            for (CodingSequence exon : t.getCds()) {
-                if (intron.getStart() <= exon.getInterval().getStart() && intron.getEnd() >= exon.getInterval().getEnd()) {
+            for (CodingSequence cds : t.getCds()) {
+
+                if (intron.getStart() <= cds.getInterval().getStart() && intron.getEnd() >= cds.getInterval().getEnd()) {
                     skippedExons++;
-                    skippedBases += exon.getInterval().getLength();
+                    skippedBases += cds.getInterval().getLength();
                 }
             }
             minSkippedExons = Math.min(minSkippedExons, skippedExons);
@@ -145,7 +183,7 @@ public class ExonSkip {
         return new SkippedExonsBases(minSkippedExons, maxSkippedExons, minSkippedBases, maxSkippedBases);
     }
 
-    private static void findMatchingTranscriptsForIntron(Gene gene, Interval intronCandidate, Set<String> spliceVariantProteins, Set<String> wildTypeStartProteins, Set<Interval> wildTypeIntrons, Set<String> wildTypeEndProteins) {
+   /* private static void checkIntronCandidate(Gene gene, Interval intronCandidate, Set<String> spliceVariantProteins, Set<String> wildTypeStartProteins, Set<Interval> wildTypeIntrons, Set<String> wildTypeEndProteins) {
         for (Transcript transcriptToCheck : gene.getTranscripts().values()) {
             // only consider transcripts with cds
             if (transcriptToCheck.getCds().isEmpty()) {
@@ -170,7 +208,7 @@ public class ExonSkip {
                 }
             }
         }
-    }
+    }*/
 
 
     @Override

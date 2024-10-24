@@ -3,7 +3,7 @@ package gtf.structs;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Attribute {
+public class GTFAttributes {
     public static final String GENE_ID = "gene_id";
     public static final String GENE_NAME = "gene_name";
     public static final String TRANSCRIPT_ID = "transcript_id";
@@ -12,6 +12,7 @@ public class Attribute {
     public static final String EXON_NUMBER = "exon_number";
     public static final String PROTEIN_ID = "protein_id";
     public static final String CCDS_ID = "ccds_id";
+    public static final String CCDS_ID2 = "ccdsid";
     // Gene
     private String geneID;
     private String geneName;
@@ -25,7 +26,7 @@ public class Attribute {
     private String proteinID; //not always present: rely on
     private String ccdsID; //not always present
 
-    public Attribute(Builder builder) {
+    public GTFAttributes(Builder builder) {
         this.geneID = builder.geneID;
         this.geneName = builder.geneName;
         this.transcriptID = builder.transcriptID;
@@ -57,8 +58,8 @@ public class Attribute {
         return attributes;
     }
 
-    public Attribute parseAttributes(String attributeString) {
-        Attribute.Builder attribute = new Attribute.Builder();
+    public static GTFAttributes parseAttributes(String attributeString) {
+        GTFAttributes.Builder attribute = new GTFAttributes.Builder();
         int len = attributeString.length();
 
         // Trim trailing semicolon, if it exists
@@ -88,20 +89,26 @@ public class Attribute {
                 i++;
             }
 
-            // The value should start with a quote
-            if (i >= len || attributeString.charAt(i) != '"') {
-                break; // Malformed input
+            // Determine if the value is quoted
+            String value;
+            if (i < len && attributeString.charAt(i) == '"') {
+                // The value should start with a quote
+                int valueStart = ++i; // Skip the opening quote
+                while (i < len && attributeString.charAt(i) != '"') {
+                    i++;
+                }
+                if (i >= len) {
+                    break; // Malformed input
+                }
+                value = attributeString.substring(valueStart, i++);
+            } else {
+                // Read until the next space or semicolon for unquoted values
+                int valueStart = i;
+                while (i < len && attributeString.charAt(i) != ' ' && attributeString.charAt(i) != ';') {
+                    i++;
+                }
+                value = attributeString.substring(valueStart, i);
             }
-
-            // Find the end of the quoted value
-            int valueStart = ++i; // Skip the opening quote
-            while (i < len && attributeString.charAt(i) != '"') {
-                i++;
-            }
-            if (i >= len) {
-                break; // Malformed input
-            }
-            String value = attributeString.substring(valueStart, i++);
 
             // Add the key-value pair to the map
             switch (key) {
@@ -112,10 +119,10 @@ public class Attribute {
                 case EXON_ID -> attribute.setExonID(value);
                 case EXON_NUMBER -> attribute.setExonNumber(value);
                 case PROTEIN_ID -> attribute.setProteinID(value);
-                case CCDS_ID -> attribute.setCcdsID(value);
+                case CCDS_ID, CCDS_ID2 -> attribute.setCcdsID(value);
             }
 
-            // Skip any space after the closing quote
+            // Skip any space after the value
             while (i < len && attributeString.charAt(i) == ' ') {
                 i++;
             }
@@ -128,6 +135,7 @@ public class Attribute {
 
         return attribute.build();
     }
+
 
     public String getGeneID() {
         return geneID;
@@ -193,7 +201,7 @@ public class Attribute {
         this.ccdsID = ccdsID;
     }
 
-       class Builder {
+       static class Builder {
          // Gene
          private String geneID;
          private String geneName;
@@ -240,8 +248,8 @@ public class Attribute {
          public void setCcdsID(String ccdsID) {
              this.ccdsID = ccdsID;
          }
-         public Attribute build() {
-             return new Attribute(this);
+         public GTFAttributes build() {
+             return new GTFAttributes(this);
          }
      }
 }

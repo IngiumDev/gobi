@@ -43,7 +43,7 @@ public class ExonSkipRunner {
         long start = System.currentTimeMillis();
         Set<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
         long end = System.currentTimeMillis();
-        System.out.println("Time taken: " + (end - start) + "ms");
+        System.out.println("Time taken to process exon skipping events: " + (end - start) + "ms");
         // Write the exon skipping events to a file
         writeExonSkipToFile(res.getString("o"), exonSkips);
 
