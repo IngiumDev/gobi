@@ -3,8 +3,6 @@ package gtf.structs;
 import gtf.types.FrameStarts;
 import gtf.types.StrandDirection;
 
-import java.util.Map;
-import java.util.Set;
 import java.util.TreeSet;
 
 public class Transcript extends AnnotationEntry {
@@ -16,17 +14,18 @@ public class Transcript extends AnnotationEntry {
     private TreeSet<CodingSequence> cds;
 
     // If we read a transcript line
-    public Transcript(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Attribute attribute) {
+    public Transcript(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, GTFAttributes GTFAttributes) {
         super(seqname, source, feature, interval, score, strand, frame);
-        this.transcriptID = attribute.getTranscriptID();
-        this.transcriptName = attribute.getTranscriptName();
+        this.transcriptID = GTFAttributes.getTranscriptID();
+        this.transcriptName = GTFAttributes.getTranscriptName();
         this.exons = new TreeSet<>();
         this.cds = new TreeSet<>();
     }
     // If we read an exon or CDS line
-    public Transcript(Attribute attribute) {
-        this.transcriptID = attribute.getTranscriptID();
-        this.transcriptName = attribute.getTranscriptName();
+    public Transcript(String seqname, String source, StrandDirection strand, GTFAttributes GTFAttributes) {
+        super(seqname, source, strand);
+        this.transcriptID = GTFAttributes.getTranscriptID();
+        this.transcriptName = GTFAttributes.getTranscriptName();
         this.exons = new TreeSet<>();
         this.cds = new TreeSet<>();
     }

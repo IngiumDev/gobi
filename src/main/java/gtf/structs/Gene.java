@@ -13,18 +13,20 @@ public class Gene extends AnnotationEntry {
     private Set<Interval> introns;
 
     //If we read a gene line
-    public Gene(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Attribute attribute) {
+    public Gene(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, GTFAttributes GTFAttributes) {
         super(seqname, source, feature, interval, score, strand, frame);
-        this.geneID = attribute.getGeneID();
-        this.geneName = attribute.getGeneName();
+        this.geneID = GTFAttributes.getGeneID();
+        this.geneName = GTFAttributes.getGeneName();
         this.transcripts = new HashMap<>();
     }
     //If we read a transcript/exon/cds line
-    public Gene(Attribute attribute) {
-        this.geneID = attribute.getGeneID();
-        this.geneName = attribute.getGeneName();
+    public Gene(String seqname, String source, StrandDirection strand, GTFAttributes GTFAttributes) {
+        super(seqname, source, strand);
+        this.geneID = GTFAttributes.getGeneID();
+        this.geneName = GTFAttributes.getGeneName();
         this.transcripts = new HashMap<>();
     }
+
     public void addTranscript(Transcript transcript) {
         transcripts.put(transcript.getTranscriptID(), transcript);
     }
@@ -44,5 +46,25 @@ public class Gene extends AnnotationEntry {
                 previousCds = cds;
             }
         }
+    }
+
+    public Set<Interval> getIntrons() {
+        return introns;
+    }
+
+    public Map<String, Transcript> getTranscripts() {
+        return transcripts;
+    }
+
+    public String getGeneName() {
+        return geneName;
+    }
+
+    public String getGeneID() {
+        return geneID;
+    }
+
+    public Transcript getTranscript(String transcriptID) {
+        return transcripts.get(transcriptID);
     }
 }

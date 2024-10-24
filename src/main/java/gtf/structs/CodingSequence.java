@@ -3,16 +3,20 @@ package gtf.structs;
 import gtf.types.FrameStarts;
 import gtf.types.StrandDirection;
 
-import java.util.Map;
-
 public class CodingSequence extends AnnotationEntry implements Comparable<CodingSequence> {
     private String proteinID;
     private String ccdsID; // Not always
+    private String exonNumber;
 
-    public CodingSequence(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, Attribute attribute) {
+    public String getExonNumber() {
+        return exonNumber;
+    }
+
+    public CodingSequence(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, GTFAttributes GTFAttributes) {
         super(seqname, source, feature, interval, score, strand, frame);
-        this.proteinID = attribute.getProteinID();
-        this.ccdsID = attribute.getCcdsID();
+        this.proteinID = GTFAttributes.getProteinID();
+        this.ccdsID = GTFAttributes.getCcdsID();
+        this.exonNumber = GTFAttributes.getExonNumber();
     }
 
     public String getProteinID() {

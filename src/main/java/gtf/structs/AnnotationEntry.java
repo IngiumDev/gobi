@@ -36,6 +36,12 @@ public abstract class AnnotationEntry {
         this.frame = frame;
     }
 
+    public AnnotationEntry(String seqname, String source, StrandDirection strand) {
+        this.seqname = seqname;
+        this.source = source;
+        this.strand = strand;
+    }
+
     public AnnotationEntry() {
     }
 
