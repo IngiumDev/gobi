@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Gene extends AnnotationEntry {
-    private String id;
+    private String geneId;
     private Map<String, Transcript> transcripts;
     private Map<String, String> protein_to_transcript;
 
@@ -17,23 +17,23 @@ public class Gene extends AnnotationEntry {
     }
 
     public Gene(String id) {
-        this.id = id;
+        this.geneId = id;
         transcripts = new HashMap<>();
     }
 
     public Gene(String id, String seqname, String source, StrandDirection strand, Map<String, String> attributes) {
         super(seqname, source, strand, attributes);
-        this.id = id;
+        this.geneId = id;
         transcripts = new HashMap<>();
 
     }
 
-    public String getId() {
-        return id;
+    public String getGeneId() {
+        return geneId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setGeneId(String geneId) {
+        this.geneId = geneId;
     }
 
     public Map<String, Transcript> getTranscripts() {
@@ -59,7 +59,7 @@ public class Gene extends AnnotationEntry {
             if (!transcript.getCds().isEmpty()) {
                 String protein_id = transcript.getCds().getFirst().getAttribute("protein_id");
                 if (protein_id != null) {
-                    protein_to_transcript.put(protein_id, transcript.getId());
+                    protein_to_transcript.put(protein_id, transcript.getTranscriptId());
                 }
             }
         }
