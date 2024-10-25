@@ -39,8 +39,14 @@ public class ExonSkipRunner {
 
     public static void start(Namespace res) {
         GTFAnnotation GTFAnnotation = GTFParser.parseGTF(res.getString("gtf"));
+        System.out.println("number of genes: " + GTFAnnotation.getGenes().values().stream()
+        .filter(gene -> gene.getTranscripts().values().stream().anyMatch(transcript -> !transcript.getCds().isEmpty()))
+        .count());
 
-        // Iterate through each gene, then through each intron
+System.out.println("number of transcripts with CDS: " + GTFAnnotation.getGenes().values().stream()
+        .flatMap(gene -> gene.getTranscripts().values().stream())
+        .filter(transcript -> !transcript.getCds().isEmpty())
+        .count());// Iterate through each gene, then through each intron
         long start = System.currentTimeMillis();
         List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
         long end = System.currentTimeMillis();

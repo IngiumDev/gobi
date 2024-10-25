@@ -30,6 +30,9 @@ public class GTFParser {
 
     // TODO: What if protein_id doesn't exist?
     // TODO: move attributes to class, destroy attributes
+    // TODO: refactor naming for wildtypes and ordering for method
+    // TODO Logging for errors logback slf4j ch. qos
+    // TODO: Remove unnecessary comments/methods
     // GTF line columns to escalate: seqname, source, strand
     public static GTFAnnotation parseGTF(String gtfFile) {
         GTFAnnotation GTFAnnotation = new GTFAnnotation();
