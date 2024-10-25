@@ -1,15 +1,10 @@
 package gtf;
 
-import gtf.structs.CodingSequence;
-import gtf.structs.Gene;
-import gtf.structs.Interval;
-import gtf.structs.Transcript;
+import gtf.structs.*;
 import gtf.types.StrandDirection;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 public class ExonSkip {
@@ -60,8 +55,8 @@ public class ExonSkip {
         this.max_skipped_bases = builder.max_skipped_bases;
     }
 
-    public static Set<ExonSkip> findExonSkippingEvents(GTFAnnotation gtfAnnotation) {
-        Set<ExonSkip> exonSkips = new HashSet<>();
+    public static List<ExonSkip> findExonSkippingEvents(GTFAnnotation gtfAnnotation) {
+        List<ExonSkip> exonSkips = Collections.synchronizedList(new ArrayList<>());
         long start = System.currentTimeMillis();
         gtfAnnotation.getGenes().values().parallelStream().forEach(gene -> {
             for (Interval intron : gene.getIntrons()) {
@@ -90,7 +85,6 @@ public class ExonSkip {
             boolean isStartIntron = false;
             boolean isEndIntron = false;
             CodingSequence previousCds = null;
-
 
 
 

@@ -13,6 +13,7 @@ import parsers.GTFParser;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,7 +42,7 @@ public class ExonSkipRunner {
 
         // Iterate through each gene, then through each intron
         long start = System.currentTimeMillis();
-        Set<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
+        List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
         long end = System.currentTimeMillis();
         System.out.println("Time taken to process exon skipping events: " + (end - start) + "ms");
         // Write the exon skipping events to a file
@@ -50,7 +51,7 @@ public class ExonSkipRunner {
 
     }
 
-    public static void writeExonSkipToFile(String o, Set<ExonSkip> exonSkips) {
+    public static void writeExonSkipToFile(String o, List<ExonSkip> exonSkips) {
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(o))) {
             writer.write("id\tsymbol\tchr\tstrand\tnprots\tntrans\tSV\tWT\tSV_prots\tWT_prots\tmin_skipped_exon\tmax_skipped_exon\tmin_skipped_bases\tmax_skipped_bases\n");
