@@ -152,12 +152,12 @@ public class ExonSkip {
                 }).collect(Collectors.toSet());
     }
 
-    private static SkippedExonsBases calculateSkippedExonsAndBases(Gene gene, Interval intron, Set<String> wildTypeTranscripts) {
+    private static SkippedExonsBases calculateSkippedExonsAndBases(Gene gene, Interval intron, Set<String> spliceTypeTranscripts) {
         int minSkippedExons = Integer.MAX_VALUE;
         int maxSkippedExons = Integer.MIN_VALUE;
         int minSkippedBases = Integer.MAX_VALUE;
         int maxSkippedBases = Integer.MIN_VALUE;
-        for (String transcript_id : wildTypeTranscripts) {
+        for (String transcript_id : spliceTypeTranscripts) {
             // Get the transcript
             Transcript t = gene.getTranscript(transcript_id);
             int skippedExons = 0;
