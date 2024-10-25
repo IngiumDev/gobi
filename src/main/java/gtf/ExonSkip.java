@@ -91,19 +91,21 @@ public class ExonSkip {
             boolean isEndIntron = false;
             CodingSequence previousCds = null;
 
+
+
+
             for (CodingSequence cds : transcriptToCheck.getCds()) {
                 if (previousCds != null) {
                     if (previousCds.getInterval().getEnd() + 1 >= intronCandidateStart && cds.getInterval().getStart() - 1 <= intronCandidateEnd ) {
                         if (previousCds.getInterval().getEnd() + 1 == intronCandidateStart && cds.getInterval().getStart() -1 == intronCandidateEnd) {
                             spliceVariantTranscripts.add(transcriptToCheck.getTranscriptID());
-
                             break;
                         } else if (previousCds.getInterval().getEnd() + 1 == intronCandidateStart) {
                             isStartIntron = true;
-                            intronsToAdd.add(new Interval(previousCds.getInterval().getEnd() + 1, cds.getInterval().getStart() - 1));
+                            intronsToAdd.add(new Interval(intronCandidateStart, cds.getInterval().getStart() - 1));
                         } else if (cds.getInterval().getStart() - 1 == intronCandidateEnd) {
                             isEndIntron = true;
-                            intronsToAdd.add(new Interval(previousCds.getInterval().getEnd() +1, cds.getInterval().getStart() - 1));
+                            intronsToAdd.add(new Interval(previousCds.getInterval().getEnd() +1, intronCandidateEnd));
                         } else {
                             intronsToAdd.add(new Interval(previousCds.getInterval().getEnd() + 1, cds.getInterval().getStart() - 1));
                         }
