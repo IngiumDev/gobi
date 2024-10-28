@@ -1,10 +1,15 @@
 package gtf;
 
-import gtf.structs.*;
+import gtf.structs.CodingSequence;
+import gtf.structs.Gene;
+import gtf.structs.Interval;
+import gtf.structs.Transcript;
 import gtf.types.StrandDirection;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 public class ExonSkip {
@@ -59,15 +64,14 @@ public class ExonSkip {
         List<ExonSkip> exonSkips = Collections.synchronizedList(new ArrayList<>());
         long start = System.currentTimeMillis();
         gtfAnnotation.getGenes().values().parallelStream().forEach(gene -> {
-            for (Interval intron : gene.getIntrons()) {
+            for (Interval intronCandidate : gene.getIntrons()) {
                 Set<String> spliceVariantTranscripts = new HashSet<>();
                 Set<String> wildTypeTranscripts = new HashSet<>();
-                Set<String> wildTypeEndTranscripts = new HashSet<>();
                 Set<Interval> wildTypeIntrons = new TreeSet<>();
-                checkIntronCandidate(gene, intron, spliceVariantTranscripts, wildTypeTranscripts, wildTypeIntrons);
+                checkIntronCandidate(gene, intronCandidate, spliceVariantTranscripts, wildTypeTranscripts, wildTypeIntrons);
 
                 if (!spliceVariantTranscripts.isEmpty() && !wildTypeTranscripts.isEmpty()) {
-                    ExonSkip exonSkip = createExonSkipEvent(gene, intron, spliceVariantTranscripts, wildTypeIntrons, wildTypeTranscripts);
+                    ExonSkip exonSkip = createExonSkipEvent(gene, intronCandidate, spliceVariantTranscripts, wildTypeTranscripts, wildTypeIntrons);
                     exonSkips.add(exonSkip);
                 }
             }
@@ -115,8 +119,8 @@ public class ExonSkip {
 
     }
 
-    private static ExonSkip createExonSkipEvent(Gene gene, Interval intron, Set<String> wildTypeTranscripts, Set<Interval> wildTypeIntrons, Set<String> spliceVariantTranscripts) {
-        SkippedExonsBases skippedExonsBases = calculateSkippedExonsAndBases(gene, intron, spliceVariantTranscripts);
+    private static ExonSkip createExonSkipEvent(Gene gene, Interval intronCandidate, Set<String> spliceVariantTranscripts, Set<String> wildTypeTranscripts, Set<Interval> wildTypeIntrons) {
+        SkippedExonsBases skippedExonsBases = calculateSkippedExonsAndBases(gene, intronCandidate, wildTypeTranscripts);
         Set<String> spliceVariantProteins = convertTranscriptToProteinID(gene, spliceVariantTranscripts);
         Set<String> wildTypeProteins = convertTranscriptToProteinID(gene, wildTypeTranscripts);
         return new Builder()
@@ -126,7 +130,7 @@ public class ExonSkip {
                 .setStrand(gene.getStrand())
                 .setNprots((int) gene.getTranscripts().values().stream().map(Transcript::getCds).filter(cds -> cds != null && !cds.isEmpty()).count())
                 .setNtrans(gene.getTranscripts().size())
-                .setSV(new Interval(intron))
+                .setSV(new Interval(intronCandidate))
                 .setWT(new TreeSet<>(wildTypeIntrons))
                 .setSV_prots(spliceVariantProteins)
                 .setWT_prots(wildTypeProteins)
@@ -146,25 +150,22 @@ public class ExonSkip {
                         return proteinID;
                     }
                     String ccdsID = transcript.getCds().getFirst().getCcdsID();
-                     if (ccdsID != null) {
-                         return ccdsID;
-                     }                      return "NONE";
+                    return Objects.requireNonNullElse(ccdsID, "NONE");
                 }).collect(Collectors.toSet());
     }
 
-    private static SkippedExonsBases calculateSkippedExonsAndBases(Gene gene, Interval intron, Set<String> spliceTypeTranscripts) {
+    private static SkippedExonsBases calculateSkippedExonsAndBases(Gene gene, Interval intron, Set<String> wildTypeTranscripts) {
         int minSkippedExons = Integer.MAX_VALUE;
         int maxSkippedExons = Integer.MIN_VALUE;
         int minSkippedBases = Integer.MAX_VALUE;
         int maxSkippedBases = Integer.MIN_VALUE;
-        for (String transcript_id : spliceTypeTranscripts) {
+        for (String transcript_id : wildTypeTranscripts) {
             // Get the transcript
             Transcript t = gene.getTranscript(transcript_id);
             int skippedExons = 0;
             int skippedBases = 0;
             // Find the number of exons that lie within the intron
             for (CodingSequence cds : t.getCds()) {
-
                 if (intron.getStart() <= cds.getInterval().getStart() && intron.getEnd() >= cds.getInterval().getEnd()) {
                     skippedExons++;
                     skippedBases += cds.getInterval().getLength();
@@ -179,32 +180,34 @@ public class ExonSkip {
         return new SkippedExonsBases(minSkippedExons, maxSkippedExons, minSkippedBases, maxSkippedBases);
     }
 
-   /* private static void checkIntronCandidate(Gene gene, Interval intronCandidate, Set<String> spliceVariantProteins, Set<String> wildTypeStartProteins, Set<Interval> wildTypeIntrons, Set<String> wildTypeEndProteins) {
-        for (Transcript transcriptToCheck : gene.getTranscripts().values()) {
-            // only consider transcripts with cds
-            if (transcriptToCheck.getCds().isEmpty()) {
-                //System.out.println("No CDS found for transcript " + t.getId());
-                continue;
-            }
+    public static void writeExonSkipToFile(String o, List<ExonSkip> exonSkips) {
 
-            for (Interval intronToCheck : transcriptToCheck.getIntrons()) {
-                // Check if the intron is the same as the candidate intron (SV)
-
-                if (intronToCheck.equals(intronCandidate)) {
-                    spliceVariantProteins.add(transcriptToCheck.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
-                } else if (intronToCheck.getStart() == intronCandidate.getStart()) {
-                    wildTypeStartProteins.add(transcriptToCheck.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
-                    wildTypeIntrons.add(intronToCheck);
-                } else if (intronToCheck.getEnd() == intronCandidate.getEnd()) {
-                    wildTypeEndProteins.add(transcriptToCheck.getCds().getFirst().getAttribute(GTFParser.PROTEIN_ID));
-                    wildTypeIntrons.add(intronToCheck);
-                    // if it is the end intron, add it to the wildTypeIntrons
-                } else if (intronToCheck.getStart() > intronCandidate.getStart() && intronToCheck.getEnd() < intronCandidate.getEnd()) {
-                    wildTypeIntrons.add(intronToCheck);
-                }
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(o))) {
+            writer.write("id\tsymbol\tchr\tstrand\tnprots\tntrans\tSV\tWT\tSV_prots\tWT_prots\tmin_skipped_exon\tmax_skipped_exon\tmin_skipped_bases\tmax_skipped_bases\n");
+            for (ExonSkip exonSkip : exonSkips) {
+                writer.write(
+                        exonSkip.getId() + "\t" +
+                                exonSkip.getSymbol() + "\t" +
+                                exonSkip.getChr() + "\t" +
+                                (exonSkip.getStrand() == StrandDirection.FORWARD ? "+" : "-") + "\t" +
+                                exonSkip.getNprots() + "\t" +
+                                exonSkip.getNtrans() + "\t" +
+                                exonSkip.getSV() + "\t" +
+                                exonSkip.getWT().stream().map(Interval::toString).collect(Collectors.joining("|")) + "\t" +
+                                String.join("|", exonSkip.getSV_prots()) + "\t" +
+                                String.join("|", exonSkip.getWT_prots()) + "\t" +
+                                exonSkip.getMin_skipped_exon() + "\t" +
+                                exonSkip.getMax_skipped_exon() + "\t" +
+                                exonSkip.getMin_skipped_bases() + "\t" +
+                                exonSkip.getMax_skipped_bases() + "\n"
+                );
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-    }*/
+
+    }
+
 
 
     @Override
