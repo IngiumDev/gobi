@@ -1,21 +1,14 @@
 package runners;
 
-import gtf.*;
-import gtf.structs.Interval;
-import gtf.types.StrandDirection;
+import gtf.ExonSkip;
+import gtf.GTFAnnotation;
 import net.sourceforge.argparse4j.ArgumentParsers;
-import net.sourceforge.argparse4j.helper.HelpScreenException;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 import parsers.GTFParser;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 
 public class ExonSkipRunner {
@@ -39,49 +32,13 @@ public class ExonSkipRunner {
 
     public static void start(Namespace res) {
         GTFAnnotation GTFAnnotation = GTFParser.parseGTF(res.getString("gtf"));
-        System.out.println("number of genes: " + GTFAnnotation.getGenes().values().stream()
-        .filter(gene -> gene.getTranscripts().values().stream().anyMatch(transcript -> !transcript.getCds().isEmpty()))
-        .count());
-
-System.out.println("number of transcripts with CDS: " + GTFAnnotation.getGenes().values().stream()
-        .flatMap(gene -> gene.getTranscripts().values().stream())
-        .filter(transcript -> !transcript.getCds().isEmpty())
-        .count());// Iterate through each gene, then through each intron
         long start = System.currentTimeMillis();
         List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
         long end = System.currentTimeMillis();
         System.out.println("Time taken to process exon skipping events: " + (end - start) + "ms");
         // Write the exon skipping events to a file
-        writeExonSkipToFile(res.getString("o"), exonSkips);
+        ExonSkip.writeExonSkipToFile(res.getString("o"), exonSkips);
 
-
-    }
-
-    public static void writeExonSkipToFile(String o, List<ExonSkip> exonSkips) {
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(o))) {
-            writer.write("id\tsymbol\tchr\tstrand\tnprots\tntrans\tSV\tWT\tSV_prots\tWT_prots\tmin_skipped_exon\tmax_skipped_exon\tmin_skipped_bases\tmax_skipped_bases\n");
-            for (ExonSkip exonSkip : exonSkips) {
-                writer.write(
-                        exonSkip.getId() + "\t" +
-                                exonSkip.getSymbol() + "\t" +
-                                exonSkip.getChr() + "\t" +
-                                (exonSkip.getStrand() == StrandDirection.FORWARD ? "+" : "-") + "\t" +
-                                exonSkip.getNprots() + "\t" +
-                                exonSkip.getNtrans() + "\t" +
-                                exonSkip.getSV() + "\t" +
-                                exonSkip.getWT().stream().map(Interval::toString).collect(Collectors.joining("|")) + "\t" +
-                                String.join("|", exonSkip.getWT_prots()) + "\t" +
-                                String.join("|", exonSkip.getSV_prots()) + "\t" +
-                                exonSkip.getMin_skipped_exon() + "\t" +
-                                exonSkip.getMax_skipped_exon() + "\t" +
-                                exonSkip.getMin_skipped_bases() + "\t" +
-                                exonSkip.getMax_skipped_bases() + "\n"
-                );
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
 
     }
 

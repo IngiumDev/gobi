@@ -3,8 +3,6 @@ package gtf.structs;
 import gtf.types.FrameStarts;
 import gtf.types.StrandDirection;
 
-import java.util.Map;
-
 public abstract class AnnotationEntry {
     // TODO decouple strand from annotation entry and move it to Gene
     // TODO Migrate away from hashmap for attributes
