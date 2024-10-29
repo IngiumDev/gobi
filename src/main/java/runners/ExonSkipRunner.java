@@ -2,6 +2,7 @@ package runners;
 
 import gtf.ExonSkip;
 import gtf.GTFAnnotation;
+import gtf.structs.GTFTimer;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
@@ -31,20 +32,30 @@ public class ExonSkipRunner {
     }
 
     public static void start(Namespace res) {
+        // GTF Parsing
         long totalStartTime = System.currentTimeMillis();
-
         GTFAnnotation GTFAnnotation = GTFParser.parseGTF(res.getString("gtf"));
 
+        // Exon Skipping Calculation
         long startTime = System.currentTimeMillis();
         List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
-        System.out.println("LOG: Total time to find exon skipping events: " + (System.currentTimeMillis() - startTime) + " ms");
-        // Write the exon skipping events to a file
+        GTFTimer.setExonProcessTime((System.currentTimeMillis() - startTime));
+        System.out.println("LOG: Total time to find exon skipping events: " + GTFTimer.getExonProcessTime() + " ms");
+
+        // Output to file
         startTime = System.currentTimeMillis();
         ExonSkip.writeExonSkipToFile(res.getString("o"), exonSkips);
-        System.out.println("LOG: Total time to write exon skipping events: " + (System.currentTimeMillis() - startTime) + " ms");
+        GTFTimer.setOutputTime(System.currentTimeMillis() - startTime);
+        System.out.println("LOG: Total time to write exon skipping events: " + GTFTimer.getOutputTime() + " ms");
+        GTFTimer.setTotalTime(System.currentTimeMillis() - totalStartTime);
+        System.out.println("LOG: Total time: " + GTFTimer.getTotalTime() + " ms");
 
-        System.out.println("LOG: Total time: " + (System.currentTimeMillis() - totalStartTime) + " ms");
-
+        // Analysis (optional)
+        if (res.getString("analysis") != null) {
+            startTime = System.currentTimeMillis();
+            ExonSkip.analyzeExonSkippingEvents(GTFAnnotation, exonSkips, res.getString("analysis"), res.getString("gtf"));
+            System.out.println("LOG: Total time to analyze exon skipping events: " + (System.currentTimeMillis() - startTime) + " ms");
+        }
     }
 
 

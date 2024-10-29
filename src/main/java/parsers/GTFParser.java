@@ -40,11 +40,14 @@ public class GTFParser {
                     processGTFLine(line, GTFAnnotation);
                 }
             }
-            System.out.println("LOG: Total time to parse GTF: " + (System.currentTimeMillis() - startTime) + " ms");
+            GTFTimer.setGtfParseTime(System.currentTimeMillis() - startTime);
+            System.out.println("LOG: Total time to parse GTF: " + GTFTimer.getGtfParseTime() + " ms");
             // Process introns
             startTime = System.currentTimeMillis();
             GTFAnnotation.getGenes().values().parallelStream().forEach(Gene::processIntrons);
-            System.out.println("LOG: Total time to process introns: " + (System.currentTimeMillis() - startTime) + " ms");
+
+            GTFTimer.setIntronProcessTime(System.currentTimeMillis() - startTime);
+            System.out.println("LOG: Total time to process introns: " + GTFTimer.getIntronProcessTime() + " ms");
         } catch (IOException e) {
             e.printStackTrace();
         }
