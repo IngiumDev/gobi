@@ -1,14 +1,13 @@
 package gtf;
 
-import gtf.structs.CodingSequence;
-import gtf.structs.Gene;
-import gtf.structs.Interval;
-import gtf.structs.Transcript;
+import gtf.structs.*;
 import gtf.types.StrandDirection;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -203,6 +202,123 @@ public class ExonSkip {
             throw new RuntimeException(e);
         }
 
+    }
+
+    public static void analyzeExonSkippingEvents(GTFAnnotation gtfAnnotation, List<ExonSkip> exonSkips, String analysis, String gtf) {
+        // What we want: first of all general statistics like how long the file is, how long the total time was, total amount of genes, total gene length, total number of transcipts, total number of transcripts with cds, total number of exons, total number of cds, total number of introns, introns per gene, cds per gene
+        // Then we want to list the genes: id and name, length, number exon skipping events, number of transcripts, number of cds, number of exons, number of introns
+        // General statistics
+        long fileLength = -1;
+        try {
+            fileLength = Files.lines(Paths.get(gtf)).count();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        StringBuilder output = new StringBuilder("# General statistics\n" +
+                "File length\t" + fileLength + "\n" +
+                "GTF parse time\t" + GTFTimer.getGtfParseTime() + "\n" +
+                "Intron process time\t" + GTFTimer.getIntronProcessTime() + "\n" +
+                "Exon process time\t" + GTFTimer.getExonProcessTime() + "\n" +
+                "Output time\t" + GTFTimer.getOutputTime() + "\n" +
+                "Total time taken\t" + GTFTimer.getTotalTime() + "\n");
+        int totalGenes = gtfAnnotation.getGenes().size();
+        output.append("Total genes\t").append(totalGenes).append("\n");
+        int totalGenesWithCDS = (int) gtfAnnotation.getGenes().values().stream()
+                .filter(gene -> gene.getTranscripts().values().stream().anyMatch(transcript -> !transcript.getCds().isEmpty()))
+                .count();
+        output.append("Total genes with CDS\t").append(totalGenesWithCDS).append("\n");
+        int totalGenesWithoutCDS = totalGenes - totalGenesWithCDS;
+        output.append("Total genes without CDS\t").append(totalGenesWithoutCDS).append("\n");
+        long totalGeneLength = gtfAnnotation.getGenes().values().stream()
+                .mapToLong(gene -> {
+                    Interval interval = gene.getInterval();
+                    if (interval != null) {
+                        return interval.getLength();
+                    }
+                    return gene.getTranscripts().values().stream()
+                            .mapToLong(transcript -> {
+                                TreeSet<Exon> exons = transcript.getExons();
+                                if (exons.isEmpty()) {
+                                    return 0L;
+                                }
+                                long start = exons.first().getInterval().getStart();
+                                long end = exons.last().getInterval().getEnd();
+                                return end - start + 1;
+                            })
+                            .sum();
+                })
+                .sum();
+        output.append("Total gene length\t").append(totalGeneLength).append("\n");
+
+        int totalTranscripts = gtfAnnotation.getGenes().values().stream()
+                .mapToInt(gene -> gene.getTranscripts().size())
+                .sum();
+        output.append("Total transcripts\t").append(totalTranscripts).append("\n");
+
+
+        int totalTranscriptsWithCDS = gtfAnnotation.getGenes().values().stream()
+                .mapToInt(gene -> (int) gene.getTranscripts().values().stream().filter(transcript -> !transcript.getCds().isEmpty()).count())
+                .sum();
+        output.append("Total transcripts with CDS\t").append(totalTranscriptsWithCDS).append("\n");
+        int totalTranscriptsWithoutCDs = totalTranscripts - totalTranscriptsWithCDS;
+        output.append("Total transcripts without CDS\t").append(totalTranscriptsWithoutCDs).append("\n");
+        int totalExons = gtfAnnotation.getGenes().values().stream()
+                .flatMap(gene -> gene.getTranscripts().values().stream())
+                .mapToInt(transcript -> transcript.getExons().size())
+                .sum();
+        output.append("Total exons\t").append(totalExons).append("\n");
+        int totalCDS = gtfAnnotation.getGenes().values().stream()
+                .flatMap(gene -> gene.getTranscripts().values().stream())
+                .mapToInt(transcript -> transcript.getCds().size())
+                .sum();
+        output.append("Total CDS\t").append(totalCDS).append("\n");
+        int totalIntrons = gtfAnnotation.getGenes().values().stream()
+                .mapToInt(gene -> gene.getIntrons().size())
+                .sum();
+        output.append("Total introns\t").append(totalIntrons).append("\n");
+        int totalExonSkippingEvents = exonSkips.size();
+        output.append("Total exon skipping events\t").append(totalExonSkippingEvents).append("\n");
+        double transcriptsPerGene = (double) totalTranscripts / totalGenes;
+        output.append("Transcripts per gene\t").append(transcriptsPerGene).append("\n");
+        double cdsPerGene = (double) totalCDS / totalGenes;
+        output.append("CDS per gene\t").append(cdsPerGene).append("\n");
+        double intronsPerGene = (double) totalIntrons / totalGenes;
+        output.append("Introns per gene\t").append(intronsPerGene).append("\n");
+        double exonsPerGene = (double) totalExons / totalGenes;
+        output.append("Exons per gene\t").append(exonsPerGene).append("\n");
+
+
+        // Gene statistics
+        Map<String, Long> geneIdToTotalExonSkippingEvents = exonSkips.stream()
+                .collect(Collectors.groupingBy(ExonSkip::getId, Collectors.counting()));
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(analysis))) {
+            bw.write(output.toString());
+            bw.write("# Gene statistics\n");
+            bw.write("id\tname\tlength\texon skipping events\ttranscripts\tcds\texons\tintrons\n");
+            for (Gene gene : gtfAnnotation.getGenes().values()) {
+                long geneExonSkippingEevents = geneIdToTotalExonSkippingEvents.getOrDefault(gene.getGeneID(), 0L);
+                bw.write(gene.getGeneID() + "\t" +
+                        gene.getGeneName() + "\t" +
+                        (gene.getInterval() != null ? gene.getInterval().getLength() : gene.getTranscripts().values().stream()
+                                .mapToInt(transcript -> {
+                                    TreeSet<Exon> exons = transcript.getExons();
+                                    if (exons.isEmpty()) {
+                                        return 0;
+                                    }
+                                    int start = exons.first().getInterval().getStart();
+                                    int end = exons.last().getInterval().getEnd();
+                                    return end - start + 1;
+                                })
+                                .sum()) + "\t" +
+                        geneExonSkippingEevents + "\t" +
+                        gene.getTranscripts().size() + "\t" +
+                        gene.getTranscripts().values().stream().mapToInt(transcript -> transcript.getCds().size()).sum() + "\t" +
+                        gene.getTranscripts().values().stream().mapToInt(transcript -> transcript.getExons().size()).sum() + "\t" +
+                        gene.getIntrons().size() + "\n");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
