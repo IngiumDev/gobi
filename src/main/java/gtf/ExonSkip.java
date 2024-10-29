@@ -62,7 +62,6 @@ public class ExonSkip {
 
     public static List<ExonSkip> findExonSkippingEvents(GTFAnnotation gtfAnnotation) {
         List<ExonSkip> exonSkips = Collections.synchronizedList(new ArrayList<>());
-        long start = System.currentTimeMillis();
         gtfAnnotation.getGenes().values().parallelStream().forEach(gene -> {
             for (Interval intronCandidate : gene.getIntrons()) {
                 Set<String> spliceVariantTranscripts = new HashSet<>();
@@ -76,7 +75,6 @@ public class ExonSkip {
                 }
             }
         });
-        System.out.println("Time taken: " + (System.currentTimeMillis() - start) + "ms");
         return exonSkips;
     }
 
@@ -91,11 +89,10 @@ public class ExonSkip {
             CodingSequence previousCds = null;
 
 
-
             for (CodingSequence cds : transcriptToCheck.getCds()) {
                 if (previousCds != null) {
-                    if (previousCds.getInterval().getEnd() + 1 >= intronCandidateStart && cds.getInterval().getStart() - 1 <= intronCandidateEnd ) {
-                        if (previousCds.getInterval().getEnd() + 1 == intronCandidateStart && cds.getInterval().getStart() -1 == intronCandidateEnd) {
+                    if (previousCds.getInterval().getEnd() + 1 >= intronCandidateStart && cds.getInterval().getStart() - 1 <= intronCandidateEnd) {
+                        if (previousCds.getInterval().getEnd() + 1 == intronCandidateStart && cds.getInterval().getStart() - 1 == intronCandidateEnd) {
                             spliceVariantTranscripts.add(transcriptToCheck.getTranscriptID());
                             break;
                         } else if (previousCds.getInterval().getEnd() + 1 == intronCandidateStart) {
@@ -103,7 +100,7 @@ public class ExonSkip {
                             intronsToAdd.add(new Interval(intronCandidateStart, cds.getInterval().getStart() - 1));
                         } else if (cds.getInterval().getStart() - 1 == intronCandidateEnd) {
                             isEndIntron = true;
-                            intronsToAdd.add(new Interval(previousCds.getInterval().getEnd() +1, intronCandidateEnd));
+                            intronsToAdd.add(new Interval(previousCds.getInterval().getEnd() + 1, intronCandidateEnd));
                         } else {
                             intronsToAdd.add(new Interval(previousCds.getInterval().getEnd() + 1, cds.getInterval().getStart() - 1));
                         }
@@ -207,7 +204,6 @@ public class ExonSkip {
         }
 
     }
-
 
 
     @Override

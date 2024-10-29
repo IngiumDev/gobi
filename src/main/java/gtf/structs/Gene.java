@@ -3,12 +3,15 @@ package gtf.structs;
 import gtf.types.FrameStarts;
 import gtf.types.StrandDirection;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class Gene extends AnnotationEntry {
-    private String geneID;
-    private String geneName;
-    private Map<String, Transcript> transcripts;
+    private final String geneID;
+    private final String geneName;
+    private final Map<String, Transcript> transcripts;
     // Only when process introns is run
     private Set<Interval> introns;
 
@@ -19,6 +22,7 @@ public class Gene extends AnnotationEntry {
         this.geneName = GTFAttributes.getGeneName();
         this.transcripts = new HashMap<>();
     }
+
     //If we read a transcript/exon/cds line
     public Gene(String seqname, String source, StrandDirection strand, GTFAttributes GTFAttributes) {
         super(seqname, source, strand);

@@ -27,28 +27,24 @@ public class GTFParser {
     public static final int ATTRIBUTE_COL = 8;
 
 
-    // TODO: refactor naming for wildtypes and ordering for method
     // TODO Logging for errors logback slf4j ch. qos
     // TODO: Remove unnecessary comments/methods
     // GTF line columns to escalate: seqname, source, strand
     public static GTFAnnotation parseGTF(String gtfFile) {
+        long startTime = System.currentTimeMillis();
         GTFAnnotation GTFAnnotation = new GTFAnnotation();
         try (BufferedReader br = Files.newBufferedReader(Paths.get(gtfFile))) {
-            long start = System.currentTimeMillis();
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.charAt(0) != '#') {
                     processGTFLine(line, GTFAnnotation);
                 }
             }
-            long end = System.currentTimeMillis();
-            System.out.println("Time to parse GTF: " + (end - start) + "ms");
-
+            System.out.println("LOG: Total time to parse GTF: " + (System.currentTimeMillis() - startTime) + " ms");
             // Process introns
-            start = System.currentTimeMillis();
+            startTime = System.currentTimeMillis();
             GTFAnnotation.getGenes().values().parallelStream().forEach(Gene::processIntrons);
-            end = System.currentTimeMillis();
-            System.out.println("Time to process introns: " + (end - start) + "ms");
+            System.out.println("LOG: Total time to process introns: " + (System.currentTimeMillis() - startTime) + " ms");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -87,14 +83,15 @@ public class GTFParser {
     private static Transcript getOrCreateTranscript(Gene gene, String[] data, GTFAttributes attributes) {
         Transcript transcript = gene.getTranscript(attributes.getTranscriptID());
         if (transcript == null) {
-            transcript = new Transcript (data[SEQNAME_COL], data[SOURCE_COL], parseStrand(data[STRAND_COL]), attributes);
+            transcript = new Transcript(data[SEQNAME_COL], data[SOURCE_COL], parseStrand(data[STRAND_COL]), attributes);
             gene.addTranscript(transcript);
         }
         return transcript;
     }
+
     private static void processTranscript(String[] data, GTFAnnotation gtfAnnotation) {
         GTFAttributes attributes = parseAttributes(data[ATTRIBUTE_COL]);
-        
+
         Gene gene = getOrCreateGene(gtfAnnotation, data, attributes);
         Transcript transcript = gene.getTranscript(attributes.getTranscriptID());
         if (transcript == null) {
@@ -137,6 +134,7 @@ public class GTFParser {
         Gene gene = new Gene(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]), attributes);
         gtfAnnotation.addGene(gene);
     }
+
     private static void overwriteGene(String[] data, Gene thisGene) {
         thisGene.overwrite(data[SEQNAME_COL], data[SOURCE_COL], data[FEATURE_COL], new Interval(Integer.parseInt(data[START_COL]), Integer.parseInt(data[END_COL])), parseScore(data[SCORE_COL]), parseStrand(data[STRAND_COL]), parseFrame(data[FRAME_COL]));
     }
