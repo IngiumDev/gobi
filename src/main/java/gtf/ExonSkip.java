@@ -228,6 +228,7 @@ public class ExonSkip {
                 .count();
         output.append("Total genes with CDS\t").append(totalGenesWithCDS).append("\n");
         int totalGenesWithoutCDS = totalGenes - totalGenesWithCDS;
+
         output.append("Total genes without CDS\t").append(totalGenesWithoutCDS).append("\n");
         long totalGeneLength = gtfAnnotation.getGenes().values().stream()
                 .mapToLong(gene -> {
@@ -235,21 +236,44 @@ public class ExonSkip {
                     if (interval != null) {
                         return interval.getLength();
                     }
-                    return gene.getTranscripts().values().stream()
-                            .mapToLong(transcript -> {
-                                TreeSet<Exon> exons = transcript.getExons();
-                                if (exons.isEmpty()) {
-                                    return 0L;
-                                }
-                                long start = exons.first().getInterval().getStart();
-                                long end = exons.last().getInterval().getEnd();
-                                return end - start + 1;
-                            })
-                            .sum();
+                    TreeSet<Exon> allExons = gene.getTranscripts().values().stream()
+                            .flatMap(transcript -> transcript.getExons().stream())
+                            .collect(Collectors.toCollection(TreeSet::new));
+
+                    if (allExons.isEmpty()) {
+                        return 0L;
+                    }
+
+                    long start = allExons.first().getInterval().getStart();
+                    long end = allExons.last().getInterval().getEnd();
+                    return end - start + 1;
                 })
                 .sum();
+
         output.append("Total gene length\t").append(totalGeneLength).append("\n");
 
+        long totalGeneLengthWithCDS = gtfAnnotation.getGenes().values().stream()
+                .filter(gene -> gene.getTranscripts().values().stream().anyMatch(transcript -> !transcript.getCds().isEmpty()))
+                .mapToLong(gene -> {
+                    Interval interval = gene.getInterval();
+                    if (interval != null) {
+                        return interval.getLength();
+                    }
+                    TreeSet<Exon> allExons = gene.getTranscripts().values().stream()
+                            .flatMap(transcript -> transcript.getExons().stream())
+                            .collect(Collectors.toCollection(TreeSet::new));
+
+                    if (allExons.isEmpty()) {
+                        return 0L;
+                    }
+
+                    long start = allExons.first().getInterval().getStart();
+                    long end = allExons.last().getInterval().getEnd();
+                    return end - start + 1;
+                })
+                .sum();
+
+        output.append("Total gene length with CDS\t").append(totalGeneLengthWithCDS).append("\n");
         int totalTranscripts = gtfAnnotation.getGenes().values().stream()
                 .mapToInt(gene -> gene.getTranscripts().size())
                 .sum();
@@ -300,13 +324,12 @@ public class ExonSkip {
                 bw.write(gene.getGeneID() + "\t" +
                         gene.getGeneName() + "\t" +
                         (gene.getInterval() != null ? gene.getInterval().getLength() : gene.getTranscripts().values().stream()
-                                .mapToInt(transcript -> {
-                                    TreeSet<Exon> exons = transcript.getExons();
-                                    if (exons.isEmpty()) {
-                                        return 0;
-                                    }
-                                    int start = exons.first().getInterval().getStart();
-                                    int end = exons.last().getInterval().getEnd();
+                                .flatMap(transcript -> transcript.getExons().stream())
+                                .collect(Collectors.toCollection(TreeSet::new))
+                                .stream()
+                                .mapToInt(exon -> {
+                                    int start = exon.getInterval().getStart();
+                                    int end = exon.getInterval().getEnd();
                                     return end - start + 1;
                                 })
                                 .sum()) + "\t" +
