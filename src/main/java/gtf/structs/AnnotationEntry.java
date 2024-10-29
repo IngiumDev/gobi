@@ -4,8 +4,6 @@ import gtf.types.FrameStarts;
 import gtf.types.StrandDirection;
 
 public abstract class AnnotationEntry {
-    // TODO decouple strand from annotation entry and move it to Gene
-    // TODO Migrate away from hashmap for attributes
     // GTF line columns to escalate: seqname, source, strand
 
     // name of the chromosome or scaffold; chromosome names can be given with or without the 'chr' prefix. Important note: the seqname must be one used within Ensembl, i.e. a standard chromosome name or an Ensembl identifier such as a scaffold ID, without any additional content such as species or assembly. See the example GFF output below.

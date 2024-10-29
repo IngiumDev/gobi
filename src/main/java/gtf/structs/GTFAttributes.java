@@ -201,55 +201,57 @@ public class GTFAttributes {
         this.ccdsID = ccdsID;
     }
 
-       static class Builder {
-         // Gene
-         private String geneID;
-         private String geneName;
-         // Transcript
-         private String transcriptID;
-         private String transcriptName;
-         // Exon
-         private String exonID; //not always present
-         private String exonNumber; //not always present
-         // CDS
-         private String proteinID; //not always present: rely on
-         private String ccdsID; //not always present
+    static class Builder {
+        // Gene
+        private String geneID;
+        private String geneName;
+        // Transcript
+        private String transcriptID;
+        private String transcriptName;
+        // Exon
+        private String exonID; //not always present
+        private String exonNumber; //not always present
+        // CDS
+        private String proteinID; //not always present: rely on
+        private String ccdsID; //not always present
 
-         public Builder() {}
+        public Builder() {
+        }
 
-         public void setGeneID(String geneID) {
-             this.geneID = geneID;
-         }
+        public void setGeneID(String geneID) {
+            this.geneID = geneID;
+        }
 
-         public void setGeneName(String geneName) {
-             this.geneName = geneName;
-         }
+        public void setGeneName(String geneName) {
+            this.geneName = geneName;
+        }
 
-         public void setTranscriptID(String transcriptID) {
-             this.transcriptID = transcriptID;
-         }
+        public void setTranscriptID(String transcriptID) {
+            this.transcriptID = transcriptID;
+        }
 
-         public void setTranscriptName(String transcriptName) {
-             this.transcriptName = transcriptName;
-         }
+        public void setTranscriptName(String transcriptName) {
+            this.transcriptName = transcriptName;
+        }
 
-         public void setExonID(String exonID) {
-             this.exonID = exonID;
-         }
+        public void setExonID(String exonID) {
+            this.exonID = exonID;
+        }
 
-         public void setExonNumber(String exonNumber) {
-             this.exonNumber = exonNumber;
-         }
+        public void setExonNumber(String exonNumber) {
+            this.exonNumber = exonNumber;
+        }
 
-         public void setProteinID(String proteinID) {
-             this.proteinID = proteinID;
-         }
+        public void setProteinID(String proteinID) {
+            this.proteinID = proteinID;
+        }
 
-         public void setCcdsID(String ccdsID) {
-             this.ccdsID = ccdsID;
-         }
-         public GTFAttributes build() {
-             return new GTFAttributes(this);
-         }
-     }
+        public void setCcdsID(String ccdsID) {
+            this.ccdsID = ccdsID;
+        }
+
+        public GTFAttributes build() {
+            return new GTFAttributes(this);
+        }
+    }
 }

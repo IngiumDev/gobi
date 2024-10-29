@@ -17,7 +17,7 @@ public class ExonSkipRunner {
                 .description("Run ExonSkipRunner");
         parser.addArgument("-gtf").required(true).help("GTF file").metavar("<GTF file>");
         parser.addArgument("-o").required(true).help("Output file").metavar("<output file path>");
-
+        parser.addArgument("-a", "--analysis").required(false).help("File Path to the analysis file").metavar("<analysis file path>");
         if (args.length == 0) {
             parser.printHelp();
             System.exit(1);
@@ -31,14 +31,19 @@ public class ExonSkipRunner {
     }
 
     public static void start(Namespace res) {
-        GTFAnnotation GTFAnnotation = GTFParser.parseGTF(res.getString("gtf"));
-        long start = System.currentTimeMillis();
-        List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
-        long end = System.currentTimeMillis();
-        System.out.println("Time taken to process exon skipping events: " + (end - start) + "ms");
-        // Write the exon skipping events to a file
-        ExonSkip.writeExonSkipToFile(res.getString("o"), exonSkips);
+        long totalStartTime = System.currentTimeMillis();
 
+        GTFAnnotation GTFAnnotation = GTFParser.parseGTF(res.getString("gtf"));
+
+        long startTime = System.currentTimeMillis();
+        List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
+        System.out.println("LOG: Total time to find exon skipping events: " + (System.currentTimeMillis() - startTime) + " ms");
+        // Write the exon skipping events to a file
+        startTime = System.currentTimeMillis();
+        ExonSkip.writeExonSkipToFile(res.getString("o"), exonSkips);
+        System.out.println("LOG: Total time to write exon skipping events: " + (System.currentTimeMillis() - startTime) + " ms");
+
+        System.out.println("LOG: Total time: " + (System.currentTimeMillis() - totalStartTime) + " ms");
 
     }
 

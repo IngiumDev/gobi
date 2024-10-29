@@ -12,10 +12,12 @@ public class Interval implements Comparable<Interval> {
         this.end = end;
 
     }
-    public Interval (Interval interval) {
+
+    public Interval(Interval interval) {
         this.start = interval.start;
         this.end = interval.end;
     }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -31,7 +33,7 @@ public class Interval implements Comparable<Interval> {
 
     @Override
     public String toString() {
-        return start + ":" + (end+1);
+        return start + ":" + (end + 1);
     }
 
     public int getStart() {
@@ -54,7 +56,6 @@ public class Interval implements Comparable<Interval> {
         return end - start + 1;
     }
 
-    // TODO look into adding second parameter to compare by end
     @Override
     public int compareTo(Interval o) {
         int startComparison = Integer.compare(this.start, o.start);
