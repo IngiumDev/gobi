@@ -60,6 +60,7 @@ public class ExonSkip {
     }
 
     public static List<ExonSkip> findExonSkippingEvents(GTFAnnotation gtfAnnotation) {
+        // TODO use .collect() to avoid synchronization
         List<ExonSkip> exonSkips = Collections.synchronizedList(new ArrayList<>());
         gtfAnnotation.getGenes().values().parallelStream().forEach(gene -> {
             for (Interval intronCandidate : gene.getIntrons()) {
