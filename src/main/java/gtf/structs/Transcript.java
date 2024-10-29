@@ -6,12 +6,11 @@ import gtf.types.StrandDirection;
 import java.util.TreeSet;
 
 public class Transcript extends AnnotationEntry {
-    // TODO: think about where to store cds once
-    private String transcriptID;
-    private String transcriptName;
+    private final String transcriptID;
+    private final String transcriptName;
     // Sorted by start position
-    private TreeSet<Exon> exons;
-    private TreeSet<CodingSequence> cds;
+    private final TreeSet<Exon> exons;
+    private final TreeSet<CodingSequence> cds;
 
     // If we read a transcript line
     public Transcript(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, GTFAttributes GTFAttributes) {
@@ -21,6 +20,7 @@ public class Transcript extends AnnotationEntry {
         this.exons = new TreeSet<>();
         this.cds = new TreeSet<>();
     }
+
     // If we read an exon or CDS line
     public Transcript(String seqname, String source, StrandDirection strand, GTFAttributes GTFAttributes) {
         super(seqname, source, strand);
@@ -33,6 +33,7 @@ public class Transcript extends AnnotationEntry {
     public boolean addExon(Exon exon) {
         return exons.add(exon);
     }
+
     public boolean addCds(CodingSequence cds) {
         return this.cds.add(cds);
     }
