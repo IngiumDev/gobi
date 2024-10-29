@@ -18,7 +18,7 @@ public class ExonSkipRunner {
                 .description("Run ExonSkipRunner");
         parser.addArgument("-gtf").required(true).help("GTF file").metavar("<GTF file>");
         parser.addArgument("-o").required(true).help("Output file").metavar("<output file path>");
-        parser.addArgument("-a", "--analysis").required(false).help("File Path to the analysis file").metavar("<analysis file path>");
+        parser.addArgument("-a", "--analysis").required(false).help("(optional) File Path to the analysis file, gives meta stats about exon skipping in this file").metavar("<analysis file path>");
         if (args.length == 0) {
             parser.printHelp();
             System.exit(1);
@@ -38,6 +38,7 @@ public class ExonSkipRunner {
 
         // Exon Skipping Calculation
         long startTime = System.currentTimeMillis();
+        // TODO: Don't store the results in a variable, print them directly
         List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
         GTFTimer.setExonProcessTime((System.currentTimeMillis() - startTime));
         System.out.println("LOG: Total time to find exon skipping events: " + GTFTimer.getExonProcessTime() + " ms");
