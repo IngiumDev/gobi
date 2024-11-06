@@ -33,6 +33,7 @@ public class ExonSkipRunner {
 
     public static void start(Namespace res) {
         // GTF Parsing
+        // TODO byte buffer
         long totalStartTime = System.currentTimeMillis();
         GTFAnnotation GTFAnnotation = GTFParser.parseGTF(res.getString("gtf"));
 
