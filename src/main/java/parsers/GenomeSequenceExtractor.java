@@ -113,7 +113,7 @@ ACTGGGGGATACG
     }
 
     public String getSequence(String chr, int start, int end, StrandDirection strand) {
-        String sequence = getSequenceBuilder(chr, start, end).toString();
+        String sequence = readSequence(chr, start, end).toString();
         if (strand == StrandDirection.REVERSE) {
             return reverseComplement(sequence);
         }
@@ -121,40 +121,59 @@ ACTGGGGGATACG
     }
 
     public String getSequence(String chr, Interval interval, StrandDirection strand) {
-        StringBuilder sequence = getSequenceBuilder(chr, interval);
+        StringBuilder sequence = readSequence(chr, interval);
         if (strand == StrandDirection.REVERSE) {
             return reverseComplement(sequence.toString());
         }
         return sequence.toString();
     }
 
-    public String getSplitSequence(String chr, TreeSet<Interval> intervals, StrandDirection strand) {
-        StringBuilder sequence = getSplitSequenceBuilder(chr, intervals);
+    public String getSequenceForIntervals (String chr, TreeSet<Interval> intervals, StrandDirection strand) {
+        StringBuilder sequence = readSequenceForIntervals(chr, intervals);
         if (strand == StrandDirection.REVERSE) {
             return reverseComplement(sequence.toString());
         }
         return sequence.toString();
+    }
+    public String getSequenceForIntervalsInOneRead(String chr, TreeSet<Interval> intervals, StrandDirection strand) {
+        StringBuilder sequence = readSequenceForIntervalsInOneRead(chr, intervals);
+        if (strand == StrandDirection.REVERSE) {
+            return reverseComplement(sequence.toString());
+        }
+        return sequence.toString();
+    }
+
+    private StringBuilder readSequenceForIntervalsInOneRead(String chr, TreeSet<Interval> intervals) {
+        // Get a read that spans all intervals, then cut out the non required parts
+        int start = intervals.first().getStart();
+        int end = intervals.last().getEnd();
+        StringBuilder sequence = readSequence(chr, start, end);
+        StringBuilder result = new StringBuilder();
+        for (Interval interval : intervals) {
+            result.append(sequence, interval.getStart() - start, interval.getEnd() - start + 1);
+        }
+        return result;
     }
 
     private String getSequence(String chr, int start, int end) {
-        return getSequenceBuilder(chr, start, end).toString();
+        return readSequence(chr, start, end).toString();
     }
 
-    private StringBuilder getSequenceBuilder(String chr, Interval interval) {
-        return getSequenceBuilder(chr, interval.getStart(), interval.getEnd());
+    private StringBuilder readSequence(String chr, Interval interval) {
+        return readSequence(chr, interval.getStart(), interval.getEnd());
     }
 
 
-    private StringBuilder getSplitSequenceBuilder(String chr, TreeSet<Interval> intervals) {
+    private StringBuilder readSequenceForIntervals(String chr, TreeSet<Interval> intervals) {
         StringBuilder sequence = new StringBuilder();
         for (Interval interval : intervals) {
-            sequence.append(getSequenceBuilder(chr, interval));
+            sequence.append(readSequence(chr, interval));
         }
         return sequence;
     }
 
 
-    private StringBuilder getSequenceBuilder(String chr, int start, int end) {
+    private StringBuilder readSequence(String chr, int start, int end) {
         // Retrieve the index entry for the chromosome
         FastaIndexEntry entry = fastaIndex.get(chr);
         if (entry == null) {
