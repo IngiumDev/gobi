@@ -1,15 +1,19 @@
 package runners;
 
+import gtf.structs.Interval;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.type.FileArgumentType;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
+import java.util.TreeSet;
+
 public class ReadSimulatorRunner {
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("ReadSimulatorRunner").build().defaultHelp(true)
                 .description("Run ReadSimulatorRunner");
+
 
         parser.addArgument("-length").required(true).help("Read length").metavar("<read length>").type(Integer.class);
         parser.addArgument("-frlength").required(true).help("Mean fragment length").metavar("<mean fragment length>").type(Integer.class);
@@ -33,5 +37,29 @@ public class ReadSimulatorRunner {
     }
 
     private static void start(Namespace res) {
+    }
+
+
+    public static TreeSet<Interval> getCoveredRegion(TreeSet<Interval> regions, Interval localRegion) {
+        TreeSet<Interval> coveredRegions = new TreeSet<>();
+        int localStart = localRegion.getStart();
+        int localEnd = localRegion.getEnd();
+        int currentPos = 0;
+        for (Interval region : regions) {
+            int regionLength = region.getEnd() - region.getStart() + 1;
+
+            if (currentPos + regionLength > localStart) {
+                int start = Math.max(region.getStart(), region.getStart() + (localStart - currentPos));
+                int end = Math.min(region.getEnd(), region.getStart() + (localEnd - currentPos));
+                coveredRegions.add(new Interval(start, end));
+                if (currentPos + regionLength >= localEnd) {
+                    break;
+                }
+            }
+
+            currentPos += regionLength;
+        }
+
+        return coveredRegions;
     }
 }

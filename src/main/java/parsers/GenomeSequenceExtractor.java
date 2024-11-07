@@ -55,9 +55,19 @@ ACTGGGGGATACG
     }
 
     public static void main(String[] args) {
-        GenomeSequenceExtractor genomeSequenceExtractor = new GenomeSequenceExtractor("C:\\Users\\Simon\\IdeaProjects\\gobi\\data\\readsimulator\\Homo_sapiens.GRCh37.75.dna.toplevel.fa", "C:\\Users\\Simon\\IdeaProjects\\gobi\\data\\readsimulator\\Homo_sapiens.GRCh37.75.dna.toplevel.fa.fai");
-        String sequence = genomeSequenceExtractor.getSequence("14", 106382685, 106382715, StrandDirection.REVERSE);
-        System.out.println(sequence);
+        GenomeSequenceExtractor genomeSequenceExtractor = new GenomeSequenceExtractor("/Users/simon/IdeaProjects/gobi/data/readsimulator/Homo_sapiens.GRCh37.75.dna.toplevel.fa", "/Users/simon/IdeaProjects/gobi/data/readsimulator/Homo_sapiens.GRCh37.75.dna.toplevel.fa.fai");
+        TreeSet<Interval> exons = new TreeSet<>();
+        exons.add(new Interval(100, 1000));
+        exons.add(new Interval(100, 1000));
+        exons.add(new Interval(2000, 3000));
+        exons.add(new Interval(10000, 11000));
+        exons.add(new Interval(20000, 21000));
+        exons.add(new Interval(30000, 31000));
+        exons.add(new Interval(40000, 41000));
+        exons.add(new Interval(50000, 51000));
+
+        String sequence3 = genomeSequenceExtractor.getSequence("14", 106382685, 106382715, StrandDirection.REVERSE);
+        System.out.println(sequence3);
     }
 
     public static String reverseComplement(String input) {
@@ -128,13 +138,14 @@ ACTGGGGGATACG
         return sequence.toString();
     }
 
-    public String getSequenceForIntervals (String chr, TreeSet<Interval> intervals, StrandDirection strand) {
+    public String getSequenceForIntervals(String chr, TreeSet<Interval> intervals, StrandDirection strand) {
         StringBuilder sequence = readSequenceForIntervals(chr, intervals);
         if (strand == StrandDirection.REVERSE) {
             return reverseComplement(sequence.toString());
         }
         return sequence.toString();
     }
+
     public String getSequenceForIntervalsInOneRead(String chr, TreeSet<Interval> intervals, StrandDirection strand) {
         StringBuilder sequence = readSequenceForIntervalsInOneRead(chr, intervals);
         if (strand == StrandDirection.REVERSE) {
@@ -181,7 +192,7 @@ ACTGGGGGATACG
         }
 
         // Calculate the byte offset and length to map based on the start and end positions
-        long byteOffset = entry.byteOffset() - 1 + (start / entry.lineBases()) * entry.lineBytes() + start % entry.lineBases();
+        long byteOffset = entry.byteOffset() - 1 + (long) (start / entry.lineBases()) * entry.lineBytes() + start % entry.lineBases();
         int sequenceLength = end - start + 1;
         try {
             MappedByteBuffer buffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, byteOffset, sequenceLength + (sequenceLength / entry.lineBases()) + entry.lineBytes());
