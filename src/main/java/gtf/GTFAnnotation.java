@@ -19,5 +19,7 @@ public class GTFAnnotation {
     public void addGene(Gene gene) {
         genes.put(gene.getGeneID(), gene);
     }
-
+    public Gene getGene(String geneID) {
+        return genes.get(geneID);
+    }
 }

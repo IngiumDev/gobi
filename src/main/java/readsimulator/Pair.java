@@ -1,3 +1,5 @@
+package readsimulator;
+
 import java.util.Objects;
 
 public class Pair<X, Y> {
@@ -11,7 +13,7 @@ public class Pair<X, Y> {
 
     @Override
     public String toString() {
-        return "Pair{" + "first=" + first + ", second=" + second + '}';
+        return "readsimulator.Pair{" + "first=" + first + ", second=" + second + '}';
     }
 
     @Override

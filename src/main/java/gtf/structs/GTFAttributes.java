@@ -103,7 +103,7 @@ public class GTFAttributes {
                 }
                 value = attributeString.substring(valueStart, i++);
             } else {
-                // Read until the next space or semicolon for unquoted values
+                // readsimulator.Read until the next space or semicolon for unquoted values
                 int valueStart = i;
                 while (i < len && attributeString.charAt(i) != ' ' && attributeString.charAt(i) != ';') {
                     i++;

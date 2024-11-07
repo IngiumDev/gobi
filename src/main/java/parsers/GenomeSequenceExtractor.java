@@ -66,7 +66,7 @@ ACTGGGGGATACG
         exons.add(new Interval(40000, 41000));
         exons.add(new Interval(50000, 51000));
 
-        String sequence3 = genomeSequenceExtractor.getSequence("14", 106382685, 106382715, StrandDirection.REVERSE);
+        String sequence3 = genomeSequenceExtractor.getSequence("14", 22998580, 22998641, StrandDirection.FORWARD);
         System.out.println(sequence3);
     }
 
@@ -182,9 +182,16 @@ ACTGGGGGATACG
         }
         return sequence;
     }
+    public StringBuilder readSequence(String chr, int start, int end, StrandDirection direction) {
+        StringBuilder sequence = readSequence(chr, start, end);
+        if (direction == StrandDirection.REVERSE) {
+            // TODO Revcomplement with stringbuilder
+            return new StringBuilder(reverseComplement(sequence.toString()));
+        }
+        return sequence;
+    }
 
-
-    private StringBuilder readSequence(String chr, int start, int end) {
+    public StringBuilder readSequence(String chr, int start, int end) {
         // Retrieve the index entry for the chromosome
         FastaIndexEntry entry = fastaIndex.get(chr);
         if (entry == null) {
