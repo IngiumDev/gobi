@@ -6,19 +6,25 @@ import net.sourceforge.argparse4j.impl.type.FileArgumentType;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
+import parsers.GTFParser;
+import parsers.GenomeSequenceExtractor;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
+
+import readsimulator.ReadPair;
+import readsimulator.ReadSimulator;
 
 public class ReadSimulatorRunner {
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("ReadSimulatorRunner").build().defaultHelp(true)
                 .description("Run ReadSimulatorRunner");
-        parser.addArgument("-length").required(true).help("Read length").metavar("<read length>").type(Integer.class);
+        parser.addArgument("-length").required(true).help("readsimulator.Read length").metavar("<read length>").type(Integer.class);
         parser.addArgument("-frlength").required(true).help("Mean fragment length").metavar("<mean fragment length>").type(Integer.class);
         parser.addArgument("-SD").required(true).help("Standard deviation of fragment length").metavar("<standard deviation>").type(Integer.class);
         parser.addArgument("-readcounts").required(true).help("Path to read counts file").metavar("<read counts file>").type(new FileArgumentType().verifyIsFile());
@@ -40,7 +46,25 @@ public class ReadSimulatorRunner {
     }
 
     private static void start(Namespace res) {
+        ReadSimulator readSimulator = new ReadSimulator.Builder()
+                .setReadLength(res.getInt("length"))
+                .setMeanFragmentLength(res.getInt("frlength"))
+                .setFragmentLengthStandardDeviation(res.getInt("SD"))
+                .setMutationRate(res.getDouble("mutationrate")/100)
+                .setGtfAnnotation(GTFParser.parseGTF(res.getString("gtf")))
+                .setGenomeSequenceExtractor(new GenomeSequenceExtractor(res.getString("fasta"), res.getString("fidx")))
+                .setReadCounts(readCountsFile(res.getString("readcounts")))
+                .build();
+        List<ReadPair> readPairs = readSimulator.simulateReads();
+        // Output to file
+        String outputDir = res.getString("od");
+        // First write the read counts file
+        readSimulator.writeReadCounts(outputDir);
+        // Then write the reads
+        readSimulator.writeReads(outputDir);
+        System.out.println();
     }
+
 
 
     public static TreeSet<Interval> getCoveredRegion(TreeSet<Interval> regions, Interval localRegion) {

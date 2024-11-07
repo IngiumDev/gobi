@@ -1,3 +1,5 @@
+package readsimulator;
+
 import gtf.structs.Interval;
 import gtf.types.StrandDirection;
 import parsers.GenomeSequenceExtractor;
@@ -39,6 +41,26 @@ public class Read {
         Read read1 = new Read(seq, StrandDirection.FORWARD, fragmentStart, fragmentLength, readLength);
         Read read2 = new Read(seq, StrandDirection.REVERSE, fragmentStart, fragmentLength, readLength);
         System.out.println();
+    }
+
+    public Interval getTranscriptCoordinates() {
+        return transcriptCoordinates;
+    }
+
+    public StrandDirection getStrandDirection() {
+        return strandDirection;
+    }
+
+    public String getSeq() {
+        return seq;
+    }
+
+    public List<Integer> getMutatedPositions() {
+        return mutatedPositions;
+    }
+
+    public TreeSet<Interval> getChromosomalCoordinates() {
+        return chromosomalCoordinates;
     }
 
     // TODO: change so that mutation's have to happen 33% chance for each nucleotide
