@@ -56,10 +56,8 @@ ACTGGGGGATACG
 
     public static void main(String[] args) {
         GenomeSequenceExtractor genomeSequenceExtractor = new GenomeSequenceExtractor("C:\\Users\\Simon\\IdeaProjects\\gobi\\data\\readsimulator\\Homo_sapiens.GRCh37.75.dna.toplevel.fa", "C:\\Users\\Simon\\IdeaProjects\\gobi\\data\\readsimulator\\Homo_sapiens.GRCh37.75.dna.toplevel.fa.fai");
-        System.out.println();
         String sequence = genomeSequenceExtractor.getSequence("14", 106382685, 106382715, StrandDirection.REVERSE);
         System.out.println(sequence);
-
     }
 
     public static String reverseComplement(String input) {
