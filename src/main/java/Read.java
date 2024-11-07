@@ -1,23 +1,44 @@
 import gtf.structs.Interval;
 import gtf.types.StrandDirection;
+import parsers.GenomeSequenceExtractor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.TreeSet;
 
+import static runners.ReadSimulatorRunner.getCoveredRegion;
+
 public class Read {
     public final static char[] nucleotides = {'A', 'C', 'G', 'T'};
-    private String seq;
     private final Interval transcriptCoordinates;
     private final StrandDirection strandDirection;
+    private String seq;
     private List<Integer> mutatedPositions;
     private TreeSet<Interval> chromosomalCoordinates;
 
-    public Read(String seq, Interval transcriptCoordinates, StrandDirection strandDirection) {
-        this.seq = seq;
-        this.transcriptCoordinates = transcriptCoordinates;
-        this.strandDirection = strandDirection;
+    public Read(String transcriptSeq, StrandDirection direction, int fragmentStart, int fragmentLength, int readLength) {
+        if (direction == StrandDirection.FORWARD) {
+            this.seq = transcriptSeq.substring(fragmentStart, fragmentStart + readLength);
+            this.transcriptCoordinates = new Interval(fragmentStart, fragmentStart + readLength - 1);
+            this.strandDirection = direction;
+        } else if (direction == StrandDirection.REVERSE) {
+            this.seq = GenomeSequenceExtractor.reverseComplement(transcriptSeq.substring(fragmentStart + fragmentLength - readLength, fragmentStart + fragmentLength));
+            this.transcriptCoordinates = new Interval(fragmentStart + fragmentLength - readLength, fragmentStart + fragmentLength - 1);
+            this.strandDirection = direction;
+        } else {
+            throw new IllegalArgumentException("StrandDirection not given");
+        }
+    }
+
+    public static void main(String[] args) {
+        String seq = "ATTTTTA";
+        int fragmentStart = 0;
+        int fragmentLength = 7;
+        int readLength = 4;
+        Read read1 = new Read(seq, StrandDirection.FORWARD, fragmentStart, fragmentLength, readLength);
+        Read read2 = new Read(seq, StrandDirection.REVERSE, fragmentStart, fragmentLength, readLength);
+        System.out.println();
     }
 
     // TODO: change so that mutation's have to happen 33% chance for each nucleotide
@@ -39,5 +60,9 @@ public class Read {
             newNucleotide = nucleotides[random.nextInt(nucleotides.length)];
         } while (newNucleotide == currentNucleotide);
         return newNucleotide;
+    }
+
+    public void calculateGenomicPositions(TreeSet<Interval> exonPositions) {
+        chromosomalCoordinates = getCoveredRegion(exonPositions, transcriptCoordinates);
     }
 }
