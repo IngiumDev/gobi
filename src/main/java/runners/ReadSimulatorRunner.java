@@ -7,14 +7,17 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.TreeSet;
 
 public class ReadSimulatorRunner {
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("ReadSimulatorRunner").build().defaultHelp(true)
                 .description("Run ReadSimulatorRunner");
-
-
         parser.addArgument("-length").required(true).help("Read length").metavar("<read length>").type(Integer.class);
         parser.addArgument("-frlength").required(true).help("Mean fragment length").metavar("<mean fragment length>").type(Integer.class);
         parser.addArgument("-SD").required(true).help("Standard deviation of fragment length").metavar("<standard deviation>").type(Integer.class);
@@ -61,5 +64,43 @@ public class ReadSimulatorRunner {
         }
 
         return coveredRegions;
+    }
+
+    public static Map<String, Map<String, Integer>> readCountsFile(String readCountsPath) {
+        Map<String, Map<String, Integer>> geneTranscriptCounts = new HashMap<>();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(readCountsPath))) {
+            String line = br.readLine(); // skip first line
+            while ((line = br.readLine()) != null) {
+                int length = line.length();
+                int tabOnePos = -1;
+                int tabTwoPos = -1;
+                for (int i = 0; i < length; i++) {
+                    if (line.charAt(i) == '\t') {
+                        if (tabOnePos == -1) {
+                            tabOnePos = i;
+                        } else {
+                            tabTwoPos = i;
+                            break;
+                        }
+                    }
+                }
+                if (tabOnePos == -1 || tabTwoPos == -1) {
+                    continue; // Skip malformed lines
+                }
+
+                String geneId = line.substring(0, tabOnePos);
+                String transcriptId = line.substring(tabOnePos + 1, tabTwoPos);
+                int count = Integer.parseInt(line.substring(tabTwoPos + 1).trim());
+
+                geneTranscriptCounts
+                        .computeIfAbsent(geneId, k -> new HashMap<>())
+                        .put(transcriptId, count);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return geneTranscriptCounts;
     }
 }
