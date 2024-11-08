@@ -72,13 +72,13 @@ public class ReadSimulatorRunner {
         int localEnd = localRegion.getEnd();
         int currentPos = 0;
         for (Interval region : regions) {
-            int regionLength = region.getEnd() - region.getStart() + 1;
+            int regionLength = region.getLength();
 
             if (currentPos + regionLength > localStart) {
                 int start = Math.max(region.getStart(), region.getStart() + (localStart - currentPos));
                 int end = Math.min(region.getEnd(), region.getStart() + (localEnd - currentPos));
                 coveredRegions.add(new Interval(start, end));
-                if (currentPos + regionLength >= localEnd) {
+                if (currentPos + regionLength > localEnd) {
                     break;
                 }
             }

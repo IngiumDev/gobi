@@ -32,4 +32,9 @@ public class Exon extends AnnotationEntry implements Comparable<Exon> {
     public int compareTo(Exon other) {
         return Integer.compare(this.getInterval().getStart(), other.getInterval().getStart());
     }
+
+    @Override
+    public String toString() {
+        return "Exon " + exonNumber + " " + getInterval().getStart() + "-" + getInterval().getEnd() + " Length: " + getInterval().getLength();
+    }
 }
