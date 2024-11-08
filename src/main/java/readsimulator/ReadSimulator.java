@@ -50,45 +50,48 @@ public class ReadSimulator {
                     String geneId = geneEntry.getKey();
                     Map<String, Integer> transcriptMap = geneEntry.getValue();
 
-                    if (transcriptMap.size() > 1) {
-                        // Get the minimum start and maximum end positions for the gene
-                        int minStart = Integer.MAX_VALUE;
-                        int maxEnd = Integer.MIN_VALUE;
-                        for (Transcript transcript : gtfAnnotation.getGene(geneId).getTranscripts().values()) {
-                            minStart = Math.min(minStart, transcript.getExons().getFirst().getInterval().getStart());
-                            maxEnd = Math.max(maxEnd, transcript.getExons().getLast().getInterval().getEnd());
-                        }
-
-                        // readsimulator.Read the relevant section of the genome
-                        StringBuilder sequence = genomeSequenceExtractor.readSequence(gtfAnnotation.getGene(geneId).getSeqname(), minStart, maxEnd, gtfAnnotation.getGene(geneId).getStrand());
-
-                        // Simulate the reads
-                        int finalMinStart = minStart;
-                        return transcriptMap.entrySet().stream().flatMap(transcriptEntry -> {
-                            String transcriptId = transcriptEntry.getKey();
-                            int readCount = transcriptEntry.getValue();
-                            Transcript transcript = gtfAnnotation.getGene(geneId).getTranscript(transcriptId);
-                            // Basically, now we need to cut out the relevant section of the sequence for the transcript's exons
-                            int start = transcript.getExons().getFirst().getInterval().getStart();
-                            StringBuilder requiredSequence = new StringBuilder();
-                            for (Exon exon : transcript.getExons()) {
-                                requiredSequence.append(sequence, exon.getInterval().getStart() - finalMinStart, exon.getInterval().getEnd() - finalMinStart + 1);
-                            }
-                            return simulateReadPairs(requiredSequence.toString(), transcript, readCount,transcript.getSeqname(),geneId , transcriptId).stream();
-
-                        });
-                    } else {
+//                    if (transcriptMap.size() > 1) {
+//                        // Get the minimum start and maximum end positions for the gene
+//                        int minStart = Integer.MAX_VALUE;
+//                        int maxEnd = Integer.MIN_VALUE;
+//                        for (Transcript transcript : gtfAnnotation.getGene(geneId).getTranscripts().values()) {
+//                            minStart = Math.min(minStart, transcript.getExons().getFirst().getInterval().getStart());
+//                            maxEnd = Math.max(maxEnd, transcript.getExons().getLast().getInterval().getEnd());
+//                        }
+//
+//                        // readsimulator.Read the relevant section of the genome
+//                        StringBuilder sequence = genomeSequenceExtractor.readSequence(gtfAnnotation.getGene(geneId).getSeqname(), minStart, maxEnd, gtfAnnotation.getGene(geneId).getStrand());
+//
+//                        // Simulate the reads
+//                        int finalMinStart = minStart;
+//                        return transcriptMap.entrySet().stream().flatMap(transcriptEntry -> {
+//                            String transcriptId = transcriptEntry.getKey();
+//                            int readCount = transcriptEntry.getValue();
+//                            Transcript transcript = gtfAnnotation.getGene(geneId).getTranscript(transcriptId);
+//                            // Basically, now we need to cut out the relevant section of the sequence for the transcript's exons
+//                            int start = transcript.getExons().getFirst().getInterval().getStart();
+//                            StringBuilder requiredSequence = new StringBuilder();
+                    // TODO: fix this, we need to revcomp after cutting the sequence up, not before. Look into how to refactor this
+//                            for (Exon exon : transcript.getExons()) {
+//                                requiredSequence.append(sequence, exon.getInterval().getStart() - finalMinStart, exon.getInterval().getEnd() - finalMinStart + 1);
+//                            }
+//                            return simulateReadPairs(requiredSequence.toString(), transcript, readCount,transcript.getSeqname(),geneId , transcriptId).stream();
+//
+//                        });
+//                    } else {
                         // TODO: Implement this
                         // Procedure for when there is only one transcript
-                        Map.Entry<String, Integer> transcriptEntry = transcriptMap.entrySet().iterator().next();
-                        String transcriptId = transcriptEntry.getKey();
-                        int readCount = transcriptEntry.getValue();
-                        Transcript transcript = gtfAnnotation.getGene(geneId).getTranscript(transcriptId);
-                        String sequence = genomeSequenceExtractor.getSequenceForIntervalsInOneRead(gtfAnnotation.getGene(geneId).getSeqname(), transcript.getExons().stream()
-                                .map(Exon::getInterval)
-                                .collect(Collectors.toCollection(TreeSet::new)), gtfAnnotation.getGene(geneId).getStrand());
-                        return simulateReadPairs(sequence, transcript, readCount,transcript.getSeqname(),geneId , transcriptId).stream();
-                    }
+                    return transcriptMap.entrySet().stream()
+                            .flatMap(transcriptEntry -> {
+                                String transcriptId = transcriptEntry.getKey();
+                                int readCount = transcriptEntry.getValue();
+                                Transcript transcript = gtfAnnotation.getGene(geneId).getTranscript(transcriptId);
+                                String sequence = genomeSequenceExtractor.getSequenceForIntervalsInOneRead(gtfAnnotation.getGene(geneId).getSeqname(), transcript.getExons().stream()
+                                        .map(Exon::getInterval)
+                                        .collect(Collectors.toCollection(TreeSet::new)), gtfAnnotation.getGene(geneId).getStrand());
+                                return simulateReadPairs(sequence, transcript, readCount, transcript.getSeqname(), geneId, transcriptId).stream();
+                            });
+//                    }
                 })
                 .collect(Collectors.toList());
     }
@@ -106,7 +109,7 @@ public class ReadSimulator {
             } while (fragmentLength > sequence.length());
             fragmentLength=Math.max(fragmentLength,readLength);
             int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
-            ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID);
+            ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
             rp.mutateReadPairs(mutationRate, random);
             rp.calculateGenomicPositions(transcript.getExons().stream()
                     .map(Exon::getInterval)

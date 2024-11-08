@@ -1,6 +1,7 @@
 package runners;
 
 import gtf.structs.Interval;
+import gtf.types.StrandDirection;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.type.FileArgumentType;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -66,7 +67,7 @@ public class ReadSimulatorRunner {
 
 
 
-    public static TreeSet<Interval> getCoveredRegion(TreeSet<Interval> regions, Interval localRegion) {
+    public static TreeSet<Interval> getCoveredRegion(TreeSet<Interval> regions, Interval localRegion, StrandDirection strandDirection) {
         TreeSet<Interval> coveredRegions = new TreeSet<>();
         int localStart = localRegion.getStart();
         int localEnd = localRegion.getEnd();

@@ -18,16 +18,19 @@ public class Read {
     private String seq;
     private List<Integer> mutatedPositions;
     private TreeSet<Interval> chromosomalCoordinates;
+    private int transcriptSeqLength;
 
     public Read(String transcriptSeq, StrandDirection direction, int fragmentStart, int fragmentLength, int readLength) {
         if (direction == StrandDirection.FORWARD) {
             this.seq = transcriptSeq.substring(fragmentStart, fragmentStart + readLength);
             this.transcriptCoordinates = new Interval(fragmentStart, fragmentStart + readLength - 1);
             this.strandDirection = direction;
+            this.transcriptSeqLength = transcriptSeq.length();
         } else if (direction == StrandDirection.REVERSE) {
             this.seq = GenomeSequenceExtractor.reverseComplement(transcriptSeq.substring(fragmentStart + fragmentLength - readLength, fragmentStart + fragmentLength));
             this.transcriptCoordinates = new Interval(fragmentStart + fragmentLength - readLength, fragmentStart + fragmentLength - 1);
             this.strandDirection = direction;
+            this.transcriptSeqLength = transcriptSeq.length();
         } else {
             throw new IllegalArgumentException("StrandDirection not given");
         }
@@ -85,7 +88,14 @@ public class Read {
         return newNucleotide;
     }
 
-    public void calculateGenomicPositions(TreeSet<Interval> exonPositions) {
-        chromosomalCoordinates = getCoveredRegion(exonPositions, transcriptCoordinates);
+    public void calculateGenomicPositions(TreeSet<Interval> exonPositions, StrandDirection direction) {
+        if (direction == StrandDirection.FORWARD) {
+
+            chromosomalCoordinates = getCoveredRegion(exonPositions, transcriptCoordinates, direction);
+
+        } else {
+            Interval reversedCoordinates = new Interval(transcriptSeqLength - transcriptCoordinates.getEnd() - 1, transcriptSeqLength - transcriptCoordinates.getStart() - 1);
+            chromosomalCoordinates = getCoveredRegion(exonPositions, reversedCoordinates, direction);
+        }
     }
 }
