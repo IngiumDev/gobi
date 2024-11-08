@@ -22,6 +22,7 @@ import readsimulator.ReadPair;
 import readsimulator.ReadSimulator;
 
 public class ReadSimulatorRunner {
+    // TODO remove intron parsing, refactoring, timing and logging
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("ReadSimulatorRunner").build().defaultHelp(true)
                 .description("Run ReadSimulatorRunner");
@@ -33,7 +34,7 @@ public class ReadSimulatorRunner {
         parser.addArgument("-fasta").required(true).help("Path to genome FASTA file").metavar("<genome FASTA file>").type(new FileArgumentType().verifyIsFile());
         parser.addArgument("-fidx").required(true).help("Path to genome FASTA file index").metavar("<genome FASTA file index>").type(new FileArgumentType().verifyIsFile());
         parser.addArgument("-gtf").required(true).help("Path to annotation file").metavar("<annotation file>").type(new FileArgumentType().verifyIsFile());
-        parser.addArgument("-od").required(true).help("Output directory").metavar("<output directory>").type(new FileArgumentType().verifyIsDirectory());
+        parser.addArgument("-od").required(true).help("Output directory").metavar("<output directory>");
         if (args.length == 0) {
             parser.printHelp();
             System.exit(1);
