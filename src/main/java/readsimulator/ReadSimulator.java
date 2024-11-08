@@ -138,11 +138,11 @@ Interval already has a toString method that outputs the interval but it's int th
     *
     *
     * */
-    public void writeReadCounts(String outputDir) {
+    public void writeReadCounts(String outputDir, List<ReadPair> readPairs) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputDir + "/read.mappinginfo"))) {
             writer.write("readid\tchr\tgene\ttranscript\tfw_regvec\trw_regvec\tt_fw_regvec\tt_rw_regvec\tfw_mut\trw_mut\n");
             int readId = 0;
-            for (ReadPair readPair : simulateReads()) {
+            for (ReadPair readPair : readPairs) {
                 Read first = readPair.getFirst();
                 Read second = readPair.getSecond();
                 writer.write(readId + "\t" + readPair.getSeqName() + "\t" + readPair.getGeneID() + "\t" + readPair.getTranscriptID() + "\t" +
@@ -161,14 +161,14 @@ Interval already has a toString method that outputs the interval but it's int th
     }
     }
 
-    public void writeReads(String outputDir) {
+    public void writeReads(String outputDir, List<ReadPair> readPairs) {
         // • fw.fastq
         //• rw.fastq
         //• one FASTQ file for the first read of a fragment, one for the second; set the quality score to the maximum for all bases
         try (BufferedWriter fwWriter = new BufferedWriter(new FileWriter(outputDir + "/fw.fastq"));
              BufferedWriter rwWriter = new BufferedWriter(new FileWriter(outputDir + "/rw.fastq"))) {
             int readId = 0;
-            for (ReadPair readPair : simulateReads()) {
+            for (ReadPair readPair : readPairs) {
                 Read first = readPair.getFirst();
                 Read second = readPair.getSecond();
                 fwWriter.write("@" + readId);
