@@ -65,6 +65,7 @@ public class Read {
 
     // TODO: change so that mutation's have to happen 33% chance for each nucleotide
     public void mutate(double mutationRate, Random random) {
+        // TODO so that instead of iterating through the whole sequence, we calculate the number of mutations, then randomly select the positions
         StringBuilder mutatedSeq = new StringBuilder(seq);
         mutatedPositions = new ArrayList<>();
         for (int i = 0; i < seq.length(); i++) {
