@@ -13,6 +13,7 @@ public class ReadPair extends Pair<Read, Read> {
     private String seqName;
     private String geneID;
     private String transcriptID;
+    private StrandDirection strandDirection;
 
     public String getSeqName() {
         return seqName;
@@ -26,12 +27,13 @@ public class ReadPair extends Pair<Read, Read> {
         return transcriptID;
     }
 
-    public ReadPair(String transcriptSequence, int fragmentStart, int fragmentLength, int readLength, String seqName, String geneID, String transcriptID) {
+    public ReadPair(String transcriptSequence, int fragmentStart, int fragmentLength, int readLength, String seqName, String geneID, String transcriptID, StrandDirection strandDirection) {
         super(new Read(transcriptSequence, StrandDirection.FORWARD, fragmentStart, fragmentLength, readLength),
                 new Read(transcriptSequence, StrandDirection.REVERSE, fragmentStart, fragmentLength, readLength));
         this.seqName = seqName;
         this.geneID = geneID;
         this.transcriptID = transcriptID;
+        this.strandDirection = strandDirection;
     }
 
     public void mutateReadPairs(double mutationRate, Random random) {
@@ -40,8 +42,8 @@ public class ReadPair extends Pair<Read, Read> {
     }
 
     public void calculateGenomicPositions(TreeSet<Interval> exonPositions) {
-        this.getFirst().calculateGenomicPositions(exonPositions);
-        this.getSecond().calculateGenomicPositions(exonPositions);
+        this.getFirst().calculateGenomicPositions(exonPositions, this.strandDirection);
+        this.getSecond().calculateGenomicPositions(exonPositions, this.strandDirection);
     }
 
 }

@@ -190,7 +190,7 @@ ACTGGGGGATACG
         }
         return sequence;
     }
-
+    // ENSG00000164465	ENST00000368503	112500 starts at the last character in the line
     public StringBuilder readSequence(String chr, int start, int end) {
         // Retrieve the index entry for the chromosome
         FastaIndexEntry entry = fastaIndex.get(chr);
@@ -199,10 +199,12 @@ ACTGGGGGATACG
         }
 
         // Calculate the byte offset and length to map based on the start and end positions
-        long byteOffset = entry.byteOffset() - 1 + (long) (start / entry.lineBases()) * entry.lineBytes() + start % entry.lineBases();
+        long byteOffset = entry.byteOffset()+ (long) ((start-1) / entry.lineBases()) * entry.lineBytes() + ((start -1) % entry.lineBases());
         int sequenceLength = end - start + 1;
         try {
-            MappedByteBuffer buffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, byteOffset, sequenceLength + (sequenceLength / entry.lineBases()) + entry.lineBytes());
+            MappedByteBuffer buffer = fileChannel.map(FileChannel.MapMode.READ_ONLY,
+                    byteOffset,
+                    sequenceLength + (sequenceLength / entry.lineBases()) + entry.lineBytes());
             StringBuilder sequence = new StringBuilder();
             int lineBaseCount = 0;
 
