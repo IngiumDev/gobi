@@ -59,9 +59,8 @@ public class ReadSimulatorRunner {
         // Output to file
         String outputDir = res.getString("od");
         // First write the read counts file
-        readSimulator.writeReadCounts(outputDir);
-        // Then write the reads
-        readSimulator.writeReads(outputDir);
+        readSimulator.writeReadCounts(outputDir, readPairs);
+        readSimulator.writeReads(outputDir, readPairs);
         System.out.println();
     }
 
