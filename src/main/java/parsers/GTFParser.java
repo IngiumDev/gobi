@@ -29,7 +29,6 @@ public class GTFParser {
 
     // TODO Logging for errors logback slf4j ch. qos
     // TODO: Remove unnecessary comments/methods
-    // TODO: Remove intron parsing
     // GTF line columns to escalate: seqname, source, strand
     public static GTFAnnotation parseGTF(String gtfFile) {
         long startTime = System.currentTimeMillis();
@@ -44,11 +43,7 @@ public class GTFParser {
             GTFTimer.setGtfParseTime(System.currentTimeMillis() - startTime);
             System.out.println("LOG: Total time to parse GTF: " + GTFTimer.getGtfParseTime() + " ms");
             // Process introns
-            startTime = System.currentTimeMillis();
-            GTFAnnotation.getGenes().values().parallelStream().forEach(Gene::processIntrons);
 
-            GTFTimer.setIntronProcessTime(System.currentTimeMillis() - startTime);
-            System.out.println("LOG: Total time to process introns: " + GTFTimer.getIntronProcessTime() + " ms");
         } catch (IOException e) {
             e.printStackTrace();
         }

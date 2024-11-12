@@ -14,35 +14,6 @@ import java.util.Map;
 import java.util.TreeSet;
 
 public class GenomeSequenceExtractor {
-
-    /* TESTCASES
-    >ENST00000390522 cdna:pseudogene chromosome:GRCh37:14:22998580:22998641:1 gene:ENSG00000211874 gene_biotype:TR_J_pseudogene transcript_biotype:TR_J_pseudogene
-CCAACCAGGCAGGGAACTGCTCTGATCTTTGGGAAGGGAACCCACCTTATCAGTGAGTTC
-CA
-
->ENST00000504127 cdna:pseudogene chromosome:GRCh37:14:22956171:22956233:1 gene:ENSG00000248366 gene_biotype:TR_J_pseudogene transcript_biotype:TR_J_pseudogene
-AGATGCGTGACAGCTATGAGAAGCTGATATTTGGAAAGGAGACATGACTAACTGTGAAGC
-CAA
-
-
->ENST00000442641 cdna:pseudogene chromosome:GRCh37:14:22945296:22945352:1 gene:ENSG00000249446 gene_biotype:TR_J_pseudogene transcript_biotype:TR_J_pseudogene
-TGAAGATCACCTAGATGCTCAACTTTGGGAAGGGGACTGAGTTAATTGTGAGCCTGG
-
-
->ENST00000509135 cdna:pseudogene chromosome:GRCh37:14:22950686:22950742:1 gene:ENSG00000250688 gene_biotype:TR_J_pseudogene transcript_biotype:TR_J_pseudogene
-ACAAGTGCTGGTAATGCTCCTGTTGGGGAAAGGGGATGAGTACAAAAATAAATCCAA
-
-
->ENST00000415118 cdna:known chromosome:GRCh37:14:22907539:22907546:1 gene:ENSG00000223997 gene_biotype:TR_D_gene transcript_biotype:TR_D_gene
-GAAATAGT
-
->ENST00000434970 cdna:known chromosome:GRCh37:14:22907999:22908007:1 gene:ENSG00000237235 gene_biotype:TR_D_gene transcript_biotype:TR_D_gene
-CCTTCCTAC
-
->ENST00000448914 cdna:known chromosome:GRCh37:14:22918105:22918117:1 gene:ENSG00000228985 gene_biotype:TR_D_gene transcript_biotype:TR_D_gene
-ACTGGGGGATACG
-     */
-    // TODO :Test by testing with transcriptome
     // TODO: Check if genomic coordinates match by when we generate a read and get the genomic coordinates, we can just get the read from these coordinates and check if it's the same, and we know our getsequence is correct
     private final FileChannel fileChannel;
     private final Map<String, FastaIndexEntry> fastaIndex;
@@ -56,22 +27,6 @@ ACTGGGGGATACG
         this.fastaIndex = loadIndex(faiFilePath);
     }
 
-
-    public static void main(String[] args) {
-        GenomeSequenceExtractor genomeSequenceExtractor = new GenomeSequenceExtractor("/Users/simon/IdeaProjects/gobi/data/readsimulator/Homo_sapiens.GRCh37.75.dna.toplevel.fa", "/Users/simon/IdeaProjects/gobi/data/readsimulator/Homo_sapiens.GRCh37.75.dna.toplevel.fa.fai");
-        TreeSet<Interval> exons = new TreeSet<>();
-        exons.add(new Interval(100, 1000));
-        exons.add(new Interval(100, 1000));
-        exons.add(new Interval(2000, 3000));
-        exons.add(new Interval(10000, 11000));
-        exons.add(new Interval(20000, 21000));
-        exons.add(new Interval(30000, 31000));
-        exons.add(new Interval(40000, 41000));
-        exons.add(new Interval(50000, 51000));
-
-        String sequence3 = genomeSequenceExtractor.getSequence("14", 22998580, 22998641, StrandDirection.FORWARD);
-        System.out.println(sequence3);
-    }
 
     public static String reverseComplement(String input) {
         StringBuilder sb = new StringBuilder();
@@ -186,6 +141,7 @@ ACTGGGGGATACG
         }
         return sequence;
     }
+
     public StringBuilder readSequence(String chr, int start, int end, StrandDirection direction) {
         StringBuilder sequence = readSequence(chr, start, end);
         if (direction == StrandDirection.REVERSE) {
@@ -194,6 +150,7 @@ ACTGGGGGATACG
         }
         return sequence;
     }
+
     // ENSG00000164465	ENST00000368503	112500 starts at the last character in the line
     public StringBuilder readSequence(String chr, int start, int end) {
         // Retrieve the index entry for the chromosome
@@ -203,7 +160,7 @@ ACTGGGGGATACG
         }
 
         // Calculate the byte offset and length to map based on the start and end positions
-        long byteOffset = entry.byteOffset()+ (long) ((start-1) / entry.lineBases()) * entry.lineBytes() + ((start -1) % entry.lineBases());
+        long byteOffset = entry.byteOffset() + (long) ((start - 1) / entry.lineBases()) * entry.lineBytes() + ((start - 1) % entry.lineBases());
         int sequenceLength = end - start + 1;
         try {
             MappedByteBuffer buffer = fileChannel.map(FileChannel.MapMode.READ_ONLY,
@@ -234,11 +191,11 @@ ACTGGGGGATACG
         }
     }
 
-    // https://manpages.ubuntu.com/manpages/xenial/man5/faidx.5.html#:~:text=An%20fai%20index%20file%20is,line%20LINEWIDTH%20The%20number%20of
-    private record FastaIndexEntry(long byteOffset, int lineBases, int lineBytes, int length) {
-    }
-
     public boolean doesChromosomeExist(String chrToCheck) {
         return fastaIndex.containsKey(chrToCheck);
+    }
+
+    // https://manpages.ubuntu.com/manpages/xenial/man5/faidx.5.html#:~:text=An%20fai%20index%20file%20is,line%20LINEWIDTH%20The%20number%20of
+    private record FastaIndexEntry(long byteOffset, int lineBases, int lineBytes, int length) {
     }
 }

@@ -3,11 +3,11 @@ package runners;
 import gtf.ExonSkip;
 import gtf.GTFAnnotation;
 import gtf.structs.GTFTimer;
+import gtf.structs.Gene;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
-import org.apache.commons.statistics.distribution.NormalDistribution;
 import parsers.GTFParser;
 
 import java.util.List;
@@ -33,13 +33,15 @@ public class ExonSkipRunner {
     }
 
     public static void start(Namespace res) {
-        // GTF Parsing
-        // TODO byte buffer
         long totalStartTime = System.currentTimeMillis();
         GTFAnnotation GTFAnnotation = GTFParser.parseGTF(res.getString("gtf"));
 
-        // Exon Skipping Calculation
         long startTime = System.currentTimeMillis();
+        GTFAnnotation.getGenes().values().parallelStream().forEach(Gene::processIntrons);
+
+        GTFTimer.setIntronProcessTime(System.currentTimeMillis() - startTime);
+        System.out.println("LOG: Total time to process introns: " + GTFTimer.getIntronProcessTime() + " ms");
+
         // TODO: Don't store the results in a variable, print them directly
         List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
         GTFTimer.setExonProcessTime((System.currentTimeMillis() - startTime));
