@@ -9,6 +9,8 @@ import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 import parsers.GTFParser;
 import parsers.GenomeSequenceExtractor;
+import readsimulator.ReadPair;
+import readsimulator.ReadSimulator;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -18,11 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
-import readsimulator.ReadPair;
-import readsimulator.ReadSimulator;
-
 public class ReadSimulatorRunner {
-    // TODO remove intron parsing, refactoring, timing and logging
+    // TODO remove refactoring, timing and logging
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("ReadSimulatorRunner").build().defaultHelp(true)
                 .description("Run ReadSimulatorRunner");
