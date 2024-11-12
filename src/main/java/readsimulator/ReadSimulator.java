@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// splittable random ist faster
 
 public class ReadSimulator {
     private final int readLength;

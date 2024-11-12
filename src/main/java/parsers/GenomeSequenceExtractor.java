@@ -19,6 +19,8 @@ public class GenomeSequenceExtractor {
     private final FileChannel fileChannel;
     private final Map<String, FastaIndexEntry> fastaIndex;
 
+    // TODO: keep sequence as byte array, then convert to string when needed
+    // TODO: BufferedWriter for each file and just write bw.write() and bw.newLine() and bw.flush() at the end
     public GenomeSequenceExtractor(String fastaFilePath, String faiFilePath) {
         try {
             this.fileChannel = FileChannel.open(Paths.get(fastaFilePath));

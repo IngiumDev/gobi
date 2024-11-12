@@ -66,6 +66,7 @@ public class Read {
         return chromosomalCoordinates;
     }
 
+    // TODO: Binomial distribution
     public void mutate(double mutationRate, Random random) {
         StringBuilder mutatedSeq = new StringBuilder(seq);
         mutatedPositions = new ArrayList<>();
