@@ -3,6 +3,9 @@ package readsimulator;
 import gtf.GTFAnnotation;
 import gtf.structs.Exon;
 import gtf.structs.Transcript;
+import org.apache.commons.rng.UniformRandomProvider;
+import org.apache.commons.rng.simple.RandomSource;
+import org.apache.commons.statistics.distribution.BinomialDistribution;
 import parsers.GenomeSequenceExtractor;
 
 import java.io.BufferedWriter;
@@ -22,6 +25,8 @@ public class ReadSimulator {
     private final GenomeSequenceExtractor genomeSequenceExtractor;
     private final Map<String, Map<String, Integer>> readCounts;
     private final Random random;
+    private final UniformRandomProvider rng;
+
 
     public ReadSimulator(Builder builder) {
         this.readLength = builder.readLength;
@@ -32,7 +37,7 @@ public class ReadSimulator {
         this.genomeSequenceExtractor = builder.genomeSequenceExtractor;
         this.readCounts = builder.readCounts;
         this.random = new Random();
-
+        this.rng = RandomSource.create(RandomSource.MT);
     }
 
     public double sampleFragmentLength() {
@@ -102,7 +107,7 @@ public class ReadSimulator {
             fragmentLength = Math.max(fragmentLength, readLength);
             int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
             ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
-            rp.mutateReadPairs(mutationRate, random);
+            rp.mutateReadPairs(mutationRate, random,rng);
             rp.calculateGenomicPositions(transcript.getExons().stream()
                     .map(Exon::getInterval)
                     .collect(Collectors.toCollection(TreeSet::new)));
