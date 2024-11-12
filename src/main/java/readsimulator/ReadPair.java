@@ -2,6 +2,7 @@ package readsimulator;
 
 import gtf.structs.Interval;
 import gtf.types.StrandDirection;
+import org.apache.commons.rng.UniformRandomProvider;
 
 import java.util.Random;
 import java.util.TreeSet;
@@ -36,9 +37,9 @@ public class ReadPair extends Pair<Read, Read> {
         this.strandDirection = strandDirection;
     }
 
-    public void mutateReadPairs(double mutationRate, Random random) {
-        this.getFirst().mutate(mutationRate, random);
-        this.getSecond().mutate(mutationRate, random);
+    public void mutateReadPairs(double mutationRate, Random random, UniformRandomProvider rng) {
+        this.getFirst().mutate(mutationRate, random,rng);
+        this.getSecond().mutate(mutationRate, random,rng);
     }
 
     public void calculateGenomicPositions(TreeSet<Interval> exonPositions) {
