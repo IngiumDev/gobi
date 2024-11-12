@@ -1,7 +1,6 @@
 package tests;
 
 import gtf.GTFAnnotation;
-import gtf.structs.Exon;
 import org.junit.jupiter.api.Test;
 import parsers.GTFParser;
 import parsers.GenomeSequenceExtractor;
@@ -12,8 +11,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,11 +70,9 @@ public class GenomeSequenceExtractorTest {
             return;
         }
 
-        String sequence = genomeSequenceExtractor.getSequenceForIntervalsInOneRead(
+        String sequence = genomeSequenceExtractor.getSequenceForExonsInOneRead(
                 gtfAnnotation.getGene(geneID).getSeqname(),
-                gtfAnnotation.getGene(geneID).getTranscript(transcriptID).getExons().stream()
-                        .map(Exon::getInterval)
-                        .collect(Collectors.toCollection(TreeSet::new)),
+                gtfAnnotation.getGene(geneID).getTranscript(transcriptID).getExons(),
                 gtfAnnotation.getGene(geneID).getStrand()
         );
 

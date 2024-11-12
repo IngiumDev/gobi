@@ -1,5 +1,6 @@
 package parsers;
 
+import gtf.structs.Exon;
 import gtf.structs.Interval;
 import gtf.types.StrandDirection;
 
@@ -89,22 +90,37 @@ public class GenomeSequenceExtractor {
     }
 
     public String getSequence(String chr, Interval interval, StrandDirection strand) {
-        StringBuilder sequence = readSequence(chr, interval);
+        StringBuilder sequence = readSequence(chr, interval.getStart(), interval.getEnd());
         if (strand == StrandDirection.REVERSE) {
             return reverseComplement(sequence.toString());
         }
         return sequence.toString();
     }
 
-    public String getSequenceForIntervals(String chr, TreeSet<Interval> intervals, StrandDirection strand) {
-        StringBuilder sequence = readSequenceForIntervals(chr, intervals);
+    public String getSequenceForIntervalsSeparately(String chr, TreeSet<Interval> intervals, StrandDirection strand) {
+        StringBuilder sequence = readSequenceForIntervalsSeparately(chr, intervals);
         if (strand == StrandDirection.REVERSE) {
             return reverseComplement(sequence.toString());
         }
         return sequence.toString();
     }
 
-    // TODO: Get sequence for exons
+    public String getSequenceForExonsSeparately(String chr, TreeSet<Exon> exons, StrandDirection strand) {
+        StringBuilder sequence = readSequenceForExonsSeparately(chr, exons);
+        if (strand == StrandDirection.REVERSE) {
+            return reverseComplement(sequence.toString());
+        }
+        return sequence.toString();
+    }
+
+    private StringBuilder readSequenceForExonsSeparately(String chr, TreeSet<Exon> exons) {
+        StringBuilder sequence = new StringBuilder();
+        for (Exon exon : exons) {
+            sequence.append(readSequence(chr, exon.getInterval().getStart(), exon.getInterval().getEnd()));
+        }
+        return sequence;
+    }
+
     public String getSequenceForIntervalsInOneRead(String chr, TreeSet<Interval> intervals, StrandDirection strand) {
         StringBuilder sequence = readSequenceForIntervalsInOneRead(chr, intervals);
         if (strand == StrandDirection.REVERSE) {
@@ -113,46 +129,49 @@ public class GenomeSequenceExtractor {
         return sequence.toString();
     }
 
+    public String getSequenceForExonsInOneRead(String chr, TreeSet<Exon> exons, StrandDirection strand) {
+        StringBuilder sequence = readSequenceForExonsInOneRead(chr, exons);
+        if (strand == StrandDirection.REVERSE) {
+            return reverseComplement(sequence.toString());
+        }
+        return sequence.toString();
+    }
+
+    private StringBuilder readSequenceForExonsInOneRead(String chr, TreeSet<Exon> exons) {
+        // Get a read that spans all intervals, then cut out the non required parts
+        int start = exons.first().getInterval().getStart();
+        int end = exons.last().getInterval().getEnd();
+        StringBuilder wholeSequence = readSequence(chr, start, end);
+        StringBuilder intervalSequence = new StringBuilder();
+        for (Exon exon : exons) {
+            intervalSequence.append(wholeSequence, exon.getInterval().getStart() - start, exon.getInterval().getEnd() - start + 1);
+        }
+        return intervalSequence;
+    }
+
     private StringBuilder readSequenceForIntervalsInOneRead(String chr, TreeSet<Interval> intervals) {
         // Get a read that spans all intervals, then cut out the non required parts
         int start = intervals.first().getStart();
         int end = intervals.last().getEnd();
-        StringBuilder sequence = readSequence(chr, start, end);
-        StringBuilder result = new StringBuilder();
+        StringBuilder wholeSequence = readSequence(chr, start, end);
+        StringBuilder intervalSequence = new StringBuilder();
         for (Interval interval : intervals) {
-            result.append(sequence, interval.getStart() - start, interval.getEnd() - start + 1);
+            intervalSequence.append(wholeSequence, interval.getStart() - start, interval.getEnd() - start + 1);
         }
-        return result;
-    }
-
-    private String getSequence(String chr, int start, int end) {
-        return readSequence(chr, start, end).toString();
-    }
-
-    private StringBuilder readSequence(String chr, Interval interval) {
-        return readSequence(chr, interval.getStart(), interval.getEnd());
+        return intervalSequence;
     }
 
 
-    private StringBuilder readSequenceForIntervals(String chr, TreeSet<Interval> intervals) {
+    private StringBuilder readSequenceForIntervalsSeparately(String chr, TreeSet<Interval> intervals) {
         StringBuilder sequence = new StringBuilder();
         for (Interval interval : intervals) {
-            sequence.append(readSequence(chr, interval));
+            sequence.append(readSequence(chr, interval.getStart(), interval.getEnd()));
         }
         return sequence;
     }
 
-    public StringBuilder readSequence(String chr, int start, int end, StrandDirection direction) {
-        StringBuilder sequence = readSequence(chr, start, end);
-        if (direction == StrandDirection.REVERSE) {
-            // TODO Revcomplement with stringbuilder
-            return new StringBuilder(reverseComplement(sequence.toString()));
-        }
-        return sequence;
-    }
 
-    // ENSG00000164465	ENST00000368503	112500 starts at the last character in the line
-    public StringBuilder readSequence(String chr, int start, int end) {
+    private StringBuilder readSequence(String chr, int start, int end) {
         // Retrieve the index entry for the chromosome
         FastaIndexEntry entry = fastaIndex.get(chr);
         if (entry == null) {

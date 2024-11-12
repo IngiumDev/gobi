@@ -18,16 +18,16 @@ import java.util.stream.Collectors;
 
 public class ReadSimulator {
     NormalDistribution normalDistribution;
-    private int readLength;
-    private int meanFragmentLength;
-    private int fragmentLengthStandardDeviation;
-    private double mutationRate;
-    private GTFAnnotation gtfAnnotation;
-    private GenomeSequenceExtractor genomeSequenceExtractor;
-    private Map<String, Map<String, Integer>> readCounts;
-    private ContinuousDistribution.Sampler sampler;
-    private Random random;
-    private UniformRandomProvider rng;
+    private final int readLength;
+    private final int meanFragmentLength;
+    private final int fragmentLengthStandardDeviation;
+    private final double mutationRate;
+    private final GTFAnnotation gtfAnnotation;
+    private final GenomeSequenceExtractor genomeSequenceExtractor;
+    private final Map<String, Map<String, Integer>> readCounts;
+    private final ContinuousDistribution.Sampler sampler;
+    private final Random random;
+    private final UniformRandomProvider rng;
 
     public ReadSimulator(Builder builder) {
         this.readLength = builder.readLength;
@@ -79,16 +79,13 @@ public class ReadSimulator {
 //
 //                        });
 //                    } else {
-                        // TODO: Implement this
                         // Procedure for when there is only one transcript
                     return transcriptMap.entrySet().stream()
                             .flatMap(transcriptEntry -> {
                                 String transcriptId = transcriptEntry.getKey();
                                 int readCount = transcriptEntry.getValue();
                                 Transcript transcript = gtfAnnotation.getGene(geneId).getTranscript(transcriptId);
-                                String sequence = genomeSequenceExtractor.getSequenceForIntervalsInOneRead(gtfAnnotation.getGene(geneId).getSeqname(), transcript.getExons().stream()
-                                        .map(Exon::getInterval)
-                                        .collect(Collectors.toCollection(TreeSet::new)), gtfAnnotation.getGene(geneId).getStrand());
+                                String sequence = genomeSequenceExtractor.getSequenceForExonsInOneRead(gtfAnnotation.getGene(geneId).getSeqname(), transcript.getExons(), gtfAnnotation.getGene(geneId).getStrand());
                                 return simulateReadPairs(sequence, transcript, readCount, transcript.getSeqname(), geneId, transcriptId).stream();
                             });
 //                    }
