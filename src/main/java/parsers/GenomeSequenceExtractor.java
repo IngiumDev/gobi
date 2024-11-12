@@ -42,6 +42,8 @@ CCTTCCTAC
 >ENST00000448914 cdna:known chromosome:GRCh37:14:22918105:22918117:1 gene:ENSG00000228985 gene_biotype:TR_D_gene transcript_biotype:TR_D_gene
 ACTGGGGGATACG
      */
+    // TODO :Test by testing with transcriptome
+    // TODO: Check if genomic coordinates match by when we generate a read and get the genomic coordinates, we can just get the read from these coordinates and check if it's the same, and we know our getsequence is correct
     private final FileChannel fileChannel;
     private final Map<String, FastaIndexEntry> fastaIndex;
 
@@ -53,6 +55,7 @@ ACTGGGGGATACG
         }
         this.fastaIndex = loadIndex(faiFilePath);
     }
+
 
     public static void main(String[] args) {
         GenomeSequenceExtractor genomeSequenceExtractor = new GenomeSequenceExtractor("/Users/simon/IdeaProjects/gobi/data/readsimulator/Homo_sapiens.GRCh37.75.dna.toplevel.fa", "/Users/simon/IdeaProjects/gobi/data/readsimulator/Homo_sapiens.GRCh37.75.dna.toplevel.fa.fai");
@@ -146,6 +149,7 @@ ACTGGGGGATACG
         return sequence.toString();
     }
 
+    // TODO: Get sequence for exons
     public String getSequenceForIntervalsInOneRead(String chr, TreeSet<Interval> intervals, StrandDirection strand) {
         StringBuilder sequence = readSequenceForIntervalsInOneRead(chr, intervals);
         if (strand == StrandDirection.REVERSE) {
@@ -234,4 +238,7 @@ ACTGGGGGATACG
     private record FastaIndexEntry(long byteOffset, int lineBases, int lineBytes, int length) {
     }
 
+    public boolean doesChromosomeExist(String chrToCheck) {
+        return fastaIndex.containsKey(chrToCheck);
+    }
 }
