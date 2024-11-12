@@ -45,7 +45,7 @@ public class GenomeSequenceExtractorTest {
             StringBuilder seq = new StringBuilder();
             while ((line = br.readLine()) != null) {
                 if (line.startsWith(">")) {
-                    if (seq.length() > 0) {
+                    if (!seq.isEmpty()) {
                         // Check the sequence
                         checkIfReferenceSequenceMatches(id, seq.toString(), genomeSequenceExtractor, gtfAnnotation);
                         seq.setLength(0);
@@ -55,9 +55,11 @@ public class GenomeSequenceExtractorTest {
                     seq.append(line);
                 }
             }
-            checkIfReferenceSequenceMatches(id, seq.toString(), genomeSequenceExtractor, gtfAnnotation);
+            checkIfReferenceSequenceMatches(id,
+                    seq.toString(),
+                    genomeSequenceExtractor,
+                    gtfAnnotation);
         } catch (IOException e) {
-            e.printStackTrace();
             fail("Test failed due to IOException: " + e.getMessage());
         }
     }

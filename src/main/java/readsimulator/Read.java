@@ -18,7 +18,7 @@ public class Read {
     private String seq;
     private List<Integer> mutatedPositions;
     private TreeSet<Interval> chromosomalCoordinates;
-    private int transcriptSeqLength;
+    private final int transcriptSeqLength;
 
     public Read(String transcriptSeq, StrandDirection direction, int fragmentStart, int fragmentLength, int readLength) {
         if (direction == StrandDirection.FORWARD) {
@@ -66,9 +66,7 @@ public class Read {
         return chromosomalCoordinates;
     }
 
-    // TODO: change so that mutation's have to happen 33% chance for each nucleotide
     public void mutate(double mutationRate, Random random) {
-        // TODO so that instead of iterating through the whole sequence, we calculate the number of mutations, then randomly select the positions
         StringBuilder mutatedSeq = new StringBuilder(seq);
         mutatedPositions = new ArrayList<>();
         for (int i = 0; i < seq.length(); i++) {
