@@ -3,10 +3,6 @@ package readsimulator;
 import gtf.GTFAnnotation;
 import gtf.structs.Exon;
 import gtf.structs.Transcript;
-import org.apache.commons.rng.UniformRandomProvider;
-import org.apache.commons.rng.simple.RandomSource;
-import org.apache.commons.statistics.distribution.ContinuousDistribution;
-import org.apache.commons.statistics.distribution.NormalDistribution;
 import parsers.GenomeSequenceExtractor;
 
 import java.io.BufferedWriter;
@@ -17,7 +13,6 @@ import java.util.stream.Collectors;
 
 
 public class ReadSimulator {
-    NormalDistribution normalDistribution;
     private final int readLength;
     private final int meanFragmentLength;
     private final int fragmentLengthStandardDeviation;
@@ -25,9 +20,7 @@ public class ReadSimulator {
     private final GTFAnnotation gtfAnnotation;
     private final GenomeSequenceExtractor genomeSequenceExtractor;
     private final Map<String, Map<String, Integer>> readCounts;
-    private final ContinuousDistribution.Sampler sampler;
     private final Random random;
-    private final UniformRandomProvider rng;
 
     public ReadSimulator(Builder builder) {
         this.readLength = builder.readLength;
@@ -37,11 +30,12 @@ public class ReadSimulator {
         this.gtfAnnotation = builder.gtfAnnotation;
         this.genomeSequenceExtractor = builder.genomeSequenceExtractor;
         this.readCounts = builder.readCounts;
-
         this.random = new Random();
-        this.normalDistribution = NormalDistribution.of(meanFragmentLength, fragmentLengthStandardDeviation);
-        this.rng = RandomSource.create(RandomSource.MT);
-        this.sampler = normalDistribution.createSampler(rng);
+
+    }
+
+    public double sampleFragmentLength() {
+        return random.nextGaussian() * fragmentLengthStandardDeviation + meanFragmentLength;
     }
 
     public List<ReadPair> simulateReads() {
@@ -79,7 +73,7 @@ public class ReadSimulator {
 //
 //                        });
 //                    } else {
-                        // Procedure for when there is only one transcript
+                    // Procedure for when there is only one transcript
                     return transcriptMap.entrySet().stream()
                             .flatMap(transcriptEntry -> {
                                 String transcriptId = transcriptEntry.getKey();
@@ -99,12 +93,12 @@ public class ReadSimulator {
         for (int i = 0; i < readCount; i++) {
             int fragmentLength;
             do {
-                fragmentLength = (int) Math.round(sampler.sample());
+                fragmentLength = (int) Math.round(sampleFragmentLength());
                 //  For simplicity, you may re-draw
                 //the fragment length if the result is smaller than the read length or larger than the
                 //transcript length.
             } while (fragmentLength > sequence.length());
-            fragmentLength=Math.max(fragmentLength,readLength);
+            fragmentLength = Math.max(fragmentLength, readLength);
             int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
             ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
             rp.mutateReadPairs(mutationRate, random);
@@ -115,6 +109,7 @@ public class ReadSimulator {
         }
         return readPairs;
     }
+
     /* readid	chr	gene	transcript	fw_regvec	rw_regvec	t_fw_regvec	t_rw_regvec	fw_mut	rw_mut
     *The simulator should output three files, two for the simulated paired-end sequences in
 FASTQ format (fw.fastq, rw.fastq, one FASTQ file for the first read of a fragment, one
@@ -146,10 +141,10 @@ Interval already has a toString method that outputs the interval but it's int th
                 Read first = readPair.getFirst();
                 Read second = readPair.getSecond();
                 writer.write(readId + "\t" + readPair.getSeqName() + "\t" + readPair.getGeneID() + "\t" + readPair.getTranscriptID() + "\t" +
-                        first.getChromosomalCoordinates().stream().map(interval -> interval.getStart() + "-" + (interval.getEnd()+1)).collect(Collectors.joining("|")) + "\t" +
-                        second.getChromosomalCoordinates().stream().map(interval -> interval.getStart() + "-" + (interval.getEnd()+1)).collect(Collectors.joining("|")) + "\t" +
-                        first.getTranscriptCoordinates().getStart() + "-" + (first.getTranscriptCoordinates().getEnd()+1) + "\t" +
-                        second.getTranscriptCoordinates().getStart() + "-" + (second.getTranscriptCoordinates().getEnd()+1) + "\t" +
+                        first.getChromosomalCoordinates().stream().map(interval -> interval.getStart() + "-" + (interval.getEnd() + 1)).collect(Collectors.joining("|")) + "\t" +
+                        second.getChromosomalCoordinates().stream().map(interval -> interval.getStart() + "-" + (interval.getEnd() + 1)).collect(Collectors.joining("|")) + "\t" +
+                        first.getTranscriptCoordinates().getStart() + "-" + (first.getTranscriptCoordinates().getEnd() + 1) + "\t" +
+                        second.getTranscriptCoordinates().getStart() + "-" + (second.getTranscriptCoordinates().getEnd() + 1) + "\t" +
                         first.getMutatedPositions().stream().map(String::valueOf).collect(Collectors.joining(",")) + "\t" +
                         second.getMutatedPositions().stream().map(String::valueOf).collect(Collectors.joining(","))
                 );
@@ -158,7 +153,7 @@ Interval already has a toString method that outputs the interval but it's int th
             }
         } catch (IOException e) {
             e.printStackTrace();
-    }
+        }
     }
 
     public void writeReads(String outputDir, List<ReadPair> readPairs) {
