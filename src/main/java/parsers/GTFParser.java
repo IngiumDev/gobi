@@ -29,6 +29,7 @@ public class GTFParser {
 
     // TODO Logging for errors logback slf4j ch. qos
     // TODO: Remove unnecessary comments/methods
+    // TODO: Remove intron parsing
     // GTF line columns to escalate: seqname, source, strand
     public static GTFAnnotation parseGTF(String gtfFile) {
         long startTime = System.currentTimeMillis();
