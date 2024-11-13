@@ -195,7 +195,7 @@ Interval already has a toString method that outputs the interval but it's int th
 
     private static void writeToReadMap(BufferedWriter mappingWriter, int readID, ReadPair rp) throws IOException {
         mappingWriter.newLine();
-        mappingWriter.write(readID);
+        mappingWriter.write(String.valueOf(readID));
         mappingWriter.write("\t");
         mappingWriter.write(rp.getSeqName());
         mappingWriter.write("\t");
