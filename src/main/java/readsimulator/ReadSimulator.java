@@ -5,7 +5,6 @@ import gtf.structs.Exon;
 import gtf.structs.Transcript;
 import org.apache.commons.rng.UniformRandomProvider;
 import org.apache.commons.rng.simple.RandomSource;
-import org.apache.commons.statistics.distribution.BinomialDistribution;
 import parsers.GenomeSequenceExtractor;
 
 import java.io.BufferedWriter;
@@ -93,27 +92,25 @@ public class ReadSimulator {
                 .collect(Collectors.toList());
     }
 
-    private List<ReadPair> simulateReadPairs(String sequence, Transcript transcript, int readCount, String seqName, String geneID, String transcriptID) {
+    private static void writeReadsToFASTQ(ReadPair rp, int readID, BufferedWriter fwWriter, BufferedWriter rwWriter) throws IOException {
+        // TODO: refactor to use single method for both
+        fwWriter.write("@" + readID);
+        fwWriter.newLine();
+        fwWriter.write(rp.getFirst().getSeq());
+        fwWriter.newLine();
+        fwWriter.write("+" + readID);
+        fwWriter.newLine();
+        fwWriter.write("I".repeat(rp.getFirst().getSeq().length()));
+        fwWriter.newLine();
 
-        List<ReadPair> readPairs = new ArrayList<>();
-        for (int i = 0; i < readCount; i++) {
-            int fragmentLength;
-            do {
-                fragmentLength = (int) Math.round(sampleFragmentLength());
-                //  For simplicity, you may re-draw
-                //the fragment length if the result is smaller than the read length or larger than the
-                //transcript length.
-            } while (fragmentLength > sequence.length());
-            fragmentLength = Math.max(fragmentLength, readLength);
-            int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
-            ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
-            rp.mutateReadPairs(mutationRate, random,rng);
-            rp.calculateGenomicPositions(transcript.getExons().stream()
-                    .map(Exon::getInterval)
-                    .collect(Collectors.toCollection(TreeSet::new)));
-            readPairs.add(rp);
-        }
-        return readPairs;
+        rwWriter.write("@" + readID);
+        rwWriter.newLine();
+        rwWriter.write(rp.getSecond().getSeq());
+        rwWriter.newLine();
+        rwWriter.write("+" + readID);
+        rwWriter.newLine();
+        rwWriter.write("I".repeat(rp.getSecond().getSeq().length()));
+        rwWriter.newLine();
     }
 
     /* readid	chr	gene	transcript	fw_regvec	rw_regvec	t_fw_regvec	t_rw_regvec	fw_mut	rw_mut
@@ -191,6 +188,89 @@ Interval already has a toString method that outputs the interval but it's int th
                 rwWriter.newLine();
                 readId++;
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void writeToReadMap(BufferedWriter mappingWriter, int readID, ReadPair rp) throws IOException {
+        mappingWriter.newLine();
+        mappingWriter.write(readID);
+        mappingWriter.write("\t");
+        mappingWriter.write(rp.getSeqName());
+        mappingWriter.write("\t");
+        mappingWriter.write(rp.getGeneID());
+        mappingWriter.write("\t");
+        mappingWriter.write(rp.getTranscriptID());
+        mappingWriter.write("\t");
+        mappingWriter.write(rp.getFirst().getChromosomalCoordinates().stream().map(interval -> interval.getStart() + "-" + (interval.getEnd() + 1)).collect(Collectors.joining("|")));
+        mappingWriter.write("\t");
+        mappingWriter.write(rp.getSecond().getChromosomalCoordinates().stream().map(interval -> interval.getStart() + "-" + (interval.getEnd() + 1)).collect(Collectors.joining("|")));
+        mappingWriter.write("\t");
+        mappingWriter.write(rp.getFirst().getTranscriptCoordinates().getStart() + "-" + (rp.getFirst().getTranscriptCoordinates().getEnd() + 1));
+        mappingWriter.write("\t");
+        mappingWriter.write(rp.getSecond().getTranscriptCoordinates().getStart() + "-" + (rp.getSecond().getTranscriptCoordinates().getEnd() + 1));
+        mappingWriter.write("\t");
+        mappingWriter.write(rp.getFirst().getMutatedPositions().stream().map(String::valueOf).collect(Collectors.joining(",")));
+        mappingWriter.write("\t");
+        mappingWriter.write(rp.getSecond().getMutatedPositions().stream().map(String::valueOf).collect(Collectors.joining(",")));
+    }
+
+    private List<ReadPair> simulateReadPairs(String sequence, Transcript transcript, int readCount, String seqName, String geneID, String transcriptID) {
+
+        List<ReadPair> readPairs = new ArrayList<>();
+        for (int i = 0; i < readCount; i++) {
+            int fragmentLength;
+            do {
+                fragmentLength = (int) Math.round(sampleFragmentLength());
+                //  For simplicity, you may re-draw
+                //the fragment length if the result is smaller than the read length or larger than the
+                //transcript length.
+            } while (fragmentLength > sequence.length());
+            fragmentLength = Math.max(fragmentLength, readLength);
+            int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
+            ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
+            rp.mutateReadPairs(mutationRate, random, rng);
+            rp.calculateGenomicPositions(transcript.getExons().stream()
+                    .map(Exon::getInterval)
+                    .collect(Collectors.toCollection(TreeSet::new)));
+            readPairs.add(rp);
+        }
+        return readPairs;
+    }
+
+    public void simulateAndWriteReads(String outputDir) {
+
+        try (BufferedWriter mappingWriter = new BufferedWriter(new FileWriter(outputDir + "/read.mappinginfo"));
+             BufferedWriter fwWriter = new BufferedWriter(new FileWriter(outputDir + "/fw.fastq"));
+             BufferedWriter rwWriter = new BufferedWriter(new FileWriter(outputDir + "/rw.fastq"))) {
+            mappingWriter.write("readid\tchr\tgene\ttranscript\tfw_regvec\trw_regvec\tt_fw_regvec\tt_rw_regvec\tfw_mut\trw_mut");
+            int readID = 0;
+            for (String geneID : readCounts.keySet()) {
+                for (String transcriptID : readCounts.get(geneID).keySet()) {
+                    int readCount = readCounts.get(geneID).get(transcriptID);
+                    Transcript transcript = gtfAnnotation.getGene(geneID).getTranscript(transcriptID);
+                    String sequence = genomeSequenceExtractor.getSequenceForExonsInOneRead(gtfAnnotation.getGene(geneID).getSeqname(), transcript.getExons(), gtfAnnotation.getGene(geneID).getStrand());
+                    for (int i = 0; i < readCount; i++) {
+                        int fragmentLength;
+                        do {
+                            fragmentLength = (int) Math.round(sampleFragmentLength());
+                        } while (fragmentLength > sequence.length());
+                        fragmentLength = Math.max(fragmentLength, readLength);
+                        int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
+                        ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, transcript.getSeqname(), geneID, transcriptID, transcript.getStrand());
+                        rp.mutateReadPairs(mutationRate, random, rng);
+                        // TODO: Modify overlap method to accept exons
+                        rp.calculateGenomicPositions(transcript.getExons().stream()
+                                .map(Exon::getInterval)
+                                .collect(Collectors.toCollection(TreeSet::new)));
+                        writeToReadMap(mappingWriter, readID, rp);
+                        writeReadsToFASTQ(rp, readID, fwWriter, rwWriter);
+                        readID++;
+                    }
+                }
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -9,14 +9,12 @@ import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 import parsers.GTFParser;
 import parsers.GenomeSequenceExtractor;
-import readsimulator.ReadPair;
 import readsimulator.ReadSimulator;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -56,12 +54,13 @@ public class ReadSimulatorRunner {
                 .setGenomeSequenceExtractor(new GenomeSequenceExtractor(res.getString("fasta"), res.getString("fidx")))
                 .setReadCounts(readCountsFile(res.getString("readcounts")))
                 .build();
-        List<ReadPair> readPairs = readSimulator.simulateReads();
+        //List<ReadPair> readPairs = readSimulator.simulateReads();
+        readSimulator.simulateAndWriteReads(res.getString("od"));
         // Output to file
-        String outputDir = res.getString("od");
+        // String outputDir = res.getString("od");
         // First write the read counts file
-        readSimulator.writeReadCounts(outputDir, readPairs);
-        readSimulator.writeReads(outputDir, readPairs);
+        // readSimulator.writeReadCounts(outputDir, readPairs);
+        // readSimulator.writeReads(outputDir, readPairs);
         System.out.println();
     }
 
