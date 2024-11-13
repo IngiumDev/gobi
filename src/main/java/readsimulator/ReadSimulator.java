@@ -27,6 +27,7 @@ public class ReadSimulator {
     private final Map<String, Map<String, Integer>> readCounts;
     private final Random random;
     private final UniformRandomProvider rng;
+    private static final int BUFFER_SIZE =  134_217_728;
 
 
     public ReadSimulator(Builder builder) {
@@ -43,6 +44,42 @@ public class ReadSimulator {
 
     public double sampleFragmentLength() {
         return random.nextGaussian() * fragmentLengthStandardDeviation + meanFragmentLength;
+    }
+
+    public int getReadLength() {
+        return readLength;
+    }
+
+    public int getMeanFragmentLength() {
+        return meanFragmentLength;
+    }
+
+    public int getFragmentLengthStandardDeviation() {
+        return fragmentLengthStandardDeviation;
+    }
+
+    public double getMutationRate() {
+        return mutationRate;
+    }
+
+    public GTFAnnotation getGtfAnnotation() {
+        return gtfAnnotation;
+    }
+
+    public GenomeSequenceExtractor getGenomeSequenceExtractor() {
+        return genomeSequenceExtractor;
+    }
+
+    public Map<String, Map<String, Integer>> getReadCounts() {
+        return readCounts;
+    }
+
+    public Random getRandom() {
+        return random;
+    }
+
+    public UniformRandomProvider getRng() {
+        return rng;
     }
 
     public List<ReadPair> simulateReads() {
@@ -241,9 +278,9 @@ Interval already has a toString method that outputs the interval but it's int th
 
     public void simulateAndWriteReads(String outputDir) {
 
-        try (BufferedWriter mappingWriter = new BufferedWriter(new FileWriter(outputDir + "/read.mappinginfo"));
-             BufferedWriter fwWriter = new BufferedWriter(new FileWriter(outputDir + "/fw.fastq"));
-             BufferedWriter rwWriter = new BufferedWriter(new FileWriter(outputDir + "/rw.fastq"))) {
+        try (BufferedWriter mappingWriter = new BufferedWriter(new FileWriter(outputDir + "/read.mappinginfo"), BUFFER_SIZE);
+             BufferedWriter fwWriter = new BufferedWriter(new FileWriter(outputDir + "/fw.fastq"), BUFFER_SIZE);
+             BufferedWriter rwWriter = new BufferedWriter(new FileWriter(outputDir + "/rw.fastq"), BUFFER_SIZE)) {
             mappingWriter.write("readid\tchr\tgene\ttranscript\tfw_regvec\trw_regvec\tt_fw_regvec\tt_rw_regvec\tfw_mut\trw_mut");
             int readID = 0;
 // TODO Move to byte[]
@@ -258,10 +295,15 @@ Interval already has a toString method that outputs the interval but it's int th
                             fragmentLength = (int) Math.round(sampleFragmentLength());
                         } while (fragmentLength > sequence.length());
                         fragmentLength = Math.max(fragmentLength, readLength);
-                        int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
+                        int diff = sequence.length() - fragmentLength;
+                        int fragmentStart;
+                        if (diff == 0) {
+                            fragmentStart = 0;
+                        } else {
+                            fragmentStart = random.nextInt(diff);
+                        }
                         ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, transcript.getSeqname(), geneID, transcriptID, transcript.getStrand());
                         rp.mutateReadPairs(mutationRate, random, rng);
-                        // TODO: Modify overlap method to accept exons
                         rp.calculateGenomicPositions(transcript.getExons());
                         writeToReadMap(mappingWriter, readID, rp);
                         writeReadsToFASTQ(rp, readID, fwWriter, rwWriter);
