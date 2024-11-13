@@ -1,7 +1,6 @@
 package readsimulator;
 
 import gtf.GTFAnnotation;
-import gtf.structs.Exon;
 import gtf.structs.Transcript;
 import org.apache.commons.rng.UniformRandomProvider;
 import org.apache.commons.rng.simple.RandomSource;
@@ -10,7 +9,10 @@ import parsers.GenomeSequenceExtractor;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 // splittable random ist faster
@@ -231,9 +233,7 @@ Interval already has a toString method that outputs the interval but it's int th
             int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
             ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
             rp.mutateReadPairs(mutationRate, random, rng);
-            rp.calculateGenomicPositions(transcript.getExons().stream()
-                    .map(Exon::getInterval)
-                    .collect(Collectors.toCollection(TreeSet::new)));
+            rp.calculateGenomicPositions(transcript.getExons());
             readPairs.add(rp);
         }
         return readPairs;
@@ -246,6 +246,7 @@ Interval already has a toString method that outputs the interval but it's int th
              BufferedWriter rwWriter = new BufferedWriter(new FileWriter(outputDir + "/rw.fastq"))) {
             mappingWriter.write("readid\tchr\tgene\ttranscript\tfw_regvec\trw_regvec\tt_fw_regvec\tt_rw_regvec\tfw_mut\trw_mut");
             int readID = 0;
+// TODO Move to byte[]
             for (String geneID : readCounts.keySet()) {
                 for (String transcriptID : readCounts.get(geneID).keySet()) {
                     int readCount = readCounts.get(geneID).get(transcriptID);
@@ -261,16 +262,17 @@ Interval already has a toString method that outputs the interval but it's int th
                         ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, transcript.getSeqname(), geneID, transcriptID, transcript.getStrand());
                         rp.mutateReadPairs(mutationRate, random, rng);
                         // TODO: Modify overlap method to accept exons
-                        rp.calculateGenomicPositions(transcript.getExons().stream()
-                                .map(Exon::getInterval)
-                                .collect(Collectors.toCollection(TreeSet::new)));
+                        rp.calculateGenomicPositions(transcript.getExons());
                         writeToReadMap(mappingWriter, readID, rp);
                         writeReadsToFASTQ(rp, readID, fwWriter, rwWriter);
                         readID++;
                     }
                 }
             }
-
+            // manually flush
+            mappingWriter.flush();
+            fwWriter.flush();
+            rwWriter.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }

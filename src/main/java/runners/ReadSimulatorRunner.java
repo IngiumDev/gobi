@@ -1,5 +1,6 @@
 package runners;
 
+import gtf.structs.Exon;
 import gtf.structs.Interval;
 import gtf.types.StrandDirection;
 import net.sourceforge.argparse4j.ArgumentParsers;
@@ -65,18 +66,17 @@ public class ReadSimulatorRunner {
     }
 
 
-
-    public static TreeSet<Interval> getCoveredRegion(TreeSet<Interval> regions, Interval localRegion, StrandDirection strandDirection) {
+    public static TreeSet<Interval> getCoveredRegion(TreeSet<Exon> exons, Interval localRegion, StrandDirection strandDirection) {
         TreeSet<Interval> coveredRegions = new TreeSet<>();
         int localStart = localRegion.getStart();
         int localEnd = localRegion.getEnd();
         int currentPos = 0;
-        for (Interval region : regions) {
-            int regionLength = region.getLength();
+        for (Exon exon : exons) {
+            int regionLength = exon.getInterval().getLength();
 
             if (currentPos + regionLength > localStart) {
-                int start = Math.max(region.getStart(), region.getStart() + (localStart - currentPos));
-                int end = Math.min(region.getEnd(), region.getStart() + (localEnd - currentPos));
+                int start = Math.max(exon.getInterval().getStart(), exon.getInterval().getStart() + (localStart - currentPos));
+                int end = Math.min(exon.getInterval().getEnd(), exon.getInterval().getStart() + (localEnd - currentPos));
                 coveredRegions.add(new Interval(start, end));
                 if (currentPos + regionLength > localEnd) {
                     break;
