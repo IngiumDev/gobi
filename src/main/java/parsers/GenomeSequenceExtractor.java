@@ -32,6 +32,26 @@ public class GenomeSequenceExtractor {
 
 
     public static String reverseComplement(String input) {
+        // Create a character array of the same length as the input string
+        char[] result = new char[input.length()];
+
+        // Iterate over the input string in reverse order
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(input.length() - 1 - i); // Get the character in reverse order
+            switch (c) {
+                case 'A' -> result[i] = 'T';
+                case 'T' -> result[i] = 'A';
+                case 'C' -> result[i] = 'G';
+                case 'G' -> result[i] = 'C';
+                default -> result[i] = c; // Preserve any unexpected characters
+            }
+        }
+
+        // Return a new string from the character array
+        return new String(result);
+    }
+
+    public static String reverseComplementOld(String input) {
         StringBuilder sb = new StringBuilder();
         for (int i = input.length() - 1; i >= 0; i--) {
             char c = input.charAt(i);

@@ -1,14 +1,13 @@
 package readsimulator;
 
+import gtf.structs.Exon;
 import gtf.structs.Interval;
 import gtf.types.StrandDirection;
 import org.apache.commons.rng.UniformRandomProvider;
-import org.apache.commons.rng.simple.RandomSource;
 import org.apache.commons.statistics.distribution.BinomialDistribution;
 import parsers.GenomeSequenceExtractor;
 
 import java.util.*;
-
 
 import static runners.ReadSimulatorRunner.getCoveredRegion;
 
@@ -69,7 +68,7 @@ public class Read {
         return chromosomalCoordinates;
     }
 
-    // TODO: Binomial distribution
+    // TODO: Optimize
     public void mutate(double mutationRate, Random random, UniformRandomProvider rng) {
 //        StringBuilder mutatedSeq = new StringBuilder(seq);
 //        mutatedPositions = new ArrayList<>();
@@ -110,14 +109,14 @@ public class Read {
         return newNucleotide;
     }
 
-    public void calculateGenomicPositions(TreeSet<Interval> exonPositions, StrandDirection direction) {
+    public void calculateGenomicPositions(TreeSet<Exon> exons, StrandDirection direction) {
         if (direction == StrandDirection.FORWARD) {
 
-            chromosomalCoordinates = getCoveredRegion(exonPositions, transcriptCoordinates, direction);
+            chromosomalCoordinates = getCoveredRegion(exons, transcriptCoordinates, direction);
 
         } else {
             Interval reversedCoordinates = new Interval(transcriptSeqLength - transcriptCoordinates.getEnd() - 1, transcriptSeqLength - transcriptCoordinates.getStart() - 1);
-            chromosomalCoordinates = getCoveredRegion(exonPositions, reversedCoordinates, direction);
+            chromosomalCoordinates = getCoveredRegion(exons, reversedCoordinates, direction);
         }
     }
 }
