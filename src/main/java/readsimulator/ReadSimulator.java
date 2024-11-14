@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 
 import static parsers.GTFParser.parseGTFForCounts;
 
+
+// TODO: Change so that do while doesn't have bulge at 75 length
 public class ReadSimulator {
     private final int readLength;
     private final int meanFragmentLength;
@@ -297,6 +299,14 @@ Interval already has a toString method that outputs the interval but it's int th
         mappingWriter.write(rp.getSecond().getMutatedPositions().stream().map(String::valueOf).collect(Collectors.joining(",")));
     }
 
+    public double sampleFragmentLength() {
+        return random.nextGaussian(meanFragmentLength, fragmentLengthStandardDeviation);
+    }
+
+    public SplittableRandom getRandom() {
+        return random;
+    }
+
     private List<ReadPair> simulateReadPairs(String sequence, Transcript transcript, int readCount, String seqName, String geneID, String transcriptID) {
 
         List<ReadPair> readPairs = new ArrayList<>();
@@ -307,8 +317,7 @@ Interval already has a toString method that outputs the interval but it's int th
                 //  For simplicity, you may re-draw
                 //the fragment length if the result is smaller than the read length or larger than the
                 //transcript length.
-            } while (fragmentLength > sequence.length());
-            fragmentLength = Math.max(fragmentLength, readLength);
+            } while (fragmentLength > sequence.length() || fragmentLength < readLength);
             int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
             ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
             rp.mutateReadPairs(mutationRate, random, readLength);
@@ -345,8 +354,7 @@ Interval already has a toString method that outputs the interval but it's int th
                         int fragmentLength;
                         do {
                             fragmentLength = (int) Math.round(sampleFragmentLength());
-                        } while (fragmentLength > sequence.length());
-                        fragmentLength = Math.max(fragmentLength, readLength);
+                        } while (fragmentLength > sequence.length() || fragmentLength < readLength);
                         int diff = sequence.length() - fragmentLength;
                         int fragmentStart;
                         if (diff == 0) {
