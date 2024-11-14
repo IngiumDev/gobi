@@ -42,7 +42,6 @@ public class GTFParser {
             }
             GTFTimer.setGtfParseTime(System.currentTimeMillis() - startTime);
             System.out.println("LOG: Total time to parse GTF: " + GTFTimer.getGtfParseTime() + " ms");
-            // Process introns
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -62,7 +61,7 @@ public class GTFParser {
     }
 
     private static void processCDS(String[] data, GTFAnnotation gtfAnnotation) {
-        GTFAttributes attributes = parseAttributes(data[ATTRIBUTE_COL]);
+        GTFAttributes attributes = parseAttributes(data[ATTRIBUTE_COL], AnnotationTypes.CDS);
         Gene gene = getOrCreateGene(gtfAnnotation, data, attributes);
         Transcript transcript = getOrCreateTranscript(gene, data, attributes);
         // Assumption: CDS comes after exon, cds does not belong to exon
@@ -71,7 +70,7 @@ public class GTFParser {
     }
 
     private static void processExon(String[] data, GTFAnnotation gtfAnnotation) {
-        GTFAttributes attributes = parseAttributes(data[ATTRIBUTE_COL]);
+        GTFAttributes attributes = parseAttributes(data[ATTRIBUTE_COL], AnnotationTypes.EXON);
         Gene gene = getOrCreateGene(gtfAnnotation, data, attributes);
         Transcript transcript = getOrCreateTranscript(gene, data, attributes);
         // Assumption: CDS comes after exon
@@ -89,7 +88,7 @@ public class GTFParser {
     }
 
     private static void processTranscript(String[] data, GTFAnnotation gtfAnnotation) {
-        GTFAttributes attributes = parseAttributes(data[ATTRIBUTE_COL]);
+        GTFAttributes attributes = parseAttributes(data[ATTRIBUTE_COL], AnnotationTypes.TRANSCRIPT);
 
         Gene gene = getOrCreateGene(gtfAnnotation, data, attributes);
         Transcript transcript = gene.getTranscript(attributes.getTranscriptID());
@@ -118,7 +117,7 @@ public class GTFParser {
     }
 
     private static void processGene(String[] data, GTFAnnotation gtfAnnotation) {
-        GTFAttributes attributes = parseAttributes(data[ATTRIBUTE_COL]);
+        GTFAttributes attributes = parseAttributes(data[ATTRIBUTE_COL], AnnotationTypes.GENE);
         Gene thisGene = gtfAnnotation.getGenes().get(attributes.getGeneID());
         // Check if gene already exists
         if (thisGene == null) {
