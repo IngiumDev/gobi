@@ -8,7 +8,6 @@ import net.sourceforge.argparse4j.impl.type.FileArgumentType;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
-import parsers.GTFParser;
 import parsers.GenomeSequenceExtractor;
 import readsimulator.ReadSimulator;
 
@@ -50,16 +49,16 @@ public class ReadSimulatorRunner {
     private static void start(Namespace res) {
         long totalStartTime = System.currentTimeMillis();
         long startTime = System.currentTimeMillis();
+        // TODO: only lines with relevent transcript ID
         ReadSimulator readSimulator = new ReadSimulator.Builder()
                 .setReadLength(res.getInt("length"))
                 .setMeanFragmentLength(res.getInt("frlength"))
                 .setFragmentLengthStandardDeviation(res.getInt("SD"))
                 .setMutationRate(res.getDouble("mutationrate")/100)
-                .setGtfAnnotation(GTFParser.parseGTF(res.getString("gtf")))
-                .setGenomeSequenceExtractor(new GenomeSequenceExtractor(res.getString("fasta"), res.getString("fidx")))
                 .setReadCounts(readCountsFile(res.getString("readcounts")))
+                .setGtfAnnotation(res.getString("gtf"))
+                .setGenomeSequenceExtractor(new GenomeSequenceExtractor(res.getString("fasta"), res.getString("fidx")))
                 .build();
-        
         System.out.println("Initialization time\t" + (System.currentTimeMillis() - startTime));
         startTime = System.currentTimeMillis();
         readSimulator.simulateAndWriteReads(res.getString("od"));

@@ -32,24 +32,22 @@ public class ReadSimulatorTest {
                 basePath.resolve("Homo_sapiens.GRCh37.75.dna.toplevel.fa").toString(),
                 basePath.resolve("Homo_sapiens.GRCh37.75.dna.toplevel.fa.fai").toString()
         );
-        GTFAnnotation gtfAnnotation = GTFParser.parseGTF(
-                basePath.resolve("Homo_sapiens.GRCh37.75.gtf").toString()
-        );
+
 
         ReadSimulator readSimulator = new ReadSimulator.Builder()
                 .setReadLength(75)
                 .setMeanFragmentLength(200)
                 .setFragmentLengthStandardDeviation(80)
                 .setMutationRate(1.0 / 100)
-                .setGtfAnnotation(gtfAnnotation)
-                .setGenomeSequenceExtractor(genomeSequenceExtractor)
                 .setReadCounts(readCountsFile(basePath.resolve("readcounts.simulation").toString()))
+                .setGtfAnnotation(basePath.resolve("Homo_sapiens.GRCh37.75.gtf").toString())
+                .setGenomeSequenceExtractor(genomeSequenceExtractor)
                 .build();
         for (String geneID : readSimulator.getReadCounts().keySet()) {
             for (String transcriptID : readSimulator.getReadCounts().get(geneID).keySet()) {
                 int readCount = readSimulator.getReadCounts().get(geneID).get(transcriptID);
-                Transcript transcript = gtfAnnotation.getGene(geneID).getTranscript(transcriptID);
-                String sequence = genomeSequenceExtractor.getSequenceForExonsInOneRead(gtfAnnotation.getGene(geneID).getSeqname(), transcript.getExons(), gtfAnnotation.getGene(geneID).getStrand());
+                Transcript transcript = readSimulator.getGtfAnnotation().getGene(geneID).getTranscript(transcriptID);
+                String sequence = genomeSequenceExtractor.getSequenceForExonsInOneRead(readSimulator.getGtfAnnotation().getGene(geneID).getSeqname(), transcript.getExons(), readSimulator.getGtfAnnotation().getGene(geneID).getStrand());
                 for (int i = 0; i < readCount; i++) {
                     int fragmentLength;
                     do {

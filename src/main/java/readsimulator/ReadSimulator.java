@@ -1,6 +1,7 @@
 package readsimulator;
 
 import gtf.GTFAnnotation;
+import gtf.structs.Interval;
 import gtf.structs.Transcript;
 import parsers.GenomeSequenceExtractor;
 
@@ -276,27 +277,16 @@ Interval already has a toString method that outputs the interval but it's int th
         }
     }
 
-    private static void writeToReadMap(BufferedWriter mappingWriter, int readID, ReadPair rp) throws IOException {
-        mappingWriter.newLine();
-        mappingWriter.write(String.valueOf(readID));
-        mappingWriter.write("\t");
-        mappingWriter.write(rp.getSeqName());
-        mappingWriter.write("\t");
-        mappingWriter.write(rp.getGeneID());
-        mappingWriter.write("\t");
-        mappingWriter.write(rp.getTranscriptID());
-        mappingWriter.write("\t");
-        mappingWriter.write(rp.getFirst().getChromosomalCoordinates().stream().map(interval -> interval.getStart() + "-" + (interval.getEnd() + 1)).collect(Collectors.joining("|")));
-        mappingWriter.write("\t");
-        mappingWriter.write(rp.getSecond().getChromosomalCoordinates().stream().map(interval -> interval.getStart() + "-" + (interval.getEnd() + 1)).collect(Collectors.joining("|")));
-        mappingWriter.write("\t");
-        mappingWriter.write(rp.getFirst().getTranscriptCoordinates().getStart() + "-" + (rp.getFirst().getTranscriptCoordinates().getEnd() + 1));
-        mappingWriter.write("\t");
-        mappingWriter.write(rp.getSecond().getTranscriptCoordinates().getStart() + "-" + (rp.getSecond().getTranscriptCoordinates().getEnd() + 1));
-        mappingWriter.write("\t");
-        mappingWriter.write(rp.getFirst().getMutatedPositions().stream().map(String::valueOf).collect(Collectors.joining(",")));
-        mappingWriter.write("\t");
-        mappingWriter.write(rp.getSecond().getMutatedPositions().stream().map(String::valueOf).collect(Collectors.joining(",")));
+    // Helper method to append mutated positions
+    private static void appendMutatedPositions(StringBuilder builder, List<Integer> positions) {
+        boolean first = true;
+        for (Integer position : positions) {
+            if (!first) {
+                builder.append(",");
+            }
+            builder.append(position);
+            first = false;
+        }
     }
 
     public double sampleFragmentLength() {
@@ -328,17 +318,17 @@ Interval already has a toString method that outputs the interval but it's int th
     }
 
     public void simulateAndWriteReads(String outputDir) {
-        long startTime;
-        long sequenceExtractionTime = 0;
-        long fragmentLengthSamplingTime = 0;
-        long readCreationTime = 0;
-        long mutationTime = 0;
-        long genomicPositionCalculationTime = 0;
-        long mappingInfoWritingTime = 0;
-        long fastqWritingTime = 0;
-        try (BufferedWriter mappingWriter = new BufferedWriter(new FileWriter(outputDir + "/read.mappinginfo"), BUFFER_SIZE);
-             BufferedWriter fwWriter = new BufferedWriter(new FileWriter(outputDir + "/fw.fastq"), BUFFER_SIZE);
-             BufferedWriter rwWriter = new BufferedWriter(new FileWriter(outputDir + "/rw.fastq"), BUFFER_SIZE)) {
+//        long startTime;
+//        long sequenceExtractionTime = 0;
+//        long fragmentLengthSamplingTime = 0;
+//        long readCreationTime = 0;
+//        long mutationTime = 0;
+//        long genomicPositionCalculationTime = 0;
+//        long mappingInfoWritingTime = 0;
+//        long fastqWritingTime = 0;
+        try (BufferedWriter mappingWriter = new BufferedWriter(new FileWriter(outputDir + "/read.mappinginfo"));
+             BufferedWriter fwWriter = new BufferedWriter(new FileWriter(outputDir + "/fw.fastq"));
+             BufferedWriter rwWriter = new BufferedWriter(new FileWriter(outputDir + "/rw.fastq"))) {
             mappingWriter.write("readid\tchr\tgene\ttranscript\tfw_regvec\trw_regvec\tt_fw_regvec\tt_rw_regvec\tfw_mut\trw_mut");
             int readID = 0;
 // TODO Move to byte[]
@@ -346,11 +336,11 @@ Interval already has a toString method that outputs the interval but it's int th
                 for (String transcriptID : readCounts.get(geneID).keySet()) {
                     int readCount = readCounts.get(geneID).get(transcriptID);
                     Transcript transcript = gtfAnnotation.getGene(geneID).getTranscript(transcriptID);
-                    startTime = System.currentTimeMillis();
+//                    startTime = System.currentTimeMillis();
                     String sequence = genomeSequenceExtractor.getSequenceForExonsInOneRead(gtfAnnotation.getGene(geneID).getSeqname(), transcript.getExons(), gtfAnnotation.getGene(geneID).getStrand());
-                    sequenceExtractionTime += System.currentTimeMillis() - startTime;
+//                    sequenceExtractionTime += System.currentTimeMillis() - startTime;
                     for (int i = 0; i < readCount; i++) {
-                        startTime = System.currentTimeMillis();
+//                        startTime = System.currentTimeMillis();
                         int fragmentLength;
                         do {
                             fragmentLength = (int) Math.round(sampleFragmentLength());
@@ -362,26 +352,26 @@ Interval already has a toString method that outputs the interval but it's int th
                         } else {
                             fragmentStart = random.nextInt(diff);
                         }
-                        fragmentLengthSamplingTime += System.currentTimeMillis() - startTime;
+//                        fragmentLengthSamplingTime += System.currentTimeMillis() - startTime;
 
-                        startTime = System.currentTimeMillis();
+//                        startTime = System.currentTimeMillis();
                         ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, transcript.getSeqname(), geneID, transcriptID, transcript.getStrand());
-                        readCreationTime += System.currentTimeMillis() - startTime;
+//                        readCreationTime += System.currentTimeMillis() - startTime;
 
 //                        startTime = System.currentTimeMillis();
                         rp.mutateReadPairs(mutationRate, random, readLength);
 //                        mutationTime += System.currentTimeMillis() - startTime;
 
-                        startTime = System.currentTimeMillis();
+//                        startTime = System.currentTimeMillis();
                         rp.calculateGenomicPositions(transcript.getExons());
-                        genomicPositionCalculationTime += System.currentTimeMillis() - startTime;
+//                        genomicPositionCalculationTime += System.currentTimeMillis() - startTime;
 
-                        startTime = System.currentTimeMillis();
+//                        startTime = System.currentTimeMillis();
                         writeToReadMap(mappingWriter, readID, rp);
-                        mappingInfoWritingTime += System.currentTimeMillis() - startTime;
-                        startTime = System.currentTimeMillis();
+//                        mappingInfoWritingTime += System.currentTimeMillis() - startTime;
+//                        startTime = System.currentTimeMillis();
                         writeReadsToFASTQ(rp, readID, fwWriter, rwWriter);
-                        fastqWritingTime += System.currentTimeMillis() - startTime;
+//                        fastqWritingTime += System.currentTimeMillis() - startTime;
                         readID++;
                     }
                 }
@@ -393,13 +383,13 @@ Interval already has a toString method that outputs the interval but it's int th
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("Sequence extraction time\t" + sequenceExtractionTime);
-        System.out.println("Fragment length sampling time\t" + fragmentLengthSamplingTime);
-        System.out.println("Read creation time\t" + readCreationTime);
-        System.out.println("Mutation time\t" + mutationTime);
-        System.out.println("Genomic position calculation time\t" + genomicPositionCalculationTime);
-        System.out.println("Mapping info writing time\t" + mappingInfoWritingTime);
-        System.out.println("Fastq writing time\t" + fastqWritingTime);
+//        System.out.println("Sequence extraction time\t" + sequenceExtractionTime);
+//        System.out.println("Fragment length sampling time\t" + fragmentLengthSamplingTime);
+//        System.out.println("Read creation time\t" + readCreationTime);
+//        System.out.println("Mutation time\t" + mutationTime);
+//        System.out.println("Genomic position calculation time\t" + genomicPositionCalculationTime);
+//        System.out.println("Mapping info writing time\t" + mappingInfoWritingTime);
+//        System.out.println("Fastq writing time\t" + fastqWritingTime);
     }
 
     public static class Builder {
@@ -431,8 +421,9 @@ Interval already has a toString method that outputs the interval but it's int th
             return this;
         }
 
-        public Builder setGtfAnnotation(GTFAnnotation gtfAnnotation) {
-            this.gtfAnnotation = gtfAnnotation;
+        public Builder setGtfAnnotation(String gtfPath) {
+            this.gtfAnnotation = parseGTFForCounts(gtfPath, readCounts);
+//            this.gtfAnnotation = parseGTF(gtfPath);
             return this;
         }
 
