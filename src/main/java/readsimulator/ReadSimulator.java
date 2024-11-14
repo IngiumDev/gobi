@@ -334,6 +334,9 @@ Interval already has a toString method that outputs the interval but it's int th
 // TODO Move to byte[]
             for (String geneID : readCounts.keySet()) {
                 for (String transcriptID : readCounts.get(geneID).keySet()) {
+                    if (readID == 2722179) {
+                        System.out.println();
+                    }
                     int readCount = readCounts.get(geneID).get(transcriptID);
                     Transcript transcript = gtfAnnotation.getGene(geneID).getTranscript(transcriptID);
                     startTime = System.currentTimeMillis();
