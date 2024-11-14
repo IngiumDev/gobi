@@ -2,20 +2,15 @@ package readsimulator;
 
 import gtf.GTFAnnotation;
 import gtf.structs.Transcript;
-import org.apache.commons.rng.UniformRandomProvider;
-import org.apache.commons.rng.simple.RandomSource;
 import parsers.GenomeSequenceExtractor;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 
-// splittable random ist faster
+import static parsers.GTFParser.parseGTFForCounts;
 
 public class ReadSimulator {
     private final int readLength;
@@ -25,9 +20,7 @@ public class ReadSimulator {
     private final GTFAnnotation gtfAnnotation;
     private final GenomeSequenceExtractor genomeSequenceExtractor;
     private final Map<String, Map<String, Integer>> readCounts;
-    private final Random random;
-    private final UniformRandomProvider rng;
-    private static final int BUFFER_SIZE =  134_217_728;
+    private final SplittableRandom random;
 
 
     public ReadSimulator(Builder builder) {
@@ -38,12 +31,55 @@ public class ReadSimulator {
         this.gtfAnnotation = builder.gtfAnnotation;
         this.genomeSequenceExtractor = builder.genomeSequenceExtractor;
         this.readCounts = builder.readCounts;
-        this.random = new Random();
-        this.rng = RandomSource.create(RandomSource.MT);
+        this.random = new SplittableRandom();
     }
 
-    public double sampleFragmentLength() {
-        return random.nextGaussian() * fragmentLengthStandardDeviation + meanFragmentLength;
+    private static void writeToReadMap(BufferedWriter mappingWriter, int readID, ReadPair rp) throws IOException {
+        // Initialize StringBuilder for efficient string concatenation
+        StringBuilder lineBuilder = new StringBuilder();
+
+        // Append readID and tab
+        lineBuilder.append(readID).append("\t");
+
+        // Append sequence name, gene ID, and transcript ID
+        lineBuilder.append(rp.getSeqName()).append("\t")
+                .append(rp.getGeneID()).append("\t")
+                .append(rp.getTranscriptID()).append("\t");
+
+        // Append chromosomal coordinates for the first read
+        TreeSet<Interval> firstCoordinates = rp.getFirst().getChromosomalCoordinates();
+        appendCoordinates(lineBuilder, firstCoordinates);
+
+        lineBuilder.append("\t");
+
+        // Append chromosomal coordinates for the second read
+        TreeSet<Interval> secondCoordinates = rp.getSecond().getChromosomalCoordinates();
+        appendCoordinates(lineBuilder, secondCoordinates);
+
+        lineBuilder.append("\t");
+
+        // Append transcript coordinates for the first and second reads
+        lineBuilder.append(rp.getFirst().getTranscriptCoordinates().getStart())
+                .append("-")
+                .append(rp.getFirst().getTranscriptCoordinates().getEnd() + 1)
+                .append("\t");
+
+        lineBuilder.append(rp.getSecond().getTranscriptCoordinates().getStart())
+                .append("-")
+                .append(rp.getSecond().getTranscriptCoordinates().getEnd() + 1)
+                .append("\t");
+
+        // Append mutated positions for the first read
+        appendMutatedPositions(lineBuilder, rp.getFirst().getMutatedPositions());
+
+        lineBuilder.append("\t");
+
+        // Append mutated positions for the second read
+        appendMutatedPositions(lineBuilder, rp.getSecond().getMutatedPositions());
+
+        // Write the built line to the BufferedWriter
+        mappingWriter.newLine();
+        mappingWriter.write(lineBuilder.toString());
     }
 
     public int getReadLength() {
@@ -74,13 +110,19 @@ public class ReadSimulator {
         return readCounts;
     }
 
-    public Random getRandom() {
-        return random;
+    // Helper method to append coordinates
+    private static void appendCoordinates(StringBuilder builder, TreeSet<Interval> coordinates) {
+        boolean first = true;
+        for (Interval interval : coordinates) {
+            if (!first) {
+                builder.append("|");
+            }
+            builder.append(interval.getStart()).append("-").append(interval.getEnd() + 1);
+            first = false;
+        }
     }
 
-    public UniformRandomProvider getRng() {
-        return rng;
-    }
+
 
     public List<ReadPair> simulateReads() {
         return readCounts.entrySet().stream()
@@ -269,7 +311,7 @@ Interval already has a toString method that outputs the interval but it's int th
             fragmentLength = Math.max(fragmentLength, readLength);
             int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
             ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
-            rp.mutateReadPairs(mutationRate, random, rng);
+            rp.mutateReadPairs(mutationRate, random, readLength);
             rp.calculateGenomicPositions(transcript.getExons());
             readPairs.add(rp);
         }
@@ -318,9 +360,9 @@ Interval already has a toString method that outputs the interval but it's int th
                         ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, transcript.getSeqname(), geneID, transcriptID, transcript.getStrand());
                         readCreationTime += System.currentTimeMillis() - startTime;
 
-                        startTime = System.currentTimeMillis();
-                        rp.mutateReadPairs(mutationRate, random, rng);
-                        mutationTime += System.currentTimeMillis() - startTime;
+//                        startTime = System.currentTimeMillis();
+                        rp.mutateReadPairs(mutationRate, random, readLength);
+//                        mutationTime += System.currentTimeMillis() - startTime;
 
                         startTime = System.currentTimeMillis();
                         rp.calculateGenomicPositions(transcript.getExons());

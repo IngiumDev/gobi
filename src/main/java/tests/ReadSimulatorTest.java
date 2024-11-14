@@ -64,7 +64,7 @@ public class ReadSimulatorTest {
                         fragmentStart = readSimulator.getRandom().nextInt(diff);
                     }
                     ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readSimulator.getReadLength(), transcript.getSeqname(), geneID, transcriptID, transcript.getStrand());
-                    rp.mutateReadPairs(readSimulator.getMutationRate(), readSimulator.getRandom(), readSimulator.getRng());
+                    rp.mutateReadPairs(readSimulator.getMutationRate(), readSimulator.getRandom(), readSimulator.getReadLength());
                     rp.calculateGenomicPositions(transcript.getExons());
 
                     // Check if the genomic coordinates are calculated correctly, get the original sequence and compare
@@ -116,7 +116,6 @@ public class ReadSimulatorTest {
                 basePath.resolve("Homo_sapiens.GRCh37.75.gtf").toString()
         );
         String transcriptomePath = basePath.resolve("Homo_sapiens.GRCh37.75.cdna.all.fa.gz").toString();
-
         try (FileInputStream fileInputStream = new FileInputStream(transcriptomePath);
              GZIPInputStream gzipInputStream = new GZIPInputStream(fileInputStream);
              BufferedReader br = new BufferedReader(new InputStreamReader(gzipInputStream))) {
@@ -130,12 +129,14 @@ public class ReadSimulatorTest {
                         // Check the sequence
                         checkIfReferenceSequenceMatches(id, seq.toString(), genomeSequenceExtractor, gtfAnnotation);
                         seq.setLength(0);
+
                     }
                     id = line.substring(1);
                 } else {
                     seq.append(line);
                 }
             }
+
             checkIfReferenceSequenceMatches(id,
                     seq.toString(),
                     genomeSequenceExtractor,
