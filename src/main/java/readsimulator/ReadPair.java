@@ -2,9 +2,8 @@ package readsimulator;
 
 import gtf.structs.Exon;
 import gtf.types.StrandDirection;
-import org.apache.commons.rng.UniformRandomProvider;
 
-import java.util.Random;
+import java.util.SplittableRandom;
 import java.util.TreeSet;
 
 public class ReadPair extends Pair<Read, Read> {
@@ -36,9 +35,10 @@ public class ReadPair extends Pair<Read, Read> {
         this.transcriptID = transcriptID;
         this.strandDirection = strandDirection;
     }
-    public void mutateReadPairs(double mutationRate, Random random, UniformRandomProvider rng) {
-        this.getFirst().mutate(mutationRate, random,rng);
-        this.getSecond().mutate(mutationRate, random,rng);
+
+    public void mutateReadPairs(double mutationRate, SplittableRandom random, int readLength) {
+        this.getFirst().mutate(mutationRate, random, readLength);
+        this.getSecond().mutate(mutationRate, random, readLength);
     }
 
     public void calculateGenomicPositions(TreeSet<Exon> exons) {

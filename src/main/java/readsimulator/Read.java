@@ -3,8 +3,6 @@ package readsimulator;
 import gtf.structs.Exon;
 import gtf.structs.Interval;
 import gtf.types.StrandDirection;
-import org.apache.commons.rng.UniformRandomProvider;
-import org.apache.commons.statistics.distribution.BinomialDistribution;
 import parsers.GenomeSequenceExtractor;
 
 import java.util.*;
@@ -70,9 +68,9 @@ public class Read {
     }
 
     // TODO: Optimize
-    public void mutate(double mutationRate, Random random, UniformRandomProvider rng) {
-        BinomialDistribution binomialDistribution = BinomialDistribution.of(seq.length(), mutationRate);
-        int numMutations = binomialDistribution.createSampler(rng).sample();
+    public void mutate(double mutationRate, SplittableRandom random, int readLength) {
+        int numMutations = sampleMutations(random, readLength, mutationRate);
+
         mutatedPositions = new ArrayList<>(numMutations);
 
         if (numMutations == 0) {
@@ -96,8 +94,18 @@ public class Read {
 
     }
 
+    private int sampleMutations(SplittableRandom random, int readLength, double mutationRate) {
+        int numMutations = 0;
+        for (int i = 0; i < readLength; i++) {
+            if (random.nextDouble() < mutationRate) {
+                numMutations++;
+            }
+        }
+        return numMutations;
+    }
 
-    public char getRandomNucleotide(char currentNucleotide, Random random) {
+
+    public char getRandomNucleotide(char currentNucleotide, SplittableRandom random) {
         char newNucleotide;
         do {
             newNucleotide = NUCLEOTIDES[random.nextInt(NUCLEOTIDES.length)];
