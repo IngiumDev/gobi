@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 
+import static java.lang.System.exit;
+
 public class ReadSimulatorRunner {
     // TODO remove refactoring, timing and logging
     public static void main(String[] args) {
@@ -35,7 +37,7 @@ public class ReadSimulatorRunner {
         parser.addArgument("-od").required(true).help("Output directory").metavar("<output directory>");
         if (args.length == 0) {
             parser.printHelp();
-            System.exit(1);
+            exit(1);
         }
         try {
             Namespace res = parser.parseArgs(args);
@@ -46,6 +48,8 @@ public class ReadSimulatorRunner {
     }
 
     private static void start(Namespace res) {
+        long totalStartTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         ReadSimulator readSimulator = new ReadSimulator.Builder()
                 .setReadLength(res.getInt("length"))
                 .setMeanFragmentLength(res.getInt("frlength"))
@@ -55,14 +59,12 @@ public class ReadSimulatorRunner {
                 .setGenomeSequenceExtractor(new GenomeSequenceExtractor(res.getString("fasta"), res.getString("fidx")))
                 .setReadCounts(readCountsFile(res.getString("readcounts")))
                 .build();
-        //List<ReadPair> readPairs = readSimulator.simulateReads();
+        
+        System.out.println("Initialization time\t" + (System.currentTimeMillis() - startTime));
+        startTime = System.currentTimeMillis();
         readSimulator.simulateAndWriteReads(res.getString("od"));
-        // Output to file
-        // String outputDir = res.getString("od");
-        // First write the read counts file
-        // readSimulator.writeReadCounts(outputDir, readPairs);
-        // readSimulator.writeReads(outputDir, readPairs);
-        System.out.println();
+        System.out.println("Total Read Simulation Time\t" + (System.currentTimeMillis() - startTime));
+        System.out.println("Total time\t" + (System.currentTimeMillis() - totalStartTime));
     }
 
 
