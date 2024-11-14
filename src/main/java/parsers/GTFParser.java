@@ -160,7 +160,7 @@ public class GTFParser {
                 }
             }
             GTFTimer.setGtfParseTime(System.currentTimeMillis() - startTime);
-            System.out.println("LOG: Total time to parse GTF: " + GTFTimer.getGtfParseTime() + " ms");
+            // System.out.println("LOG: Total time to parse GTF: " + GTFTimer.getGtfParseTime() + " ms");
 
         } catch (IOException e) {
             e.printStackTrace();
