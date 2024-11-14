@@ -58,7 +58,7 @@ public class GTFAttributes {
         return attributes;
     }
 
-    public static GTFAttributes parseAttributes(String attributeString) {
+    public static GTFAttributes parseAttributes(String attributeString, AnnotationTypes type) {
         // TODO: seperate by entry, if we have all required attributes, break;
         GTFAttributes.Builder attribute = new GTFAttributes.Builder();
         int len = attributeString.length();
@@ -122,6 +122,25 @@ public class GTFAttributes {
                 case PROTEIN_ID -> attribute.setProteinID(value);
                 case CCDS_ID, CCDS_ID2 -> attribute.setCcdsID(value);
             }
+            // Check if we have all required attributes
+            if (type == AnnotationTypes.GENE) {
+                if (attribute.hasGeneAttributes()) {
+                    return attribute.build();
+                }
+            } else if (type == AnnotationTypes.TRANSCRIPT) {
+                if (attribute.hasTranscriptAttributes()) {
+                    return attribute.build();
+                }
+            } else if (type == AnnotationTypes.EXON) {
+                if (attribute.hasExonAttributes()) {
+                    return attribute.build();
+                }
+            } else {
+                if (attribute.hasCDSAttributes()) {
+                    return attribute.build();
+                }
+            }
+
 
             // Skip any space after the value
             while (i < len && attributeString.charAt(i) == ' ') {
@@ -249,6 +268,18 @@ public class GTFAttributes {
 
         public void setCcdsID(String ccdsID) {
             this.ccdsID = ccdsID;
+        }
+        public boolean hasGeneAttributes() {
+            return geneID != null && geneName != null;
+        }
+        public boolean hasTranscriptAttributes() {
+            return hasGeneAttributes() && transcriptID != null && transcriptName != null;
+        }
+        public boolean hasExonAttributes() {
+            return hasTranscriptAttributes();
+        }
+        public boolean hasCDSAttributes() {
+            return hasTranscriptAttributes() && proteinID != null;
         }
 
         public GTFAttributes build() {
