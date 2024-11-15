@@ -47,8 +47,8 @@ public class ReadSimulatorRunner {
     }
 
     private static void start(Namespace res) {
-        long totalStartTime = System.currentTimeMillis();
-        long startTime = System.currentTimeMillis();
+//        long totalStartTime = System.currentTimeMillis();
+//        long startTime = System.currentTimeMillis();
         // TODO: only lines with relevent transcript ID
         ReadSimulator readSimulator = new ReadSimulator.Builder()
                 .setReadLength(res.getInt("length"))
@@ -59,11 +59,11 @@ public class ReadSimulatorRunner {
                 .setGtfAnnotation(res.getString("gtf"))
                 .setGenomeSequenceExtractor(new GenomeSequenceExtractor(res.getString("fasta"), res.getString("fidx")))
                 .build();
-        System.out.println("Initialization time\t" + (System.currentTimeMillis() - startTime));
-        startTime = System.currentTimeMillis();
+//        System.out.println("Initialization time\t" + (System.currentTimeMillis() - startTime));
+//        startTime = System.currentTimeMillis();
         readSimulator.simulateAndWriteReads(res.getString("od"));
-        System.out.println("Total Read Simulation Time\t" + (System.currentTimeMillis() - startTime));
-        System.out.println("Total time\t" + (System.currentTimeMillis() - totalStartTime));
+//        System.out.println("Total Read Simulation Time\t" + (System.currentTimeMillis() - startTime));
+//        System.out.println("Total time\t" + (System.currentTimeMillis() - totalStartTime));
     }
 
 
