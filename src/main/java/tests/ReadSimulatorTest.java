@@ -52,8 +52,7 @@ public class ReadSimulatorTest {
                     int fragmentLength;
                     do {
                         fragmentLength = (int) Math.round(readSimulator.sampleFragmentLength());
-                    } while (fragmentLength > sequence.length());
-                    fragmentLength = Math.max(fragmentLength, readSimulator.getReadLength());
+                    } while (fragmentLength > sequence.length() || fragmentLength < readSimulator.getReadLength());
                     int diff = sequence.length() - fragmentLength;
                     int fragmentStart;
                     if (diff == 0) {

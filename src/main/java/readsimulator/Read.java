@@ -5,7 +5,10 @@ import gtf.structs.Interval;
 import gtf.types.StrandDirection;
 import parsers.GenomeSequenceExtractor;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.SplittableRandom;
+import java.util.TreeSet;
 
 import static runners.ReadSimulatorRunner.getCoveredRegion;
 
@@ -69,29 +72,21 @@ public class Read {
 
     // TODO: Optimize
     public void mutate(double mutationRate, SplittableRandom random, int readLength) {
-        int numMutations = sampleMutations(random, readLength, mutationRate);
+        mutatedPositions = new ArrayList<>();
+        StringBuilder mutatedSeq = null;
+        for (int i = 0; i < readLength; i++) {
+            if (random.nextDouble() < mutationRate) {
+                if (mutatedSeq == null) {
+                    mutatedSeq = new StringBuilder(seq);
 
-        mutatedPositions = new ArrayList<>(numMutations);
-
-        if (numMutations == 0) {
-            return;
+                }
+                mutatedPositions.add(i);
+                mutatedSeq.setCharAt(i, getRandomNucleotide(seq.charAt(i), random));
+            }
         }
-
-        StringBuilder mutatedSeq = new StringBuilder(seq);
-        Set<Integer> positionsToMutate = new HashSet<>();
-        while (positionsToMutate.size() < numMutations) {
-            positionsToMutate.add(random.nextInt(seq.length()));
+        if (mutatedSeq != null) {
+            seq = mutatedSeq.toString();
         }
-
-        // Apply mutations at the unique positions
-        mutatedPositions = new ArrayList<>(positionsToMutate); // Store mutation positions
-        for (int position : positionsToMutate) {
-            mutatedSeq.setCharAt(position, getRandomNucleotide(mutatedSeq.charAt(position), random));
-        }
-
-        // Convert the mutated char array back to a string
-        this.seq = mutatedSeq.toString();
-
     }
 
     private int sampleMutations(SplittableRandom random, int readLength, double mutationRate) {
