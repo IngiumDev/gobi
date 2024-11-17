@@ -11,12 +11,9 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import parsers.GenomeSequenceExtractor;
 import readsimulator.ReadSimulator;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeSet;
+import java.io.*;
+import java.nio.file.Paths;
+import java.util.*;
 
 import static java.lang.System.exit;
 
@@ -34,6 +31,7 @@ public class ReadSimulatorRunner {
         parser.addArgument("-fidx").required(true).help("Path to genome FASTA file index").metavar("<genome FASTA file index>").type(new FileArgumentType().verifyIsFile());
         parser.addArgument("-gtf").required(true).help("Path to annotation file").metavar("<annotation file>").type(new FileArgumentType().verifyIsFile());
         parser.addArgument("-od").required(true).help("Output directory").metavar("<output directory>");
+        parser.addArgument("-analysis-script").help("Path to the analysis file to analyze the results directly").metavar("<path-to-script>").type(new FileArgumentType().verifyIsFile());
         if (args.length == 0) {
             parser.printHelp();
             exit(1);
@@ -47,8 +45,8 @@ public class ReadSimulatorRunner {
     }
 
     private static void start(Namespace res) {
-//        long totalStartTime = System.currentTimeMillis();
-//        long startTime = System.currentTimeMillis();
+        long totalStartTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         // TODO: only lines with relevent transcript ID
         ReadSimulator readSimulator = new ReadSimulator.Builder()
                 .setReadLength(res.getInt("length"))
@@ -59,11 +57,48 @@ public class ReadSimulatorRunner {
                 .setGtfAnnotation(res.getString("gtf"))
                 .setGenomeSequenceExtractor(new GenomeSequenceExtractor(res.getString("fasta"), res.getString("fidx")))
                 .build();
-//        System.out.println("Initialization time\t" + (System.currentTimeMillis() - startTime));
-//        startTime = System.currentTimeMillis();
+        System.out.println("Initialization time\t" + (System.currentTimeMillis() - startTime));
+        startTime = System.currentTimeMillis();
         readSimulator.simulateAndWriteReads(res.getString("od"));
-//        System.out.println("Total Read Simulation Time\t" + (System.currentTimeMillis() - startTime));
-//        System.out.println("Total time\t" + (System.currentTimeMillis() - totalStartTime));
+        System.out.println("Total Read Simulation Time\t" + (System.currentTimeMillis() - startTime));
+        System.out.println("Total time\t" + (System.currentTimeMillis() - totalStartTime));
+        if (res.get("analysis_script") != null) {
+            String scriptPath = ((File) res.get("analysis_script")).getAbsolutePath();
+
+            // Use ProcessBuilder to call the Python script
+            List<String> command = new ArrayList<>();
+            command.add("python3"); // or "python3", depending on your environment
+            command.add(scriptPath);
+            command.add(Paths.get(res.getString("od"), "read.mappinginfo").toString());
+            command.add(res.getString("od"));
+
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.redirectErrorStream();
+
+            try {
+                Process process = pb.start();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line); // Print the output
+                }
+
+                // Wait for the process to complete and get the exit code
+                int exitCode = process.waitFor();
+                if (exitCode == 0) {
+                    System.out.println("Python script executed successfully.");
+                } else {
+                    System.err.println("Python script execution failed with exit code: " + exitCode);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+
+
     }
 
 
