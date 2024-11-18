@@ -15,12 +15,10 @@ import java.util.Map;
 import java.util.TreeSet;
 
 public class GenomeSequenceExtractor {
-    // TODO: Check if genomic coordinates match by when we generate a read and get the genomic coordinates, we can just get the read from these coordinates and check if it's the same, and we know our getsequence is correct
     private final FileChannel fileChannel;
     private final Map<String, FastaIndexEntry> fastaIndex;
 
     // TODO: keep sequence as byte array, then convert to string when needed
-    // TODO: BufferedWriter for each file and just write bw.write() and bw.newLine() and bw.flush() at the end
     public GenomeSequenceExtractor(String fastaFilePath, String faiFilePath) {
         try {
             this.fileChannel = FileChannel.open(Paths.get(fastaFilePath));

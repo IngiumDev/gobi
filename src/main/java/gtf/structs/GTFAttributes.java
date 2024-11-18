@@ -59,7 +59,6 @@ public class GTFAttributes {
     }
 
     public static GTFAttributes parseAttributes(String attributeString, AnnotationTypes type) {
-        // TODO: seperate by entry, if we have all required attributes, break;
         GTFAttributes.Builder attribute = new GTFAttributes.Builder();
         int len = attributeString.length();
 

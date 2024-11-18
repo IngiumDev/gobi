@@ -15,10 +15,6 @@ public class CodingSequence extends AnnotationEntry implements Comparable<Coding
         this.exonNumber = GTFAttributes.getExonNumber();
     }
 
-    public String getExonNumber() {
-        return exonNumber;
-    }
-
     public String getProteinID() {
         return proteinID;
     }

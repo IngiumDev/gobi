@@ -70,7 +70,6 @@ public class Read {
         return chromosomalCoordinates;
     }
 
-    // TODO: Optimize
     public void mutate(double mutationRate, SplittableRandom random, int readLength) {
         mutatedPositions = new ArrayList<>();
         StringBuilder mutatedSeq = null;

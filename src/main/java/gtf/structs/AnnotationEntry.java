@@ -45,56 +45,12 @@ public abstract class AnnotationEntry {
         return seqname;
     }
 
-    public void setSeqname(String seqname) {
-        this.seqname = seqname;
-    }
-
-    public String getSource() {
-        return source;
-    }
-
-    public void setSource(String source) {
-        this.source = source;
-    }
-
-    public String getFeature() {
-        return feature;
-    }
-
-    public void setFeature(String feature) {
-        this.feature = feature;
-    }
-
     public Interval getInterval() {
         return interval;
     }
 
-    public void setInterval(Interval interval) {
-        this.interval = interval;
-    }
-
-    public double getScore() {
-        return score;
-    }
-
-    public void setScore(double score) {
-        this.score = score;
-    }
-
     public StrandDirection getStrand() {
         return strand;
-    }
-
-    public void setStrand(StrandDirection strand) {
-        this.strand = strand;
-    }
-
-    public FrameStarts getFrame() {
-        return frame;
-    }
-
-    public void setFrame(FrameStarts frame) {
-        this.frame = frame;
     }
 
     public void overwrite(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame) {

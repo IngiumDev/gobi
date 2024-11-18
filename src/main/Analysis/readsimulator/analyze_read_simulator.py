@@ -140,7 +140,6 @@ def create_read_metrics_bar_plot(fig, mapping_info_df):
                                          mapping_info_df['rw_regvec'].str.contains(r'\|', na=False) & mapping_info_df[
                                              'rw_regvec'].apply(
                                              check_region_length) & pd.isna(mapping_info_df['rw_mut'])])
-    # TODO Label the points
     metrics = [('All Reads', all_reads, all_reads),  # For 'All Reads', both fw and rw should be equal
                ('Non-split Reads', non_split_read_fw, non_split_read_rw),
                ('Non-split Reads (No Mismatches)', non_split_read_fw_no_mismatches, non_split_read_rw_no_mismatches),

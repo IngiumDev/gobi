@@ -18,7 +18,6 @@ import java.util.*;
 import static java.lang.System.exit;
 
 public class ReadSimulatorRunner {
-    // TODO remove refactoring, timing and logging
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("ReadSimulatorRunner").build().defaultHelp(true)
                 .description("Run ReadSimulatorRunner");
@@ -47,7 +46,6 @@ public class ReadSimulatorRunner {
     private static void start(Namespace res) {
         long totalStartTime = System.currentTimeMillis();
         long startTime = System.currentTimeMillis();
-        // TODO: only lines with relevent transcript ID
         ReadSimulator readSimulator = new ReadSimulator.Builder()
                 .setReadLength(res.getInt("length"))
                 .setMeanFragmentLength(res.getInt("frlength"))
