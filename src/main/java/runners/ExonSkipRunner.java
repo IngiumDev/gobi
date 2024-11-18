@@ -42,7 +42,6 @@ public class ExonSkipRunner {
         GTFTimer.setIntronProcessTime(System.currentTimeMillis() - startTime);
         System.out.println("LOG: Total time to process introns: " + GTFTimer.getIntronProcessTime() + " ms");
 
-        // TODO: Don't store the results in a variable, print them directly
         List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
         GTFTimer.setExonProcessTime((System.currentTimeMillis() - startTime));
         System.out.println("LOG: Total time to find exon skipping events: " + GTFTimer.getExonProcessTime() + " ms");

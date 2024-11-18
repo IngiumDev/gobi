@@ -14,20 +14,6 @@ public class Exon extends AnnotationEntry implements Comparable<Exon> {
         this.exonID = GTFAttributes.getExonID();
     }
 
-    // If we read a CDS line
-    public Exon(GTFAttributes GTFAttributes) {
-        this.exonNumber = GTFAttributes.getExonNumber();
-        this.exonID = GTFAttributes.getExonID();
-    }
-
-    public String getExonID() {
-        return exonID;
-    }
-
-    public String getExonNumber() {
-        return exonNumber;
-    }
-
     @Override
     public int compareTo(Exon other) {
         int startComparison = Integer.compare(this.getInterval().getStart(), other.getInterval().getStart());

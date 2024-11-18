@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import static parsers.GTFParser.parseGTFForCounts;
 
 
-// TODO: Change so that do while doesn't have bulge at 75 length
 public class ReadSimulator {
     private final int readLength;
     private final int meanFragmentLength;
@@ -178,24 +177,19 @@ public class ReadSimulator {
     }
 
     private static void writeReadsToFASTQ(ReadPair rp, int readID, BufferedWriter fwWriter, BufferedWriter rwWriter) throws IOException {
-        // TODO: refactor to use single method for both
-        fwWriter.write("@" + readID);
-        fwWriter.newLine();
-        fwWriter.write(rp.getFirst().getSeq());
-        fwWriter.newLine();
-        fwWriter.write("+" + readID);
-        fwWriter.newLine();
-        fwWriter.write("I".repeat(rp.getFirst().getSeq().length()));
-        fwWriter.newLine();
+        writeReads(readID, fwWriter, rp.getFirst());
+        writeReads(readID, rwWriter, rp.getSecond());
+    }
 
-        rwWriter.write("@" + readID);
-        rwWriter.newLine();
-        rwWriter.write(rp.getSecond().getSeq());
-        rwWriter.newLine();
-        rwWriter.write("+" + readID);
-        rwWriter.newLine();
-        rwWriter.write("I".repeat(rp.getSecond().getSeq().length()));
-        rwWriter.newLine();
+    private static void writeReads(int readID, BufferedWriter bw, Read read) throws IOException {
+        bw.write("@" + readID);
+        bw.newLine();
+        bw.write(read.getSeq());
+        bw.newLine();
+        bw.write("+" + readID);
+        bw.newLine();
+        bw.write("I".repeat(read.getSeq().length()));
+        bw.newLine();
     }
 
     /* readid	chr	gene	transcript	fw_regvec	rw_regvec	t_fw_regvec	t_rw_regvec	fw_mut	rw_mut
@@ -254,23 +248,9 @@ Interval already has a toString method that outputs the interval but it's int th
             for (ReadPair readPair : readPairs) {
                 Read first = readPair.getFirst();
                 Read second = readPair.getSecond();
-                fwWriter.write("@" + readId);
-                fwWriter.newLine();
-                fwWriter.write(first.getSeq());
-                fwWriter.newLine();
-                fwWriter.write("+" + readId);
-                fwWriter.newLine();
-                fwWriter.write("I".repeat(first.getSeq().length()));
-                fwWriter.newLine();
+                writeReads(readId, fwWriter, first);
 
-                rwWriter.write("@" + readId);
-                rwWriter.newLine();
-                rwWriter.write(second.getSeq());
-                rwWriter.newLine();
-                rwWriter.write("+" + readId);
-                rwWriter.newLine();
-                rwWriter.write("I".repeat(second.getSeq().length()));
-                rwWriter.newLine();
+                writeReads(readId, rwWriter, second);
                 readId++;
             }
         } catch (IOException e) {

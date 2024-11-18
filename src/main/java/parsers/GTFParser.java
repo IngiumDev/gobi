@@ -28,9 +28,6 @@ public class GTFParser {
     public static final int ATTRIBUTE_COL = 8;
 
 
-    // TODO Logging for errors logback slf4j ch. qos
-    // TODO: Remove unnecessary comments/methods
-    // GTF line columns to escalate: seqname, source, strand
     public static GTFAnnotation parseGTF(String gtfFile) {
         long startTime = System.currentTimeMillis();
         GTFAnnotation GTFAnnotation = new GTFAnnotation();
@@ -48,7 +45,7 @@ public class GTFParser {
             e.printStackTrace();
         }
         return GTFAnnotation;
-        /*    // TODO: seperate by entry, if we have all required attributes, break;
+        /*
         GTFAttributes.Builder attribute = new GTFAttributes.Builder();
         int len = attributeString.length();
 
@@ -168,19 +165,6 @@ public class GTFParser {
         return GTFAnnotation;
     }
 
-   /* private static boolean filterGTFLineForCounts(String line, Map<String, Map<String, Integer>> geneTranscriptCounts) {
-        // Count the number of tabs till the 8th column (attributes, (should be 8 tabs))
-        int tabCount = 0;
-        for (int i = 0; i < line.length(); i++) {
-            if (line.charAt(i) == '\t') {
-                tabCount++;
-                if (tabCount == 8) {
-                    // Manually parse the attributes like above, once we have the gene_id, check if it exists in the geneTranscriptCounts, if yes, proceed to procedss the transcript id and then check if it is in, if yes then return true, if not return false
-
-                }
-            }
-        }
-    }*/
 
     private static boolean filterGTFLineForCounts(String line, Map<String, Map<String, Integer>> geneTranscriptCounts) {
         int tabCount = 0;
