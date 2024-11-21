@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,52 +49,70 @@ public class ReadSimulatorTest {
             for (String transcriptID : readSimulator.getReadCounts().get(geneID).keySet()) {
                 int readCount = readSimulator.getReadCounts().get(geneID).get(transcriptID);
                 Transcript transcript = readSimulator.getGtfAnnotation().getGene(geneID).getTranscript(transcriptID);
-                String sequence = genomeSequenceExtractor.getSequenceForExonsInOneRead(readSimulator.getGtfAnnotation().getGene(geneID).getSeqname(), transcript.getExons(), readSimulator.getGtfAnnotation().getGene(geneID).getStrand());
+                String sequence = genomeSequenceExtractor.getSequenceForExonsInOneRead(
+                        readSimulator.getGtfAnnotation().getGene(geneID).getSeqname(),
+                        transcript.getExons(),
+                        readSimulator.getGtfAnnotation().getGene(geneID).getStrand()
+                );
+
                 for (int i = 0; i < readCount; i++) {
                     int fragmentLength;
                     do {
                         fragmentLength = (int) Math.round(readSimulator.sampleFragmentLength());
                     } while (fragmentLength > sequence.length() || fragmentLength < readSimulator.getReadLength());
+
                     int diff = sequence.length() - fragmentLength;
-                    int fragmentStart;
-                    if (diff == 0) {
-                        fragmentStart = 0;
-                    } else {
-                        fragmentStart = readSimulator.getRandom().nextInt(diff);
-                    }
-                    ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readSimulator.getReadLength(), transcript.getSeqname(), geneID, transcriptID, transcript.getStrand());
+                    int fragmentStart = (diff == 0) ? 0 : readSimulator.getRandom().nextInt(diff);
+
+                    ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength,
+                            readSimulator.getReadLength(), transcript.getSeqname(),
+                            geneID, transcriptID, transcript.getStrand());
                     rp.mutateReadPairs(readSimulator.getMutationRate(), readSimulator.getRandom(), readSimulator.getReadLength());
                     rp.calculateGenomicPositions(transcript.getExons());
 
-                    // Check if the genomic coordinates are calculated correctly, get the original sequence and compare
-                    String originalSequenceFW = genomeSequenceExtractor.getSequenceForIntervalsInOneRead(transcript.getSeqname(), rp.getFirst().getChromosomalCoordinates(), transcript.getStrand());
-                    String originalSequenceRV = reverseComplement(genomeSequenceExtractor.getSequenceForIntervalsInOneRead(transcript.getSeqname(), rp.getSecond().getChromosomalCoordinates(), transcript.getStrand()));
+                    // Get the original and mutated sequences
+                    String originalSequenceFW = genomeSequenceExtractor.getSequenceForIntervalsInOneRead(
+                            transcript.getSeqname(), rp.getFirst().getChromosomalCoordinates(), transcript.getStrand()
+                    );
+                    String originalSequenceRV = reverseComplement(genomeSequenceExtractor.getSequenceForIntervalsInOneRead(
+                            transcript.getSeqname(), rp.getSecond().getChromosomalCoordinates(), transcript.getStrand()
+                    ));
 
-                    // We check if the mutations are actually present in the sequence, and the rest of the sequence is the same
                     String mutatedSequenceFW = rp.getFirst().getSeq();
                     String mutatedSequenceRV = rp.getSecond().getSeq();
 
-                    for (int pos : rp.getFirst().getMutatedPositions()) {
-                        assertNotEquals(mutatedSequenceFW.charAt(pos), originalSequenceFW.charAt(pos), "Mutation not found at position " + pos + " in forward read");
-                    }
+                    // Convert mutated positions to sets for faster lookup
+                    Set<Integer> mutatedPositionsFW = new HashSet<>(rp.getFirst().getMutatedPositions());
+                    Set<Integer> mutatedPositionsRV = new HashSet<>(rp.getSecond().getMutatedPositions());
 
-                    for (int pos : rp.getSecond().getMutatedPositions()) {
-                        assertNotEquals(mutatedSequenceRV.charAt(pos), originalSequenceRV.charAt(pos), "Mutation not found at position " + pos + " in reverse read");
-                    }
+                    // Check mutations and unchanged sequences in a single loop
+                    int lengthFW = mutatedSequenceFW.length();
+                    int lengthRV = mutatedSequenceRV.length();
+                    int maxLength = Math.max(lengthFW, lengthRV);
 
-                    // Check if the rest of the sequence is the same
-                    for (int j = 0; j < mutatedSequenceFW.length(); j++) {
-                        if (!rp.getFirst().getMutatedPositions().contains(j)) {
-                            assertEquals(mutatedSequenceFW.charAt(j), originalSequenceFW.charAt(j), "Mismatch at position " + j + " in forward read");
+                    for (int j = 0; j < maxLength; j++) {
+                        // Check forward read mutations and unchanged positions
+                        if (j < lengthFW) {
+                            if (mutatedPositionsFW.contains(j)) {
+                                assertNotEquals(mutatedSequenceFW.charAt(j), originalSequenceFW.charAt(j),
+                                        "Mutation not found at position " + j + " in forward read");
+                            } else {
+                                assertEquals(mutatedSequenceFW.charAt(j), originalSequenceFW.charAt(j),
+                                        "Mismatch at position " + j + " in forward read");
+                            }
+                        }
+
+                        // Check reverse read mutations and unchanged positions
+                        if (j < lengthRV) {
+                            if (mutatedPositionsRV.contains(j)) {
+                                assertNotEquals(mutatedSequenceRV.charAt(j), originalSequenceRV.charAt(j),
+                                        "Mutation not found at position " + j + " in reverse read");
+                            } else {
+                                assertEquals(mutatedSequenceRV.charAt(j), originalSequenceRV.charAt(j),
+                                        "Mismatch at position " + j + " in reverse read");
+                            }
                         }
                     }
-
-                    for (int j = 0; j < mutatedSequenceRV.length(); j++) {
-                        if (!rp.getSecond().getMutatedPositions().contains(j)) {
-                            assertEquals(mutatedSequenceRV.charAt(j), originalSequenceRV.charAt(j), "Mismatch at position " + j + " in reverse read");
-                        }
-                    }
-
                 }
             }
         }

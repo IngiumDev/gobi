@@ -107,7 +107,6 @@ public class ReadSimulatorRunner {
         int currentPos = 0;
         for (Exon exon : exons) {
             int regionLength = exon.getInterval().getLength();
-
             if (currentPos + regionLength > localStart) {
                 int start = Math.max(exon.getInterval().getStart(), exon.getInterval().getStart() + (localStart - currentPos));
                 int end = Math.min(exon.getInterval().getEnd(), exon.getInterval().getStart() + (localEnd - currentPos));
