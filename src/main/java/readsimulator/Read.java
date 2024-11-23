@@ -31,10 +31,11 @@ public class Read {
             this.strandDirection = direction;
             this.transcriptSeqLength = transcriptSeq.length();
         } else if (direction == StrandDirection.REVERSE) {
-            this.seq = GenomeSequenceExtractor.reverseComplement(transcriptSeq.substring(fragmentStart + fragmentLength - readLength, fragmentStart + fragmentLength));
+            this.transcriptSeqLength = transcriptSeq.length();
+            this.seq = transcriptSeq.substring(transcriptSeqLength -(fragmentStart + fragmentLength), transcriptSeqLength - (fragmentStart + fragmentLength - readLength));
             this.transcriptCoordinates = new Interval(fragmentStart + fragmentLength - readLength, fragmentStart + fragmentLength - 1);
             this.strandDirection = direction;
-            this.transcriptSeqLength = transcriptSeq.length();
+
         } else {
             throw new IllegalArgumentException("StrandDirection not given");
         }

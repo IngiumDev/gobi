@@ -300,7 +300,7 @@ Interval already has a toString method that outputs the interval but it's int th
 //                    startTime = System.currentTimeMillis();
                     String sequence = genomeSequenceExtractor.getSequenceForExonsInOneRead(gtfAnnotation.getGene(geneID).getSeqname(), transcript.getExons(), gtfAnnotation.getGene(geneID).getStrand());
 //                    sequenceExtractionTime += System.currentTimeMillis() - startTime;
-
+                    String reverseSequence = genomeSequenceExtractor.reverseComplement(sequence);
                     for (int i = 0; i < readCount; i++) {
 //                        startTime = System.currentTimeMillis();
                         int fragmentLength;
@@ -316,7 +316,7 @@ Interval already has a toString method that outputs the interval but it's int th
                         }
 //                        fragmentLengthSamplingTime += System.currentTimeMillis() - startTime;
 //                        startTime = System.currentTimeMillis();
-                        ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, transcript.getSeqname(), geneID, transcriptID, transcript.getStrand());
+                        ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, transcript.getSeqname(), geneID, transcriptID, transcript.getStrand(), reverseSequence);
 //                        readCreationTime += System.currentTimeMillis() - startTime;
 
 //                        startTime = System.currentTimeMillis();
@@ -390,10 +390,10 @@ Interval already has a toString method that outputs the interval but it's int th
                 //transcript length.
             } while (fragmentLength > sequence.length() || fragmentLength < readLength);
             int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
-            ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
+          //  ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
             // rp.mutateReadPairs(mutationRate, random, readLength);
-            rp.calculateGenomicPositions(transcript.getExons());
-            readPairs.add(rp);
+           // rp.calculateGenomicPositions(transcript.getExons());
+            //readPairs.add(rp);
         }
         return readPairs;
     }
