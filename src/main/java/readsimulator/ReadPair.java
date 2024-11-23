@@ -36,9 +36,9 @@ public class ReadPair extends Pair<Read, Read> {
         this.strandDirection = strandDirection;
     }
 
-    public void mutateReadPairs(double mutationRate, SplittableRandom random, int readLength) {
-        this.getFirst().mutate(mutationRate, random, readLength);
-        this.getSecond().mutate(mutationRate, random, readLength);
+    public void mutateReadPairs(double mutationRate, SplittableRandom random, int mut1, int mut2) {
+        this.getFirst().mutate(mutationRate, random, mut1);
+        this.getSecond().mutate(mutationRate, random, mut2);
     }
 
     public void calculateGenomicPositions(TreeSet<Exon> exons) {

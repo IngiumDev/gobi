@@ -5,8 +5,8 @@ import gtf.structs.Interval;
 import gtf.types.StrandDirection;
 import parsers.GenomeSequenceExtractor;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.SplittableRandom;
 import java.util.TreeSet;
 
@@ -19,7 +19,7 @@ public class Read {
     private final StrandDirection strandDirection;
     private final int transcriptSeqLength;
     private String seq;
-    private List<Integer> mutatedPositions;
+    private Set<Integer> mutatedPositions;
     private TreeSet<Interval> chromosomalCoordinates;
 
     public Read(String transcriptSeq, StrandDirection direction, int fragmentStart, int fragmentLength, int readLength) {
@@ -62,7 +62,7 @@ public class Read {
         return seq;
     }
 
-    public List<Integer> getMutatedPositions() {
+    public Set<Integer> getMutatedPositions() {
         return mutatedPositions;
     }
 
@@ -70,22 +70,26 @@ public class Read {
         return chromosomalCoordinates;
     }
 
-    public void mutate(double mutationRate, SplittableRandom random, int readLength) {
-        mutatedPositions = new ArrayList<>();
-        StringBuilder mutatedSeq = null;
-        for (int i = 0; i < readLength; i++) {
-            if (random.nextDouble() < mutationRate) {
-                if (mutatedSeq == null) {
-                    mutatedSeq = new StringBuilder(seq);
+    public void mutate(double mutationRate, SplittableRandom random, int numMutations) {
+        mutatedPositions = new HashSet<>();
+        if (numMutations == 0) {
+            return;
+        }
+        StringBuilder mutatedSeq = new StringBuilder(seq);
+        int length = seq.length();
+        int mutated = 0;
+        while (mutated < numMutations) {
 
-                }
-                mutatedPositions.add(i);
-                mutatedSeq.setCharAt(i, getRandomNucleotide(seq.charAt(i), random));
+            int position = random.nextInt(length);
+            if (mutatedPositions.contains(position)) {
+                continue;
             }
+
+            mutatedPositions.add(position);
+            mutatedSeq.setCharAt(position, getRandomNucleotide(seq.charAt(position), random));
+            mutated++;
         }
-        if (mutatedSeq != null) {
-            seq = mutatedSeq.toString();
-        }
+        seq = mutatedSeq.toString();
     }
 
     private int sampleMutations(SplittableRandom random, int readLength, double mutationRate) {

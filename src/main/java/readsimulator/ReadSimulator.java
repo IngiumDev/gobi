@@ -23,6 +23,8 @@ public class ReadSimulator {
     private final GenomeSequenceExtractor genomeSequenceExtractor;
     private final Map<String, Map<String, Integer>> readCounts;
     private final SplittableRandom random;
+    private final String qualityScore;
+    private final double L;
 
 
     public ReadSimulator(Builder builder) {
@@ -34,6 +36,8 @@ public class ReadSimulator {
         this.genomeSequenceExtractor = builder.genomeSequenceExtractor;
         this.readCounts = builder.readCounts;
         this.random = new SplittableRandom();
+        this.qualityScore = "I".repeat(readLength);
+        L = Math.exp(-(mutationRate * readLength));
     }
 
     private static void writeToReadMap(BufferedWriter mappingWriter, int readID, ReadPair rp) throws IOException {
@@ -176,20 +180,21 @@ public class ReadSimulator {
                 .collect(Collectors.toList());
     }
 
-    private static void writeReadsToFASTQ(ReadPair rp, int readID, BufferedWriter fwWriter, BufferedWriter rwWriter) throws IOException {
-        writeReads(readID, fwWriter, rp.getFirst());
-        writeReads(readID, rwWriter, rp.getSecond());
+    // Helper method to append mutated positions
+    private static void appendMutatedPositions(StringBuilder builder, Set<Integer> positions) {
+        boolean first = true;
+        for (Integer position : positions) {
+            if (!first) {
+                builder.append(",");
+            }
+            builder.append(position);
+            first = false;
+        }
     }
 
-    private static void writeReads(int readID, BufferedWriter bw, Read read) throws IOException {
-        bw.write("@" + readID);
-        bw.newLine();
-        bw.write(read.getSeq());
-        bw.newLine();
-        bw.write("+" + readID);
-        bw.newLine();
-        bw.write("I".repeat(read.getSeq().length()) + "\n");
-        //bw.newLine();
+    private void writeReadsToFASTQ(ReadPair rp, int readID, BufferedWriter fwWriter, BufferedWriter rwWriter) throws IOException {
+        writeReads(readID, fwWriter, rp.getFirst());
+        writeReads(readID, rwWriter, rp.getSecond());
     }
 
     /* readid	chr	gene	transcript	fw_regvec	rw_regvec	t_fw_regvec	t_rw_regvec	fw_mut	rw_mut
@@ -258,16 +263,19 @@ Interval already has a toString method that outputs the interval but it's int th
         }
     }
 
-    // Helper method to append mutated positions
-    private static void appendMutatedPositions(StringBuilder builder, List<Integer> positions) {
-        boolean first = true;
-        for (Integer position : positions) {
-            if (!first) {
-                builder.append(",");
-            }
-            builder.append(position);
-            first = false;
-        }
+    private void writeReads(int readID, BufferedWriter bw, Read read) throws IOException {
+        //        bw.write("@" + readID);
+//        bw.newLine();
+//        bw.write(read.getSeq());
+//        bw.newLine();
+//        bw.write("+" + readID);
+//        bw.newLine();
+//        bw.write("I".repeat(read.getSeq().length()) + "\n");
+        String stringBuilder = "@" + readID + "\n" +
+                read.getSeq() + "\n" + "+" + readID + "\n" +
+                qualityScore + "\n";
+        //bw.newLine();
+        bw.write(stringBuilder);
     }
 
     public void simulateAndWriteReads(String outputDir) {
@@ -312,7 +320,8 @@ Interval already has a toString method that outputs the interval but it's int th
 //                        readCreationTime += System.currentTimeMillis() - startTime;
 
 //                        startTime = System.currentTimeMillis();
-                        rp.mutateReadPairs(mutationRate, random, readLength);
+
+                        rp.mutateReadPairs(mutationRate, random, samplePoisson(), samplePoisson());
 //                        mutationTime += System.currentTimeMillis() - startTime;
 
 //                        startTime = System.currentTimeMillis();
@@ -353,6 +362,18 @@ Interval already has a toString method that outputs the interval but it's int th
         return random.nextGaussian(meanFragmentLength, fragmentLengthStandardDeviation);
     }
 
+    public int samplePoisson() {
+        double p = 1.0;
+        int k = 0;
+
+        do {
+            k++;
+            p *= random.nextDouble();
+        } while (p > L);
+
+        return k - 1; // Return the number of events
+    }
+
     public SplittableRandom getRandom() {
         return random;
     }
@@ -370,7 +391,7 @@ Interval already has a toString method that outputs the interval but it's int th
             } while (fragmentLength > sequence.length() || fragmentLength < readLength);
             int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
             ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
-            rp.mutateReadPairs(mutationRate, random, readLength);
+            // rp.mutateReadPairs(mutationRate, random, readLength);
             rp.calculateGenomicPositions(transcript.getExons());
             readPairs.add(rp);
         }
