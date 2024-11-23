@@ -67,7 +67,8 @@ public class ReadSimulatorTest {
                     ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength,
                             readSimulator.getReadLength(), transcript.getSeqname(),
                             geneID, transcriptID, transcript.getStrand());
-                    rp.mutateReadPairs(readSimulator.getMutationRate(), readSimulator.getRandom(), readSimulator.getReadLength());
+
+                    rp.mutateReadPairs(readSimulator.getMutationRate(), readSimulator.getRandom(), readSimulator.samplePoisson(), readSimulator.samplePoisson());
                     rp.calculateGenomicPositions(transcript.getExons());
 
                     // Get the original and mutated sequences
