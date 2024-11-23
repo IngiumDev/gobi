@@ -17,7 +17,14 @@ import java.util.TreeSet;
 public class GenomeSequenceExtractor {
     private final FileChannel fileChannel;
     private final Map<String, FastaIndexEntry> fastaIndex;
+    private static final char[] complement = new char[128];
 
+    static {
+        complement['A'] = 'T';
+        complement['T'] = 'A';
+        complement['C'] = 'G';
+        complement['G'] = 'C';
+    }
     // TODO: keep sequence as byte array, then convert to string when needed
     public GenomeSequenceExtractor(String fastaFilePath, String faiFilePath) {
         try {
@@ -30,19 +37,14 @@ public class GenomeSequenceExtractor {
 
 
     public static String reverseComplement(String input) {
-        // Create a character array of the same length as the input string
-        char[] result = new char[input.length()];
+        int length = input.length();
+        char[] result = new char[length];
 
         // Iterate over the input string in reverse order
-        for (int i = 0; i < input.length(); i++) {
-            char c = input.charAt(input.length() - 1 - i); // Get the character in reverse order
-            switch (c) {
-                case 'A' -> result[i] = 'T';
-                case 'T' -> result[i] = 'A';
-                case 'C' -> result[i] = 'G';
-                case 'G' -> result[i] = 'C';
-                default -> result[i] = c; // Preserve any unexpected characters
-            }
+        for (int i = 0; i < length; i++) {
+            char c = input.charAt(length - 1 - i);
+            // Use the lookup array to get the complement or preserve the original character
+            result[i] = complement[c] != 0 ? complement[c] : c;
         }
 
         // Return a new string from the character array

@@ -27,9 +27,9 @@ public class ReadPair extends Pair<Read, Read> {
         return transcriptID;
     }
 
-    public ReadPair(String transcriptSequence, int fragmentStart, int fragmentLength, int readLength, String seqName, String geneID, String transcriptID, StrandDirection strandDirection) {
+    public ReadPair(String transcriptSequence, int fragmentStart, int fragmentLength, int readLength, String seqName, String geneID, String transcriptID, StrandDirection strandDirection, String reverseComplement) {
         super(new Read(transcriptSequence, StrandDirection.FORWARD, fragmentStart, fragmentLength, readLength),
-                new Read(transcriptSequence, StrandDirection.REVERSE, fragmentStart, fragmentLength, readLength));
+                new Read(reverseComplement, StrandDirection.REVERSE, fragmentStart, fragmentLength, readLength));
         this.seqName = seqName;
         this.geneID = geneID;
         this.transcriptID = transcriptID;

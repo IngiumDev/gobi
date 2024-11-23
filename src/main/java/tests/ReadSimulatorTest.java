@@ -54,7 +54,7 @@ public class ReadSimulatorTest {
                         transcript.getExons(),
                         readSimulator.getGtfAnnotation().getGene(geneID).getStrand()
                 );
-
+                String reverseComplement = reverseComplement(sequence);
                 for (int i = 0; i < readCount; i++) {
                     int fragmentLength;
                     do {
@@ -66,7 +66,7 @@ public class ReadSimulatorTest {
 
                     ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength,
                             readSimulator.getReadLength(), transcript.getSeqname(),
-                            geneID, transcriptID, transcript.getStrand());
+                            geneID, transcriptID, transcript.getStrand(), reverseComplement);
 
                     rp.mutateReadPairs(readSimulator.getMutationRate(), readSimulator.getRandom(), readSimulator.samplePoisson(), readSimulator.samplePoisson());
                     rp.calculateGenomicPositions(transcript.getExons());
