@@ -390,9 +390,9 @@ Interval already has a toString method that outputs the interval but it's int th
                 //transcript length.
             } while (fragmentLength > sequence.length() || fragmentLength < readLength);
             int fragmentStart = random.nextInt(sequence.length() - fragmentLength);
-          //  ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
+            //  ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, seqName, geneID, transcriptID, transcript.getStrand());
             // rp.mutateReadPairs(mutationRate, random, readLength);
-           // rp.calculateGenomicPositions(transcript.getExons());
+            // rp.calculateGenomicPositions(transcript.getExons());
             //readPairs.add(rp);
         }
         return readPairs;
