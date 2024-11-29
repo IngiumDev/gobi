@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class Gene extends AnnotationEntry {
+public class Gene extends AnnotationEntry implements augmentedTree.Interval {
     private final String geneID;
     private final String geneName;
     private final Map<String, Transcript> transcripts;
@@ -21,6 +21,7 @@ public class Gene extends AnnotationEntry {
         this.geneID = GTFAttributes.getGeneID();
         this.geneName = GTFAttributes.getGeneName();
         this.transcripts = new HashMap<>();
+
     }
 
     //If we read a transcript/exon/cds line
@@ -29,6 +30,7 @@ public class Gene extends AnnotationEntry {
         this.geneID = GTFAttributes.getGeneID();
         this.geneName = GTFAttributes.getGeneName();
         this.transcripts = new HashMap<>();
+        System.out.println("Warning, gene created with possibly wrong biotype");
     }
 
     public void addTranscript(Transcript transcript) {
@@ -71,4 +73,26 @@ public class Gene extends AnnotationEntry {
     public Transcript getTranscript(String transcriptID) {
         return transcripts.get(transcriptID);
     }
+
+    /**
+     * Start position (zero-based inclusive)
+     *
+     * @return
+     */
+    @Override
+    public int getStart() {
+        return this.getInterval().getStart();
+    }
+
+    /**
+     * End position (zero-based inclusive)
+     *
+     * @return
+     */
+    @Override
+    public int getStop() {
+        return this.getInterval().getEnd();
+    }
+
+
 }

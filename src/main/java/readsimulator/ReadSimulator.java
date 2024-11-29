@@ -40,7 +40,7 @@ public class ReadSimulator {
         L = Math.exp(-(mutationRate * readLength));
     }
 
-    private static void writeToReadMap(BufferedWriter mappingWriter, int readID, ReadPair rp) throws IOException {
+    private static void writeToReadMap(BufferedWriter mappingWriter, int readID, SimulatedReadPair rp) throws IOException {
         // Initialize StringBuilder for efficient string concatenation
         StringBuilder lineBuilder = new StringBuilder();
 
@@ -129,8 +129,7 @@ public class ReadSimulator {
     }
 
 
-
-    public List<ReadPair> simulateReads() {
+    public List<SimulatedReadPair> simulateReads() {
         return readCounts.entrySet().stream()
                 .flatMap(geneEntry -> {
                     String geneId = geneEntry.getKey();
@@ -192,7 +191,7 @@ public class ReadSimulator {
         }
     }
 
-    private void writeReadsToFASTQ(ReadPair rp, int readID, BufferedWriter fwWriter, BufferedWriter rwWriter) throws IOException {
+    private void writeReadsToFASTQ(SimulatedReadPair rp, int readID, BufferedWriter fwWriter, BufferedWriter rwWriter) throws IOException {
         writeReads(readID, fwWriter, rp.getFirst());
         writeReads(readID, rwWriter, rp.getSecond());
     }
@@ -220,14 +219,14 @@ Interval already has a toString method that outputs the interval but it's int th
     *
     *
     * */
-    public void writeReadCounts(String outputDir, List<ReadPair> readPairs) {
+    public void writeReadCounts(String outputDir, List<SimulatedReadPair> simulatedReadPairs) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputDir + "/read.mappinginfo"))) {
             writer.write("readid\tchr\tgene\ttranscript\tfw_regvec\trw_regvec\tt_fw_regvec\tt_rw_regvec\tfw_mut\trw_mut\n");
             int readId = 0;
-            for (ReadPair readPair : readPairs) {
-                Read first = readPair.getFirst();
-                Read second = readPair.getSecond();
-                writer.write(readId + "\t" + readPair.getSeqName() + "\t" + readPair.getGeneID() + "\t" + readPair.getTranscriptID() + "\t" +
+            for (SimulatedReadPair simulatedReadPair : simulatedReadPairs) {
+                SimulatedRead first = simulatedReadPair.getFirst();
+                SimulatedRead second = simulatedReadPair.getSecond();
+                writer.write(readId + "\t" + simulatedReadPair.getSeqName() + "\t" + simulatedReadPair.getGeneID() + "\t" + simulatedReadPair.getTranscriptID() + "\t" +
                         first.getChromosomalCoordinates().stream().map(interval -> interval.getStart() + "-" + (interval.getEnd() + 1)).collect(Collectors.joining("|")) + "\t" +
                         second.getChromosomalCoordinates().stream().map(interval -> interval.getStart() + "-" + (interval.getEnd() + 1)).collect(Collectors.joining("|")) + "\t" +
                         first.getTranscriptCoordinates().getStart() + "-" + (first.getTranscriptCoordinates().getEnd() + 1) + "\t" +
@@ -243,16 +242,16 @@ Interval already has a toString method that outputs the interval but it's int th
         }
     }
 
-    public void writeReads(String outputDir, List<ReadPair> readPairs) {
+    public void writeReads(String outputDir, List<SimulatedReadPair> simulatedReadPairs) {
         // • fw.fastq
         //• rw.fastq
         //• one FASTQ file for the first read of a fragment, one for the second; set the quality score to the maximum for all bases
         try (BufferedWriter fwWriter = new BufferedWriter(new FileWriter(outputDir + "/fw.fastq"));
              BufferedWriter rwWriter = new BufferedWriter(new FileWriter(outputDir + "/rw.fastq"))) {
             int readId = 0;
-            for (ReadPair readPair : readPairs) {
-                Read first = readPair.getFirst();
-                Read second = readPair.getSecond();
+            for (SimulatedReadPair simulatedReadPair : simulatedReadPairs) {
+                SimulatedRead first = simulatedReadPair.getFirst();
+                SimulatedRead second = simulatedReadPair.getSecond();
                 writeReads(readId, fwWriter, first);
 
                 writeReads(readId, rwWriter, second);
@@ -263,7 +262,7 @@ Interval already has a toString method that outputs the interval but it's int th
         }
     }
 
-    private void writeReads(int readID, BufferedWriter bw, Read read) throws IOException {
+    private void writeReads(int readID, BufferedWriter bw, SimulatedRead simulatedRead) throws IOException {
         //        bw.write("@" + readID);
 //        bw.newLine();
 //        bw.write(read.getSeq());
@@ -272,7 +271,7 @@ Interval already has a toString method that outputs the interval but it's int th
 //        bw.newLine();
 //        bw.write("I".repeat(read.getSeq().length()) + "\n");
         String stringBuilder = "@" + readID + "\n" +
-                read.getSeq() + "\n" + "+" + readID + "\n" +
+                simulatedRead.getSeq() + "\n" + "+" + readID + "\n" +
                 qualityScore + "\n";
         //bw.newLine();
         bw.write(stringBuilder);
@@ -300,7 +299,7 @@ Interval already has a toString method that outputs the interval but it's int th
 //                    startTime = System.currentTimeMillis();
                     String sequence = genomeSequenceExtractor.getSequenceForExonsInOneRead(gtfAnnotation.getGene(geneID).getSeqname(), transcript.getExons(), gtfAnnotation.getGene(geneID).getStrand());
 //                    sequenceExtractionTime += System.currentTimeMillis() - startTime;
-                    String reverseSequence = genomeSequenceExtractor.reverseComplement(sequence);
+                    String reverseSequence = GenomeSequenceExtractor.reverseComplement(sequence);
                     for (int i = 0; i < readCount; i++) {
 //                        startTime = System.currentTimeMillis();
                         int fragmentLength;
@@ -316,7 +315,7 @@ Interval already has a toString method that outputs the interval but it's int th
                         }
 //                        fragmentLengthSamplingTime += System.currentTimeMillis() - startTime;
 //                        startTime = System.currentTimeMillis();
-                        ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength, readLength, transcript.getSeqname(), geneID, transcriptID, transcript.getStrand(), reverseSequence);
+                        SimulatedReadPair rp = new SimulatedReadPair(sequence, fragmentStart, fragmentLength, readLength, transcript.getSeqname(), geneID, transcriptID, transcript.getStrand(), reverseSequence);
 //                        readCreationTime += System.currentTimeMillis() - startTime;
 
 //                        startTime = System.currentTimeMillis();
@@ -378,9 +377,9 @@ Interval already has a toString method that outputs the interval but it's int th
         return random;
     }
 
-    private List<ReadPair> simulateReadPairs(String sequence, Transcript transcript, int readCount, String seqName, String geneID, String transcriptID) {
+    private List<SimulatedReadPair> simulateReadPairs(String sequence, Transcript transcript, int readCount, String seqName, String geneID, String transcriptID) {
 
-        List<ReadPair> readPairs = new ArrayList<>();
+        List<SimulatedReadPair> simulatedReadPairs = new ArrayList<>();
         for (int i = 0; i < readCount; i++) {
             int fragmentLength;
             do {
@@ -395,7 +394,7 @@ Interval already has a toString method that outputs the interval but it's int th
             // rp.calculateGenomicPositions(transcript.getExons());
             //readPairs.add(rp);
         }
-        return readPairs;
+        return simulatedReadPairs;
     }
 
     public static class Builder {
