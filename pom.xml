@@ -15,12 +15,29 @@
 
     </properties>
     <dependencies>
+        <!--        mvn install:install-file -Dfile=lib/AugmentedTree.jar -DgroupId=com.example -DartifactId=augmented-tree -Dversion=1.0 -Dpackaging=jar-->
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>augmented-tree</artifactId>
+            <version>1.0</version>
+        </dependency>
         <dependency>
             <groupId>com.github.samtools</groupId>
             <artifactId>htsjdk</artifactId>
             <version>4.1.3</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.github.samtools</groupId>
+            <artifactId>htsjdk</artifactId>
+            <version>4.1.3</version>
+            <classifier>sources</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.github.samtools</groupId>
+            <artifactId>htsjdk</artifactId>
+            <version>4.1.3</version>
+            <classifier>javadoc</classifier>
+        </dependency>
         <!-- JUnit 5 API -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
