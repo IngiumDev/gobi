@@ -5,8 +5,8 @@ import gtf.structs.Transcript;
 import org.junit.jupiter.api.Test;
 import parsers.GTFParser;
 import parsers.GenomeSequenceExtractor;
-import readsimulator.ReadPair;
 import readsimulator.ReadSimulator;
+import readsimulator.SimulatedReadPair;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -64,7 +64,7 @@ public class ReadSimulatorTest {
                     int diff = sequence.length() - fragmentLength;
                     int fragmentStart = (diff == 0) ? 0 : readSimulator.getRandom().nextInt(diff);
 
-                    ReadPair rp = new ReadPair(sequence, fragmentStart, fragmentLength,
+                    SimulatedReadPair rp = new SimulatedReadPair(sequence, fragmentStart, fragmentLength,
                             readSimulator.getReadLength(), transcript.getSeqname(),
                             geneID, transcriptID, transcript.getStrand(), reverseComplement);
 

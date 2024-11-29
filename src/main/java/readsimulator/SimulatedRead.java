@@ -3,7 +3,6 @@ package readsimulator;
 import gtf.structs.Exon;
 import gtf.structs.Interval;
 import gtf.types.StrandDirection;
-import parsers.GenomeSequenceExtractor;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -12,7 +11,7 @@ import java.util.TreeSet;
 
 import static runners.ReadSimulatorRunner.getCoveredRegion;
 
-public class Read {
+public class SimulatedRead {
     public final static char[] NUCLEOTIDES
             = {'A', 'C', 'G', 'T'};
     private final Interval transcriptCoordinates;
@@ -22,7 +21,7 @@ public class Read {
     private Set<Integer> mutatedPositions;
     private TreeSet<Interval> chromosomalCoordinates;
 
-    public Read(String transcriptSeq, StrandDirection direction, int fragmentStart, int fragmentLength, int readLength) {
+    public SimulatedRead(String transcriptSeq, StrandDirection direction, int fragmentStart, int fragmentLength, int readLength) {
 
 
         if (direction == StrandDirection.FORWARD) {
@@ -41,15 +40,6 @@ public class Read {
         }
     }
 
-    public static void main(String[] args) {
-        String seq = "ATTTTTA";
-        int fragmentStart = 0;
-        int fragmentLength = 7;
-        int readLength = 4;
-        Read read1 = new Read(seq, StrandDirection.FORWARD, fragmentStart, fragmentLength, readLength);
-        Read read2 = new Read(seq, StrandDirection.REVERSE, fragmentStart, fragmentLength, readLength);
-        System.out.println();
-    }
 
     public Interval getTranscriptCoordinates() {
         return transcriptCoordinates;

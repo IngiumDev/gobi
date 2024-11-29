@@ -6,8 +6,8 @@ import gtf.types.StrandDirection;
 import java.util.SplittableRandom;
 import java.util.TreeSet;
 
-public class ReadPair extends Pair<Read, Read> {
-    public ReadPair(Read first, Read second) {
+public class SimulatedReadPair extends Pair<SimulatedRead, SimulatedRead> {
+    public SimulatedReadPair(SimulatedRead first, SimulatedRead second) {
         super(first, second);
     }
     private String seqName;
@@ -27,9 +27,9 @@ public class ReadPair extends Pair<Read, Read> {
         return transcriptID;
     }
 
-    public ReadPair(String transcriptSequence, int fragmentStart, int fragmentLength, int readLength, String seqName, String geneID, String transcriptID, StrandDirection strandDirection, String reverseComplement) {
-        super(new Read(transcriptSequence, StrandDirection.FORWARD, fragmentStart, fragmentLength, readLength),
-                new Read(reverseComplement, StrandDirection.REVERSE, fragmentStart, fragmentLength, readLength));
+    public SimulatedReadPair(String transcriptSequence, int fragmentStart, int fragmentLength, int readLength, String seqName, String geneID, String transcriptID, StrandDirection strandDirection, String reverseComplement) {
+        super(new SimulatedRead(transcriptSequence, StrandDirection.FORWARD, fragmentStart, fragmentLength, readLength),
+                new SimulatedRead(reverseComplement, StrandDirection.REVERSE, fragmentStart, fragmentLength, readLength));
         this.seqName = seqName;
         this.geneID = geneID;
         this.transcriptID = transcriptID;
