@@ -234,6 +234,5 @@ def create_cumulative_mutation_count_distribution(fig, mapping_info_df):
 if __name__ == '__main__':
     readmapping_file = sys.argv[1]
     output_path = sys.argv[2]
-    # readmapping_file = "/Users/simon/IdeaProjects/gobi/data/readsimulator/testouput/read.mappinginfo"
-    # output_path = "/Users/simon/IdeaProjects/gobi/data/readsimulator/testouput"
+
     main(readmapping_file, output_path)

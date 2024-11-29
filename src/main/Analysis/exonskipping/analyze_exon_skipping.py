@@ -1,9 +1,9 @@
 #!/usr/bin/python3
+import matplotlib.pyplot as plt
 import os
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-RESULTS = "/Users/simon/IdeaProjects/gobi/data/exonskipping/outs"
+
+RESULTS = ""
 '''The report should contain
 at least two cumulative plots (see definition on the internet or an R tutorial) showing the
 1Guideline: a bunch of plots without a clear explanation of what is shown, without description of what
