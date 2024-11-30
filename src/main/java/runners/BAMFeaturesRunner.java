@@ -1,5 +1,6 @@
 package runners;
 
+import bamfeatures.ReadAnnotator;
 import gtf.GTFTreeAnnotationTemp;
 import gtf.structs.Gene;
 import gtf.types.StrandDirection;
@@ -10,6 +11,7 @@ import htsjdk.samtools.ValidationStringency;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.type.FileArgumentType;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 import parsers.GTFParser;
 
@@ -45,18 +47,28 @@ sample inputs along with the strandness information and path to the reference ou
         try {
             Namespace res = parser.parseArgs(args);
             start(res);
-        } catch (Exception e) {
+        } catch (ArgumentParserException e) {
             parser.printHelp();
         }
     }
 
     private static void start(Namespace res) {
 
-        GTFTreeAnnotationTemp gtfTreeAnnotationTemp = new GTFTreeAnnotationTemp(GTFParser.parseGTF(res.getString("gtf")));
+//        GTFTreeAnnotationTemp gtfTreeAnnotationTemp = new GTFTreeAnnotationTemp(GTFParser.parseGTF(res.getString("gtf")));
+//        SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(res.getString("bam")));
+//        Iterator<SAMRecord> it = reader.iterator();
+//        SAMRecord sr = it.next();
+//        ArrayList<Gene> genes = gtfTreeAnnotationTemp.getTree("1", StrandDirection.REVERSE).getIntervalsIntersecting(24738, 24891, new ArrayList<>());
+//        System.out.println();
         SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(res.getString("bam")));
-        Iterator<SAMRecord> it = reader.iterator();
-        SAMRecord sr = it.next();
-        ArrayList<Gene> genes = gtfTreeAnnotationTemp.getTree("1", StrandDirection.REVERSE).getIntervalsIntersecting(24738, 24891, new ArrayList<>());
+        StrandDirection strandSpecific = (res.getString("frstrand") == null) ? StrandDirection.UNSPECIFIED : (res.getString("frstrand").equals("true") ? StrandDirection.FORWARD : StrandDirection.REVERSE);
+        ReadAnnotator readAnnotator = new ReadAnnotator.Builder()
+                .setSamReader(reader)
+                .setGtfFile(new File(res.getString("gtf")))
+                .setOutputFile(new File(res.getString("o")))
+                .setStrandSpecificity(strandSpecific)
+                .build();
+        readAnnotator.annotateReads();
         System.out.println();
     }
 }
