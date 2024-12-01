@@ -84,26 +84,15 @@ public class StrandSpecificForest implements IntervalTreeForestManager {
      * @return true if the pair has a Transcriptomic, MergedTranscriptomic or Intronic match in the current tree
      */
     @Override
-    public boolean isAntisenseBetterThanAll(ReadAnnotation pair) {
-        return false;
-    }
-
-    /**
-     * @param pair the pair to be checked
-     * @return true if the pair has a Transcriptomic or MergedTranscriptomic match in the current tree
-     */
-    @Override
-    public boolean isAntisenseBetterThanIntronic(ReadAnnotation pair) {
-        return false;
-    }
-
-    /**
-     * @param pair the pair to be checked
-     * @return true if the pair has a Transcriptomic match in the current tree
-     */
-    @Override
-    public boolean isAntisenseBetterThanMergedTranscriptomic(ReadAnnotation pair) {
-        return false;
+    public boolean isAntisenseBetter(ReadAnnotation pair) {
+        // Basically the same logic as hasContainedGene but other way around
+        List<Gene> resultGenes = new ArrayList<>();
+        if (pair.isReadStrandNegative()) {
+            currentTreePair.getFirst().getIntervalsSpanning(pair.getAlignmentStart(), pair.getAlignmentEnd(), resultGenes);
+        } else {
+            currentTreePair.getSecond().getIntervalsSpanning(pair.getAlignmentStart(), pair.getAlignmentEnd(), resultGenes);
+        }
+        return !resultGenes.isEmpty();
     }
 
     /**

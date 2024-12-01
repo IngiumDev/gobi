@@ -4,6 +4,7 @@ import gtf.structs.Exon;
 import gtf.structs.Gene;
 import gtf.structs.Interval;
 import gtf.structs.Transcript;
+import gtf.treecollections.IntervalTreeForestManager;
 import gtf.treecollections.PCRIndexManager;
 import htsjdk.samtools.AlignmentBlock;
 import htsjdk.samtools.SAMRecord;
@@ -14,6 +15,21 @@ import java.util.*;
 import static runners.ReadSimulatorRunner.cut;
 
 public class ReadAnnotation {
+    public static final char PIPE = '|';
+    private static final String SPLIT_INCONSISTENT = "\tsplit-inconsistent:true";
+    private static final String MM = "\tMM:";
+    private static final String CLIPPING = "\tclipping:";
+    private static final String NSPLIT = "\tnsplit:";
+    private static final String GCOUNT = "\tgcount:";
+    private static final String GDIST = "\tgdist:";
+    private static final String ANTISENSE_FALSE = "\tantisense:false";
+    private static final String ANTISENSE_TRUE = "\tantisense:true";
+    private static final String PCR_INDEX = "\tpcrindex: ";
+    private static final String MERGED = "MERGED";
+    private static final String INTRONIC = "INTRON";
+    private static final char TAB = '\t';
+    private static final char COMMA = ',';
+    private static final char COLON = ':';
     private TreeSet<Interval> firstRead;
     private TreeSet<Interval> secondRead;
     private String readID;
@@ -25,7 +41,6 @@ public class ReadAnnotation {
     private List<Gene> genesThatInclude;
     private TreeSet<Interval> combinedRead;
     private boolean isConsistent;
-
     // Tree possible result scenarios, but the merged and intronic can be combined
     private List<Pair<Gene, List<Transcript>>> transcriptomicMatches;
     private List<Gene> mergedTranscriptomicMatches;
@@ -36,18 +51,8 @@ public class ReadAnnotation {
     private int firstAlignmentEnd;
     private int secondAlignmentStart;
     private int secondAlignmentEnd;
-
-    private static final String SPLIT_INCONSISTENT = "\tsplit-inconsistent:true";
-    private static final String MM = "\tMM:";
-    private static final String CLIPPING = "\tclipping:";
-    private static final String NSPLIT = "\tnsplit:";
-    private static final String GCOUNT = "\tgcount:";
-    private static final String GDIST = "\tgdist:";
-    private static final String ANTISENSE_FALSE = "\tantisense:false";
-    private static final String ANTISENSE_TRUE = "\tantisense:true";
-    private static final String PCR_INDEX = "\tpcrindex:" ;
-    private static final String MERGED = "MERGED";
-    private static final String INTRONIC = "INTRON";
+    private boolean antisense;
+    private int gdist;
 
     public ReadAnnotation(String readName) {
         this.readID = readName;
@@ -105,7 +110,6 @@ public class ReadAnnotation {
         secondRead = extractReadInterval(second);
     }
 
-
     /* A read pair is
     split inconsistent (annotate split-inconsistent: true) if there is at least one read base in one of the
     reads that is within a split of the other read (skip all other annotations in these cases)
@@ -131,6 +135,14 @@ public class ReadAnnotation {
             }
         }
         return true; // No inconsistency found
+    }
+
+    private void getGeneDistance(IntervalTreeForestManager manager) {
+        gdist = manager.getDistanceToNearestNeighborGene(this);
+    }
+
+    public int getGdist() {
+        return gdist;
     }
 
     private List<Interval> getSplits(TreeSet<Interval> read) {
@@ -268,6 +280,9 @@ public class ReadAnnotation {
     public int getGeneCount() {
         return geneCount;
     }
+    public void processAntisense(IntervalTreeForestManager manager) {
+        antisense = manager.isAntisenseBetter(this);
+    }
 
     public boolean findTranscriptomicMatches() {
         transcriptomicMatches = new ArrayList<>();
@@ -401,6 +416,75 @@ public class ReadAnnotation {
         return mergedTranscriptomicMatches;
     }
 
+    public String output() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(readID);
+        if (!isConsistent) {
+            return sb.append(SPLIT_INCONSISTENT).toString();
+        } else {
+            sb.append(MM).append(mismatchCount)
+                    .append(CLIPPING).append(clippingSum)
+                    .append(NSPLIT).append(splitCount)
+                    .append(GCOUNT).append(geneCount);
+            if (!genesThatInclude.isEmpty()) {
+                // transcriptomic
+                if (!transcriptomicMatches.isEmpty()) {
+                    Iterator<Pair<Gene, List<Transcript>>> it = transcriptomicMatches.iterator();
+                    sb.append(TAB);
+// First match is handled separately to avoid leading delimiter
+                    if (it.hasNext()) {
+                        Pair<Gene, List<Transcript>> match = it.next();
+                        appendMatch(sb, match);
 
+                        // Process remaining matches
+                        while (it.hasNext()) {
+                            match = it.next();
+                            sb.append(PIPE);
+                            appendMatch(sb, match);
+                        }
+                    }
 
+                } else if (!mergedTranscriptomicMatches.isEmpty()) {
+                    // merged YAL005C,protein_coding:MERGED|YAL004W,protein_coding:MERGED
+                    outputNonTranscriptomic(sb, mergedTranscriptomicMatches, MERGED);
+                } else {
+                    // intronic ENSG00000269831,protein_coding:INTRON|ENSG00000230092,pseudogene:INTRON
+                    outputNonTranscriptomic(sb, genesThatInclude, INTRONIC);
+
+                }
+
+            } else {
+                sb.append(GDIST).append(gdist).append(antisense ? ANTISENSE_TRUE : ANTISENSE_FALSE);
+            }
+            sb.append(PCR_INDEX).append(pcrIndex);
+            return sb.toString();
+        }
+
+    }
+
+    private void appendMatch(StringBuilder sb, Pair<Gene, List<Transcript>> match) {
+        sb
+                .append(match.getFirst().getGeneID())
+                .append(COMMA)
+                .append(match.getFirst().getSource())
+                .append(COLON);
+
+        Iterator<Transcript> transcriptIt = match.getSecond().iterator();
+        if (transcriptIt.hasNext()) {
+            sb.append(transcriptIt.next().getTranscriptID());
+            while (transcriptIt.hasNext()) {
+                sb.append(COMMA).append(transcriptIt.next().getTranscriptID());
+            }
+        }
+    }
+
+    private void outputNonTranscriptomic(StringBuilder sb, List<Gene> genesThatInclude, String intronic) {
+        Iterator<Gene> it = genesThatInclude.iterator();
+        Gene gene = it.next();
+        sb.append(TAB).append(gene.getGeneID()).append(COMMA).append(gene.getSource()).append(COLON).append(intronic);
+        while (it.hasNext()) {
+            gene = it.next();
+            sb.append(PIPE).append(gene.getGeneID()).append(COMMA).append(gene.getSource()).append(COLON).append(intronic);
+        }
+    }
 }
