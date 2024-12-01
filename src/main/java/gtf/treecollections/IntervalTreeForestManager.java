@@ -68,19 +68,7 @@ public interface IntervalTreeForestManager {
      * @param pair the pair to be checked
      * @return true if the pair has a Transcriptomic, MergedTranscriptomic or Intronic match in the current tree
      */
-    boolean isAntisenseBetterThanAll(ReadAnnotation pair);
-
-    /**
-     * @param pair the pair to be checked
-     * @return true if the pair has a Transcriptomic or MergedTranscriptomic match in the current tree
-     */
-    boolean isAntisenseBetterThanIntronic(ReadAnnotation pair);
-
-    /**
-     * @param pair the pair to be checked
-     * @return true if the pair has a Transcriptomic match in the current tree
-     */
-    boolean isAntisenseBetterThanMergedTranscriptomic(ReadAnnotation pair);
+    boolean isAntisenseBetter(ReadAnnotation pair);
 
     /**
      * @param gtfAnnotation the annotation to be used

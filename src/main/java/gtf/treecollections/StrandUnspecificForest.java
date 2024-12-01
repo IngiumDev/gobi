@@ -64,25 +64,7 @@ public class StrandUnspecificForest implements IntervalTreeForestManager {
      * @return true if the pair has a Transcriptomic, MergedTranscriptomic or Intronic match in the current tree
      */
     @Override
-    public boolean isAntisenseBetterThanAll(ReadAnnotation pair) {
-        return false;
-    }
-
-    /**
-     * @param pair the pair to be checked
-     * @return true if the pair has a Transcriptomic or MergedTranscriptomic match in the current tree
-     */
-    @Override
-    public boolean isAntisenseBetterThanIntronic(ReadAnnotation pair) {
-        return false;
-    }
-
-    /**
-     * @param pair the pair to be checked
-     * @return true if the pair has a Transcriptomic match in the current tree
-     */
-    @Override
-    public boolean isAntisenseBetterThanMergedTranscriptomic(ReadAnnotation pair) {
+    public boolean isAntisenseBetter(ReadAnnotation pair) {
         return false;
     }
 
