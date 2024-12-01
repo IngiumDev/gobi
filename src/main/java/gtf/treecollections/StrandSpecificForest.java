@@ -1,18 +1,19 @@
 package gtf.treecollections;
 
-import augmentedTree.IntervalTree;
-import bamfeatures.SAMReadPair;
+import bamfeatures.ReadAnnotation;
 import gtf.GTFAnnotation;
 import gtf.structs.Gene;
 import gtf.types.StrandDirection;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class StrandSpecificForest implements IntervalTreeForestManager{
+public class StrandSpecificForest implements IntervalTreeForestManager {
     Map<String, TreePair> chromosomeToGeneTree;
     StrandDirection strandSpecificity;
     TreePair currentTreePair;
-    List<Gene> resultGenes;
 
     public StrandSpecificForest(StrandDirection strandSpecificity) {
         this.strandSpecificity = strandSpecificity;
@@ -25,6 +26,7 @@ public class StrandSpecificForest implements IntervalTreeForestManager{
     @Override
     public void nextTree(String chromosome) {
         currentTreePair = chromosomeToGeneTree.get(chromosome);
+        // TODO: delete the current tree
     }
 
     /**
@@ -32,13 +34,14 @@ public class StrandSpecificForest implements IntervalTreeForestManager{
      * @return true if the current tree has a gene that is enclosed by the pair
      */
     @Override
-    public boolean hasContainedGene(SAMReadPair pair) {
-        resultGenes = new ArrayList<>();
-        // TODO: NEED TO CHECK THE RIGHT ONE, stranded needs to get the correct tree depending on getnegative of the first pair
-        // TODO refactor to use different pair doesn't work for turned reads
-        int minstart = Math.min(pair.getFirst().getAlignmentStart(), pair.getSecond().getAlignmentStart());
-        int maxend = Math.max(pair.getFirst().getAlignmentEnd(), pair.getSecond().getAlignmentEnd());
-        currentTreePair.getFirst().getIntervalsSpannedBy(minstart, maxend, resultGenes);
+    public boolean hasContainedGene(ReadAnnotation pair) {
+        List<Gene> resultGenes = new ArrayList<>();
+        if (!pair.isFirstStrandNegative()) {
+            currentTreePair.getFirst().getIntervalsSpannedBy(pair.getAlignmentStart(), pair.getAlignmentEnd(), resultGenes);
+        } else {
+            currentTreePair.getSecond().getIntervalsSpannedBy(pair.getAlignmentStart(), pair.getAlignmentEnd(), resultGenes);
+        }
+        // No need to return the list, just check if it is empty
         return !resultGenes.isEmpty();
     }
 
@@ -47,8 +50,15 @@ public class StrandSpecificForest implements IntervalTreeForestManager{
      * @return the genes that are enclosing the pair (pair is inside the gene)
      */
     @Override
-    public List<Gene> getGenesThatInclude(SAMReadPair pair) {
-        return List.of();
+    public List<Gene> getGenesThatInclude(ReadAnnotation pair) {
+        List<Gene> resultGenes = new ArrayList<>();
+        if (!pair.isFirstStrandNegative()) {
+            currentTreePair.getFirst().getIntervalsSpanning(pair.getAlignmentStart(), pair.getAlignmentEnd(),resultGenes);
+        } else {
+            currentTreePair.getSecond().getIntervalsSpanning(pair.getAlignmentStart(), pair.getAlignmentEnd(),resultGenes);
+        }
+        // WARNING: Maybe size() == 0;
+        return resultGenes;
     }
 
     /**
@@ -56,8 +66,17 @@ public class StrandSpecificForest implements IntervalTreeForestManager{
      * @return The (minimum) distance to the nearest gene in the current tree
      */
     @Override
-    public int getDistanceToNearestNeighborGene(SAMReadPair pair) {
-        return 0;
+    public int getDistanceToNearestNeighborGene(ReadAnnotation pair) {
+        int leftDistance;
+        int rightDistance;
+        if (!pair.isFirstStrandNegative()) {
+            leftDistance = IntervalTreeForestManager.getLeftDistance(currentTreePair.getFirst(), pair);
+            rightDistance = IntervalTreeForestManager.getRightDistance(currentTreePair.getFirst(), pair);
+        } else {
+            leftDistance = IntervalTreeForestManager.getLeftDistance(currentTreePair.getSecond(), pair);
+            rightDistance = IntervalTreeForestManager.getRightDistance(currentTreePair.getSecond(), pair);
+        }
+        return Math.min(leftDistance, rightDistance);
     }
 
     /**
@@ -65,7 +84,7 @@ public class StrandSpecificForest implements IntervalTreeForestManager{
      * @return true if the pair has a Transcriptomic, MergedTranscriptomic or Intronic match in the current tree
      */
     @Override
-    public boolean isAntisenseBetterThanAll(SAMReadPair pair) {
+    public boolean isAntisenseBetterThanAll(ReadAnnotation pair) {
         return false;
     }
 
@@ -74,7 +93,7 @@ public class StrandSpecificForest implements IntervalTreeForestManager{
      * @return true if the pair has a Transcriptomic or MergedTranscriptomic match in the current tree
      */
     @Override
-    public boolean isAntisenseBetterThanIntronic(SAMReadPair pair) {
+    public boolean isAntisenseBetterThanIntronic(ReadAnnotation pair) {
         return false;
     }
 
@@ -83,7 +102,7 @@ public class StrandSpecificForest implements IntervalTreeForestManager{
      * @return true if the pair has a Transcriptomic match in the current tree
      */
     @Override
-    public boolean isAntisenseBetterThanMergedTranscriptomic(SAMReadPair pair) {
+    public boolean isAntisenseBetterThanMergedTranscriptomic(ReadAnnotation pair) {
         return false;
     }
 

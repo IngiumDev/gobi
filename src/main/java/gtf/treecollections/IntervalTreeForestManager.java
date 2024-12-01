@@ -1,15 +1,44 @@
 package gtf.treecollections;
 
-import bamfeatures.SAMReadPair;
+import augmentedTree.IntervalTree;
+import bamfeatures.ReadAnnotation;
 import gtf.GTFAnnotation;
 import gtf.structs.Gene;
-import gtf.types.StrandDirection;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public interface IntervalTreeForestManager {
 
     String currentChromosome = null;
+
+    static int getLeftDistance(IntervalTree<Gene> tree, ReadAnnotation pair) {
+        List<Gene> genes = new ArrayList<>();
+        tree.getIntervalsLeftNeighbor(pair.getAlignmentStart(), pair.getAlignmentEnd(), genes);
+        if (!genes.isEmpty()) {
+            Gene nearestGene = genes.getFirst();
+            if (nearestGene.getStop() >= pair.getAlignmentStart()) {
+                return 0;
+            } else {
+                return pair.getAlignmentStart() - nearestGene.getStop() - 1;
+            }
+        }
+        return Integer.MAX_VALUE;
+    }
+
+    static int getRightDistance(IntervalTree<Gene> tree, ReadAnnotation pair) {
+        List<Gene> genes = new ArrayList<>();
+        tree.getIntervalsRightNeighbor(pair.getAlignmentStart(), pair.getAlignmentEnd(), genes);
+        if (!genes.isEmpty()) {
+            Gene nearestGene = genes.getFirst();
+            if (nearestGene.getStart() <= pair.getAlignmentEnd()) {
+                return 0;
+            } else {
+                return nearestGene.getStart() - pair.getAlignmentEnd() - 1;
+            }
+        }
+        return Integer.MAX_VALUE;
+    }
 
     /**
      * @param chromosome the chromosome to be selected
@@ -21,37 +50,37 @@ public interface IntervalTreeForestManager {
      * @param pair the pair to be checked
      * @return true if the current tree has a gene that is enclosed by the pair
      */
-    boolean hasContainedGene(SAMReadPair pair);
+    boolean hasContainedGene(ReadAnnotation pair);
 
     /**
      * @param pair the pair to be checked
      * @return the genes that are enclosing the pair (pair is inside the gene)
      */
-    List<Gene> getGenesThatInclude(SAMReadPair pair);
+    List<Gene> getGenesThatInclude(ReadAnnotation pair);
 
     /**
      * @param pair the pair to be checked
      * @return The (minimum) distance to the nearest gene in the current tree
      */
-    int getDistanceToNearestNeighborGene(SAMReadPair pair);
+    int getDistanceToNearestNeighborGene(ReadAnnotation pair);
 
     /**
      * @param pair the pair to be checked
      * @return true if the pair has a Transcriptomic, MergedTranscriptomic or Intronic match in the current tree
      */
-    boolean isAntisenseBetterThanAll(SAMReadPair pair);
+    boolean isAntisenseBetterThanAll(ReadAnnotation pair);
 
     /**
      * @param pair the pair to be checked
      * @return true if the pair has a Transcriptomic or MergedTranscriptomic match in the current tree
      */
-    boolean isAntisenseBetterThanIntronic(SAMReadPair pair);
+    boolean isAntisenseBetterThanIntronic(ReadAnnotation pair);
 
     /**
      * @param pair the pair to be checked
      * @return true if the pair has a Transcriptomic match in the current tree
      */
-    boolean isAntisenseBetterThanMergedTranscriptomic(SAMReadPair pair);
+    boolean isAntisenseBetterThanMergedTranscriptomic(ReadAnnotation pair);
 
     /**
      * @param gtfAnnotation the annotation to be used
