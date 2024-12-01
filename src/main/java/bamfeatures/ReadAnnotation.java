@@ -17,7 +17,7 @@ import static runners.ReadSimulatorRunner.cut;
 public class ReadAnnotation {
     public static final char PIPE = '|';
     private static final String SPLIT_INCONSISTENT = "\tsplit-inconsistent:true";
-    private static final String MM = "\tMM:";
+    private static final String MM = "\tmm:";
     private static final String CLIPPING = "\tclipping:";
     private static final String NSPLIT = "\tnsplit:";
     private static final String GCOUNT = "\tgcount:";
@@ -25,13 +25,22 @@ public class ReadAnnotation {
     private static final String ANTISENSE_FALSE = "\tantisense:false";
     private static final String ANTISENSE_TRUE = "\tantisense:true";
     private static final String PCR_INDEX = "\tpcrindex: ";
-    private static final String MERGED = "MERGED";
-    private static final String INTRONIC = "INTRON";
+    public static final String MERGED = "MERGED";
+    public static final String INTRONIC = "INTRON";
     private static final char TAB = '\t';
     private static final char COMMA = ',';
     private static final char COLON = ':';
     private TreeSet<Interval> firstRead;
     private TreeSet<Interval> secondRead;
+    private boolean transcriptomicProcess = false;
+    public String getReadID() {
+        return readID;
+    }
+
+    public List<Gene> getGenesThatInclude() {
+        return genesThatInclude;
+    }
+
     private String readID;
     private int splitCount;
     private int clippingSum;
@@ -137,7 +146,7 @@ public class ReadAnnotation {
         return true; // No inconsistency found
     }
 
-    private void getGeneDistance(IntervalTreeForestManager manager) {
+    public void calculateGeneDistance(IntervalTreeForestManager manager) {
         gdist = manager.getDistanceToNearestNeighborGene(this);
     }
 
@@ -189,7 +198,7 @@ public class ReadAnnotation {
     public TreeSet<Interval> getCombinedRead() {
         return combinedRead;
     }
-
+// TODO: merge caluclation of split with inconsistency calculation
     public void calculateSplit() {
         // Split count: the size of the unique implied intron set
         //(fw and rw may imply the same intron(s))
@@ -284,8 +293,13 @@ public class ReadAnnotation {
         antisense = manager.isAntisenseBetter(this);
     }
 
+    public boolean isTranscriptomicProcess() {
+        return transcriptomicProcess;
+    }
+
     public boolean findTranscriptomicMatches() {
         transcriptomicMatches = new ArrayList<>();
+        transcriptomicProcess = true;
 
         boolean isFound;
         List<Transcript> matchingTranscripts = null;
@@ -335,6 +349,9 @@ public class ReadAnnotation {
 
         // Return true if any gene matches
         geneCount = mergedTranscriptomicMatches.size();
+        if (geneCount == 0) {
+            geneCount = genesThatInclude.size();
+        }
         return !mergedTranscriptomicMatches.isEmpty();
     }
 
@@ -426,7 +443,7 @@ public class ReadAnnotation {
                     .append(CLIPPING).append(clippingSum)
                     .append(NSPLIT).append(splitCount)
                     .append(GCOUNT).append(geneCount);
-            if (!genesThatInclude.isEmpty()) {
+            if (genesThatInclude != null) {
                 // transcriptomic
                 if (!transcriptomicMatches.isEmpty()) {
                     Iterator<Pair<Gene, List<Transcript>>> it = transcriptomicMatches.iterator();

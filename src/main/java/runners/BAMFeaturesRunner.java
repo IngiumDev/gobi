@@ -53,13 +53,6 @@ sample inputs along with the strandness information and path to the reference ou
     }
 
     private static void start(Namespace res) {
-
-//        GTFTreeAnnotationTemp gtfTreeAnnotationTemp = new GTFTreeAnnotationTemp(GTFParser.parseGTF(res.getString("gtf")));
-//        SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(res.getString("bam")));
-//        Iterator<SAMRecord> it = reader.iterator();
-//        SAMRecord sr = it.next();
-//        ArrayList<Gene> genes = gtfTreeAnnotationTemp.getTree("1", StrandDirection.REVERSE).getIntervalsIntersecting(24738, 24891, new ArrayList<>());
-//        System.out.println();
         SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(res.getString("bam")));
         StrandDirection strandSpecific = (res.getString("frstrand") == null) ? StrandDirection.UNSPECIFIED : (res.getString("frstrand").equals("true") ? StrandDirection.FORWARD : StrandDirection.REVERSE);
         ReadAnnotator readAnnotator = new ReadAnnotator.Builder()
