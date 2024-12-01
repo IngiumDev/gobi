@@ -3,7 +3,6 @@ package gtf.treecollections;
 import augmentedTree.IntervalTree;
 import gtf.structs.Gene;
 import readsimulator.IdenticalPair;
-import readsimulator.Pair;
 
 public class TreePair extends IdenticalPair<IntervalTree<Gene>> {
 

@@ -1,10 +1,7 @@
 package runners;
 
 import bamfeatures.ReadAnnotator;
-import gtf.GTFTreeAnnotationTemp;
-import gtf.structs.Gene;
 import gtf.types.StrandDirection;
-import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
@@ -13,11 +10,8 @@ import net.sourceforge.argparse4j.impl.type.FileArgumentType;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
-import parsers.GTFParser;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Iterator;
 
 public class BAMFeaturesRunner {
     /* (BAM features) - Analyze mapped read annotation from BAM-files: (200pts):

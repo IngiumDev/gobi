@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 
-public class StrandUnSpecificPCRIndex implements PCRIndexManager{
+public class StrandUnSpecificPCRIndex implements PCRIndexManager {
     Map<TreeSet<Interval>, Integer> pcrIndex;
 
 
@@ -19,13 +19,13 @@ public class StrandUnSpecificPCRIndex implements PCRIndexManager{
     }
 
     /**
-     * @param combinedRead                    the pair to be checked
+     * @param combinedRead          the pair to be checked
      * @param isFirstStrandNegative
      * @return the PCR index of the pair
      */
     @Override
     public int getPCRIndex(TreeSet<Interval> combinedRead, boolean isFirstStrandNegative) {
-        return pcrIndex.merge(combinedRead, 1, Integer::sum)-1;
+        return pcrIndex.merge(combinedRead, 1, Integer::sum) - 1;
     }
 
     @Override
