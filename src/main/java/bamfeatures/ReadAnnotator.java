@@ -2,15 +2,16 @@ package bamfeatures;
 
 import gtf.GTFAnnotation;
 import gtf.structs.Gene;
-import gtf.structs.Transcript;
 import gtf.treecollections.*;
 import gtf.types.StrandDirection;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import parsers.GTFParser;
-import readsimulator.Pair;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -26,12 +27,22 @@ public class ReadAnnotator {
     private List<SAMReadPair> readsToAnnotate;
     private String currentChromosome = "_";
     private PCRIndexManager pcrIndex;
+    private BufferedWriter writer;
+    private boolean returnAll = false;
+    private List<ReadAnnotation> allReadAnnotations = new ArrayList<>();
 
     private ReadAnnotator(Builder builder) {
         samReader = builder.samReader;
         gtfFile = builder.gtfFile;
         outputFile = builder.outputFile;
         strandSpecificity = builder.strandSpecificity;
+    }
+
+    public List<ReadAnnotation> annotateAndReturnReads() {
+
+        returnAll = true;
+        annotateReads();
+        return allReadAnnotations;
     }
 
     public void annotateReads() {
@@ -45,6 +56,15 @@ public class ReadAnnotator {
             forestManager = new StrandSpecificForest(strandSpecificity);
             pcrIndex = new StrandSpecificPCRIndex();
         }
+        if (outputFile != null) {
+            try {
+                writer = new BufferedWriter(new FileWriter(outputFile));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+
         // TODO: better GTF file handling
         GTFAnnotation gtfAnnotation = GTFParser.parseGTF(String.valueOf(gtfFile));
         forestManager.init(gtfAnnotation);
@@ -62,161 +82,19 @@ public class ReadAnnotator {
             if (isValidRead(record)) {
                 readName = record.getReadName();
                 if (lookup.containsKey(readName)) {
-
                     // Check if the read is the first or second of the pair
                     if (record.getFirstOfPairFlag()) {
                         readsToAnnotate.add(new SAMReadPair(record, lookup.get(readName)));
-                        ReadAnnotation ra = new ReadAnnotation(readName);
-                        ra.extractReadIntervals(record, lookup.get(readName));
-                        ra.extractReadAlignmentStartEnd(record, lookup.get(readName));
-
-                        ra.calculateClipping(record, lookup.get(readName));
-                        ra.calculateMismatches(record, lookup.get(readName));
-                        ra.calculateSplit();
-                        //System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount());
-                        List<Gene> resultGenes = forestManager.getGenesThatInclude(ra);
-                        if (!resultGenes.isEmpty()) {
-                            // transcriptomic process
-                            ra.setGenesThatInclude(resultGenes);
-                            // transcriptomic process
-                            if (!ra.areReadsConsistent()) {
-//                                System.out.println(readName + "\tsplit-inconsistent:true");
-                            } else {
-                                ra.calculatePCRIndex(pcrIndex);
-
-                                if (ra.findTranscriptomicMatches()) {
-                                    // Gene-id,Gene-biotype:transcript-id1,transcript-id2|Gene-id,Gene-biotype:transcript-id1,transcript-id2
-
-                                    StringBuilder sb = new StringBuilder();
-                                    sb.append(readName + "\t" + "mm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:" + ra.getGeneCount() + "\t");
-                                    for (Pair<Gene, List<Transcript>> match : ra.getTranscriptomicMatches()) {
-                                        sb.append(match.getFirst().getGeneID()).append(",").append(match.getFirst().getSource()).append(":");
-                                        for (Transcript t : match.getSecond()) {
-                                            sb.append(t.getTranscriptID()).append(",");
-                                        }
-                                        sb.deleteCharAt(sb.length() - 1);
-                                        sb.append("|");
-                                    }
-                                    sb.deleteCharAt(sb.length() - 1);
-                                    sb.append("\tpcrindex: ").append(ra.getPcrIndex());
-
-//                                    System.out.println(sb.toString());
-
-                                } else {
-                                    if (ra.findMergedTranscriptomicMatches()) {
-//                                        // Gene-id,Gene-biotype:MERGED|Gene-id,Gene-biotype:MERGED
-                                        StringBuilder sb = new StringBuilder();
-                                        sb.append(readName + "\t" + "mm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:" + ra.getGeneCount() + "\t");
-                                        for (Gene gene : ra.getMergedTranscriptomicMatches()) {
-                                            sb.append(gene.getGeneID()).append(",").append(gene.getSource()).append(":MERGED|");
-                                        }
-                                        sb.deleteCharAt(sb.length() - 1);
-                                        sb.append("\tpcrindex: ").append(ra.getPcrIndex());
-                                        System.out.println(sb.toString());
-                                    } else {
-
-                                    }
-                                }
-
-
-                            }
-                        } else {
-                            // Check whether it contains a gene
-                            if (!forestManager.hasContainedGene(ra)) {
-                                // gdist
-                                int gdist = forestManager.getDistanceToNearestNeighborGene(ra);
-                                if (ra.areReadsConsistent()) {
-                                    ra.calculatePCRIndex(pcrIndex);
-//                                    System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:0" + "\tgdist:" + gdist+"\tpcrindex: "+ra.getPcrIndex());
-
-                                } else {
-//                                    System.out.println(readName + "\tsplit-inconsistent:true");
-                                }
-                            } else {
-                                // skip
-                            }
-                        }
-
-
                     } else {
                         readsToAnnotate.add(new SAMReadPair(lookup.get(readName), record));
-                        ReadAnnotation ra = new ReadAnnotation(readName);
-                        ra.extractReadIntervals(lookup.get(readName), record);
-                        ra.extractReadAlignmentStartEnd(lookup.get(readName), record);
-
-
-                        ra.calculateClipping(lookup.get(readName), record);
-                        ra.calculateMismatches(lookup.get(readName), record);
-                        ra.calculateSplit();
-//                            System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount());
-                        List<Gene> resultGenes = forestManager.getGenesThatInclude(ra);
-                        if (!resultGenes.isEmpty()) {
-                            ra.setGenesThatInclude(resultGenes);
-                            // transcriptomic process
-                            if (!ra.areReadsConsistent()) {
-//                                System.out.println(readName + "\tsplit-inconsistent:true");
-                            } else {
-                                ra.calculatePCRIndex(pcrIndex);
-                                if (ra.findTranscriptomicMatches()) {
-                                    StringBuilder sb = new StringBuilder();
-                                    sb.append(readName + "\t" + "mm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:" + ra.getGeneCount() + "\t");
-                                    for (Pair<Gene, List<Transcript>> match : ra.getTranscriptomicMatches()) {
-                                        sb.append(match.getFirst().getGeneID()).append(",").append(match.getFirst().getSource()).append(":");
-                                        for (Transcript t : match.getSecond()) {
-                                            sb.append(t.getTranscriptID()).append(",");
-                                        }
-                                        sb.deleteCharAt(sb.length() - 1);
-                                        sb.append("|");
-                                    }
-                                    sb.deleteCharAt(sb.length() - 1);
-                                    sb.append("\tpcrindex: ").append(ra.getPcrIndex());
-
-//                                    System.out.println(sb.toString());
-                                } else {
-                                    if (ra.findMergedTranscriptomicMatches()) {
-                                        // Gene-id,Gene-biotype:MERGED|Gene-id,Gene-biotype:MERGED
-                                        StringBuilder sb = new StringBuilder();
-                                        sb.append(readName + "\t" + "mm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:" + ra.getGeneCount() + "\t");
-                                        for (Gene gene : ra.getMergedTranscriptomicMatches()) {
-                                            sb.append(gene.getGeneID()).append(",").append(gene.getSource()).append(":MERGED|");
-                                        }
-                                        sb.deleteCharAt(sb.length() - 1);
-                                        sb.append("\tpcrindex: ").append(ra.getPcrIndex());
-                                        System.out.println(sb.toString());
-                                    } else {
-
-                                    }
-                                }
-
-                            }
-                        } else {
-                            // Check whether it contains a gene
-                            if (!forestManager.hasContainedGene(ra)) {
-                                // gdist
-                                int gdist = forestManager.getDistanceToNearestNeighborGene(ra);
-                                if (ra.areReadsConsistent()) {
-                                    ra.calculatePCRIndex(pcrIndex);
-//                                    System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:0" + "\tgdist:" + gdist+"\tpcrindex: "+ra.getPcrIndex());
-
-                                } else {
-//                                    System.out.println(readName + "\tsplit-inconsistent:true");
-                                }
-                            } else {
-                                // skip
-                            }
-                        }
-
-
                     }
-
-
                 } else {
                     lookup.put(readName, record);
                 }
             }
-
-
         }
+        processLastChromosome();
+
     }
 
     public boolean areReadsSameStrand(SAMRecord record) {
@@ -232,13 +110,103 @@ public class ReadAnnotator {
     }
 
     private void processNewChromosome(String referenceName) {
+        // TODO: implement readprocessing
+        if (readsToAnnotate != null) {
+            List<ReadAnnotation> readAnnotations = processReads();
+            if (outputFile != null) {
+                outputReads(readAnnotations, outputFile);
+            }
+        }
+        readsToAnnotate = new ArrayList<>();
         lookup = new HashMap<>();
         currentChromosome = referenceName;
         forestManager.nextTree(referenceName);
-        // TODO: implement readprocessing
-        readsToAnnotate = new ArrayList<>();
+
         pcrIndex.nextChromosome();
 
+    }
+
+    private void outputReads(List<ReadAnnotation> readAnnotations, File outputFile) {
+
+        for (ReadAnnotation readAnnotation : readAnnotations) {
+            if (readAnnotation != null) {
+                try {
+                    writer.write(readAnnotation.output());
+                    writer.newLine();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+        }
+
+    }
+
+    private List<ReadAnnotation> processReads() {
+        List<ReadAnnotation> readAnnotations = new ArrayList<>();
+        for (SAMReadPair SAMReadPair : readsToAnnotate) {
+            readAnnotations.add(processRead(SAMReadPair));
+        }
+        if (returnAll) {
+            allReadAnnotations.addAll(readAnnotations);
+        }
+        return readAnnotations;
+    }
+
+    private ReadAnnotation processRead(SAMReadPair samReadPair) {
+        SAMRecord first = samReadPair.getFirst();
+        SAMRecord second = samReadPair.getSecond();
+        ReadAnnotation readAnnotation = new ReadAnnotation(first.getReadName());
+        readAnnotation.extractReadAlignmentStartEnd(first, second);
+        List<Gene> resultGenes = forestManager.getGenesThatInclude(readAnnotation);
+        if (!resultGenes.isEmpty()) {
+            readAnnotation.setGenesThatInclude(resultGenes);
+            readAnnotation.extractReadIntervals(first, second);
+            if (readAnnotation.areReadsConsistent()) {
+                calculateBasicReadInfo(readAnnotation, first, second);
+                // Specifics
+                if (!readAnnotation.findTranscriptomicMatches()) {
+                    readAnnotation.findMergedTranscriptomicMatches();
+                }
+                return readAnnotation;
+            } else {
+                return readAnnotation;
+            }
+        } else if (!forestManager.hasContainedGene(readAnnotation)) {
+            // Check whether it contains a gene
+            readAnnotation.extractReadIntervals(first, second);
+            if (readAnnotation.areReadsConsistent()) {
+                calculateBasicReadInfo(readAnnotation, first, second);
+                // Specifics
+                readAnnotation.calculateGeneDistance(forestManager);
+                readAnnotation.processAntisense(forestManager);
+                return readAnnotation;
+            } else {
+                return readAnnotation;
+            }
+
+        }
+        return null; // if contained a gene and was not included
+    }
+
+    private void calculateBasicReadInfo(ReadAnnotation readAnnotation, SAMRecord first, SAMRecord second) {
+        readAnnotation.calculateClipping(first, second);
+        readAnnotation.calculateMismatches(first, second);
+        readAnnotation.calculateSplit();
+        readAnnotation.calculatePCRIndex(pcrIndex);
+    }
+
+
+    private void processLastChromosome() {
+        List<ReadAnnotation> readAnnotations = processReads();
+        if (outputFile != null) {
+            outputReads(readAnnotations, outputFile);
+            try {
+                writer.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
 
