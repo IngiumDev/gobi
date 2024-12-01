@@ -81,14 +81,14 @@ public class ReadAnnotation {
     }
 
 
-/* A read pair is
-split inconsistent (annotate split-inconsistent: true) if there is at least one read base in one of the
-reads that is within a split of the other read (skip all other annotations in these cases)
-*/
-public boolean areReadsConsistent() {
-    // Check both directions since reads are interchangeable
-    return checkConsistency(firstRead, secondRead) && checkConsistency(secondRead, firstRead);
-}
+    /* A read pair is
+    split inconsistent (annotate split-inconsistent: true) if there is at least one read base in one of the
+    reads that is within a split of the other read (skip all other annotations in these cases)
+    */
+    public boolean areReadsConsistent() {
+        // Check both directions since reads are interchangeable
+        return checkConsistency(firstRead, secondRead) && checkConsistency(secondRead, firstRead);
+    }
 
     private boolean checkConsistency(TreeSet<Interval> readA, TreeSet<Interval> readB) {
         // Get the splits for readA
@@ -128,6 +128,84 @@ public boolean areReadsConsistent() {
         return a.getStart() <= b.getEnd() && b.getStart() <= a.getEnd();
     }
 
+    public void calculateMismatches(SAMRecord first, SAMRecord second) {
+// Attribute order NM, nM, then XM
+        Integer firstCount = (Integer) first.getAttribute("NM");
+        firstCount = (firstCount != null) ? firstCount : (Integer) first.getAttribute("nM");
+        firstCount = (firstCount != null) ? firstCount : (Integer) first.getAttribute("XM");
+        Integer secondCount = (Integer) second.getAttribute("NM");
+        secondCount = (secondCount != null) ? secondCount : (Integer) second.getAttribute("nM");
+        secondCount = (secondCount != null) ? secondCount : (Integer) second.getAttribute("XM");
+        mismatchCount = firstCount + secondCount;
+    }
+
+    public void calculateClipping(SAMRecord first, SAMRecord second) {
+        clippingSum = firstAlignmentStart - first.getUnclippedStart();
+        clippingSum += first.getUnclippedEnd() - firstAlignmentEnd;
+        clippingSum += secondAlignmentStart - second.getUnclippedStart();
+        clippingSum += second.getUnclippedEnd() - secondAlignmentEnd;
+    }
+
+    public void calculateSplit() {
+        // split count: the size of the unique implied intron set
+        //(fw and rw may imply the same intron(s))
+        Interval prev = null;
+        splitCount = 0;
+        Set<Interval> splits = new HashSet<>();
+        for (Interval interval : firstRead) {
+            if (prev != null) {
+                splits.add(new Interval(prev.getEnd() + 1, interval.getStart() - 1));
+            }
+            prev = interval;
+        }
+        prev = null;
+        for (Interval interval : secondRead) {
+            if (prev != null) {
+                splits.add(new Interval(prev.getEnd() + 1, interval.getStart() - 1));
+            }
+            prev = interval;
+        }
+        splitCount = splits.size();
+    }
 
 
+    public int getSplitCount() {
+        return splitCount;
+    }
+
+    public int getClippingSum() {
+        return clippingSum;
+    }
+
+    public int getMismatchCount() {
+        return mismatchCount;
+    }
+
+    public boolean isFirstStrandNegative() {
+        return isFirstStrandNegative;
+    }
+
+    public int getAlignmentStart() {
+        return alignmentStart;
+    }
+
+    public int getAlignmentEnd() {
+        return alignmentEnd;
+    }
+
+    public int getFirstAlignmentStart() {
+        return firstAlignmentStart;
+    }
+
+    public int getFirstAlignmentEnd() {
+        return firstAlignmentEnd;
+    }
+
+    public int getSecondAlignmentStart() {
+        return secondAlignmentStart;
+    }
+
+    public int getSecondAlignmentEnd() {
+        return secondAlignmentEnd;
+    }
 }
