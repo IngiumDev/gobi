@@ -36,7 +36,7 @@ public class StrandSpecificForest implements IntervalTreeForestManager {
     @Override
     public boolean hasContainedGene(ReadAnnotation pair) {
         List<Gene> resultGenes = new ArrayList<>();
-        if (!pair.isFirstStrandNegative()) {
+        if (!pair.isReadStrandNegative()) {
             currentTreePair.getFirst().getIntervalsSpannedBy(pair.getAlignmentStart(), pair.getAlignmentEnd(), resultGenes);
         } else {
             currentTreePair.getSecond().getIntervalsSpannedBy(pair.getAlignmentStart(), pair.getAlignmentEnd(), resultGenes);
@@ -52,7 +52,7 @@ public class StrandSpecificForest implements IntervalTreeForestManager {
     @Override
     public List<Gene> getGenesThatInclude(ReadAnnotation pair) {
         List<Gene> resultGenes = new ArrayList<>();
-        if (!pair.isFirstStrandNegative()) {
+        if (!pair.isReadStrandNegative()) {
             currentTreePair.getFirst().getIntervalsSpanning(pair.getAlignmentStart(), pair.getAlignmentEnd(),resultGenes);
         } else {
             currentTreePair.getSecond().getIntervalsSpanning(pair.getAlignmentStart(), pair.getAlignmentEnd(),resultGenes);
@@ -69,7 +69,7 @@ public class StrandSpecificForest implements IntervalTreeForestManager {
     public int getDistanceToNearestNeighborGene(ReadAnnotation pair) {
         int leftDistance;
         int rightDistance;
-        if (!pair.isFirstStrandNegative()) {
+        if (!pair.isReadStrandNegative()) {
             leftDistance = IntervalTreeForestManager.getLeftDistance(currentTreePair.getFirst(), pair);
             rightDistance = IntervalTreeForestManager.getRightDistance(currentTreePair.getFirst(), pair);
         } else {

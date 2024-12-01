@@ -62,10 +62,7 @@ public class ReadAnnotator {
             if (isValidRead(record)) {
                 readName = record.getReadName();
                 if (lookup.containsKey(readName)) {
-                    if (readName.equals("19773803")) {
-                        System.out.println();
 
-                    }
                     // Check if the read is the first or second of the pair
                     if (record.getFirstOfPairFlag()) {
                         readsToAnnotate.add(new SAMReadPair(record, lookup.get(readName)));
@@ -103,11 +100,19 @@ public class ReadAnnotator {
                                     sb.deleteCharAt(sb.length() - 1);
                                     sb.append("\tpcrindex: ").append(ra.getPcrIndex());
 
-                                    System.out.println(sb.toString());
+//                                    System.out.println(sb.toString());
 
                                 } else {
                                     if (ra.findMergedTranscriptomicMatches()) {
-//                                        System.out.print("");
+//                                        // Gene-id,Gene-biotype:MERGED|Gene-id,Gene-biotype:MERGED
+                                        StringBuilder sb = new StringBuilder();
+                                        sb.append(readName + "\t" + "mm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:" + ra.getGeneCount() + "\t");
+                                        for (Gene gene : ra.getMergedTranscriptomicMatches()) {
+                                            sb.append(gene.getGeneID()).append(",").append(gene.getSource()).append(":MERGED|");
+                                        }
+                                        sb.deleteCharAt(sb.length() - 1);
+                                        sb.append("\tpcrindex: ").append(ra.getPcrIndex());
+                                        System.out.println(sb.toString());
                                     } else {
 
                                     }
@@ -166,9 +171,18 @@ public class ReadAnnotator {
                                     sb.deleteCharAt(sb.length() - 1);
                                     sb.append("\tpcrindex: ").append(ra.getPcrIndex());
 
-                                    System.out.println(sb.toString());
+//                                    System.out.println(sb.toString());
                                 } else {
                                     if (ra.findMergedTranscriptomicMatches()) {
+                                        // Gene-id,Gene-biotype:MERGED|Gene-id,Gene-biotype:MERGED
+                                        StringBuilder sb = new StringBuilder();
+                                        sb.append(readName + "\t" + "mm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:" + ra.getGeneCount() + "\t");
+                                        for (Gene gene : ra.getMergedTranscriptomicMatches()) {
+                                            sb.append(gene.getGeneID()).append(",").append(gene.getSource()).append(":MERGED|");
+                                        }
+                                        sb.deleteCharAt(sb.length() - 1);
+                                        sb.append("\tpcrindex: ").append(ra.getPcrIndex());
+                                        System.out.println(sb.toString());
                                     } else {
 
                                     }
