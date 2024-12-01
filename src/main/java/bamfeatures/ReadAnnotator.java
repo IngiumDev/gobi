@@ -2,15 +2,19 @@ package bamfeatures;
 
 import gtf.GTFAnnotation;
 import gtf.structs.Gene;
-import gtf.structs.Interval;
+import gtf.structs.Transcript;
 import gtf.treecollections.*;
 import gtf.types.StrandDirection;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import parsers.GTFParser;
+import readsimulator.Pair;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 
 public class ReadAnnotator {
     private final StrandDirection strandSpecificity;
@@ -45,7 +49,6 @@ public class ReadAnnotator {
         GTFAnnotation gtfAnnotation = GTFParser.parseGTF(String.valueOf(gtfFile));
         forestManager.init(gtfAnnotation);
         pcrIndex.initializePCRIndex();
-        System.out.println();
         String referenceName;
         String readName;
         SAMRecord record;
@@ -59,18 +62,16 @@ public class ReadAnnotator {
             if (isValidRead(record)) {
                 readName = record.getReadName();
                 if (lookup.containsKey(readName)) {
-                    // Check if the read is the first or second of the pair
-                    if (readName.equals("40165301")) {
+                    if (readName.equals("19773803")) {
                         System.out.println();
+
                     }
+                    // Check if the read is the first or second of the pair
                     if (record.getFirstOfPairFlag()) {
                         readsToAnnotate.add(new SAMReadPair(record, lookup.get(readName)));
                         ReadAnnotation ra = new ReadAnnotation(readName);
                         ra.extractReadIntervals(record, lookup.get(readName));
                         ra.extractReadAlignmentStartEnd(record, lookup.get(readName));
-                        if (readName.equals("19216203")) {
-                            //System.out.println();
-                        }
 
                         ra.calculateClipping(record, lookup.get(readName));
                         ra.calculateMismatches(record, lookup.get(readName));
@@ -79,11 +80,40 @@ public class ReadAnnotator {
                         List<Gene> resultGenes = forestManager.getGenesThatInclude(ra);
                         if (!resultGenes.isEmpty()) {
                             // transcriptomic process
-
+                            ra.setGenesThatInclude(resultGenes);
+                            // transcriptomic process
                             if (!ra.areReadsConsistent()) {
-                                System.out.println(readName + "\tsplit-inconsistent:true");
+//                                System.out.println(readName + "\tsplit-inconsistent:true");
                             } else {
                                 ra.calculatePCRIndex(pcrIndex);
+
+                                if (ra.findTranscriptomicMatches()) {
+                                    // Gene-id,Gene-biotype:transcript-id1,transcript-id2|Gene-id,Gene-biotype:transcript-id1,transcript-id2
+
+                                    StringBuilder sb = new StringBuilder();
+                                    sb.append(readName + "\t" + "mm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:" + ra.getGeneCount() + "\t");
+                                    for (Pair<Gene, List<Transcript>> match : ra.getTranscriptomicMatches()) {
+                                        sb.append(match.getFirst().getGeneID()).append(",").append(match.getFirst().getSource()).append(":");
+                                        for (Transcript t : match.getSecond()) {
+                                            sb.append(t.getTranscriptID()).append(",");
+                                        }
+                                        sb.deleteCharAt(sb.length() - 1);
+                                        sb.append("|");
+                                    }
+                                    sb.deleteCharAt(sb.length() - 1);
+                                    sb.append("\tpcrindex: ").append(ra.getPcrIndex());
+
+                                    System.out.println(sb.toString());
+
+                                } else {
+                                    if (ra.findMergedTranscriptomicMatches()) {
+//                                        System.out.print("");
+                                    } else {
+
+                                    }
+                                }
+
+
                             }
                         } else {
                             // Check whether it contains a gene
@@ -92,10 +122,10 @@ public class ReadAnnotator {
                                 int gdist = forestManager.getDistanceToNearestNeighborGene(ra);
                                 if (ra.areReadsConsistent()) {
                                     ra.calculatePCRIndex(pcrIndex);
-                                    System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:0" + "\tgdist:" + gdist+"\tpcrindex: "+ra.getPcrIndex());
+//                                    System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:0" + "\tgdist:" + gdist+"\tpcrindex: "+ra.getPcrIndex());
 
                                 } else {
-                                    System.out.println(readName + "\tsplit-inconsistent:true");
+//                                    System.out.println(readName + "\tsplit-inconsistent:true");
                                 }
                             } else {
                                 // skip
@@ -108,9 +138,7 @@ public class ReadAnnotator {
                         ReadAnnotation ra = new ReadAnnotation(readName);
                         ra.extractReadIntervals(lookup.get(readName), record);
                         ra.extractReadAlignmentStartEnd(lookup.get(readName), record);
-                        if (readName.equals("19216203")) {
-                            //System.out.println();
-                        }
+
 
                         ra.calculateClipping(lookup.get(readName), record);
                         ra.calculateMismatches(lookup.get(readName), record);
@@ -118,12 +146,34 @@ public class ReadAnnotator {
 //                            System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount());
                         List<Gene> resultGenes = forestManager.getGenesThatInclude(ra);
                         if (!resultGenes.isEmpty()) {
+                            ra.setGenesThatInclude(resultGenes);
                             // transcriptomic process
-
                             if (!ra.areReadsConsistent()) {
-                                System.out.println(readName + "\tsplit-inconsistent:true");
+//                                System.out.println(readName + "\tsplit-inconsistent:true");
                             } else {
                                 ra.calculatePCRIndex(pcrIndex);
+                                if (ra.findTranscriptomicMatches()) {
+                                    StringBuilder sb = new StringBuilder();
+                                    sb.append(readName + "\t" + "mm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:" + ra.getGeneCount() + "\t");
+                                    for (Pair<Gene, List<Transcript>> match : ra.getTranscriptomicMatches()) {
+                                        sb.append(match.getFirst().getGeneID()).append(",").append(match.getFirst().getSource()).append(":");
+                                        for (Transcript t : match.getSecond()) {
+                                            sb.append(t.getTranscriptID()).append(",");
+                                        }
+                                        sb.deleteCharAt(sb.length() - 1);
+                                        sb.append("|");
+                                    }
+                                    sb.deleteCharAt(sb.length() - 1);
+                                    sb.append("\tpcrindex: ").append(ra.getPcrIndex());
+
+                                    System.out.println(sb.toString());
+                                } else {
+                                    if (ra.findMergedTranscriptomicMatches()) {
+                                    } else {
+
+                                    }
+                                }
+
                             }
                         } else {
                             // Check whether it contains a gene
@@ -132,10 +182,10 @@ public class ReadAnnotator {
                                 int gdist = forestManager.getDistanceToNearestNeighborGene(ra);
                                 if (ra.areReadsConsistent()) {
                                     ra.calculatePCRIndex(pcrIndex);
-                                    System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:0" + "\tgdist:" + gdist+"\tpcrindex: "+ra.getPcrIndex());
+//                                    System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:0" + "\tgdist:" + gdist+"\tpcrindex: "+ra.getPcrIndex());
 
                                 } else {
-                                    System.out.println(readName + "\tsplit-inconsistent:true");
+//                                    System.out.println(readName + "\tsplit-inconsistent:true");
                                 }
                             } else {
                                 // skip

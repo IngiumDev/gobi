@@ -105,11 +105,11 @@ public class SimulatedRead {
     public void calculateGenomicPositions(TreeSet<Exon> exons, StrandDirection direction) {
         if (direction == StrandDirection.FORWARD) {
 
-            chromosomalCoordinates = getCoveredRegion(exons, transcriptCoordinates, direction);
+            chromosomalCoordinates = getCoveredRegion(exons, transcriptCoordinates);
 
         } else {
             Interval reversedCoordinates = new Interval(transcriptSeqLength - transcriptCoordinates.getEnd() - 1, transcriptSeqLength - transcriptCoordinates.getStart() - 1);
-            chromosomalCoordinates = getCoveredRegion(exons, reversedCoordinates, direction);
+            chromosomalCoordinates = getCoveredRegion(exons, reversedCoordinates);
         }
     }
 }
