@@ -53,9 +53,9 @@ public class StrandSpecificForest implements IntervalTreeForestManager {
     public List<Gene> getGenesThatInclude(ReadAnnotation pair) {
         List<Gene> resultGenes = new ArrayList<>();
         if (!pair.isReadStrandNegative()) {
-            currentTreePair.getFirst().getIntervalsSpanning(pair.getAlignmentStart(), pair.getAlignmentEnd(),resultGenes);
+            currentTreePair.getFirst().getIntervalsSpanning(pair.getAlignmentStart(), pair.getAlignmentEnd(), resultGenes);
         } else {
-            currentTreePair.getSecond().getIntervalsSpanning(pair.getAlignmentStart(), pair.getAlignmentEnd(),resultGenes);
+            currentTreePair.getSecond().getIntervalsSpanning(pair.getAlignmentStart(), pair.getAlignmentEnd(), resultGenes);
         }
         // WARNING: Maybe size() == 0;
         return resultGenes;

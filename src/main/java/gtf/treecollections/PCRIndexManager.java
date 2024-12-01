@@ -8,13 +8,14 @@ public interface PCRIndexManager {
     /**
      * Clears the PCR index and resets for the next chromosome
      */
-    public void nextChromosome();
+    void nextChromosome();
 
     /**
-     * @param combinedRead                    the pair to be checked
+     * @param combinedRead          the pair to be checked
      * @param isFirstStrandNegative
      * @return the PCR index of the pair
      */
-    public int getPCRIndex(TreeSet<Interval> combinedRead, boolean isFirstStrandNegative);
-    public void initializePCRIndex();
+    int getPCRIndex(TreeSet<Interval> combinedRead, boolean isFirstStrandNegative);
+
+    void initializePCRIndex();
 }

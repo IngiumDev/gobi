@@ -17,10 +17,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static bamfeatures.ReadAnnotation.INTRONIC;
 import static bamfeatures.ReadAnnotation.MERGED;
@@ -70,6 +67,45 @@ public class ReadAnnotatorTest {
                 "Actual solution: " + output + LINE_SEPARATOR);
     }
 
+    private static void checkMergedAndIntronicCorrectness(ReadAnnotation readAnnotation, String[] parts, String line, String TYPE) {
+        String output = readAnnotation.output();
+        String[] outputParts = output.split("\t");
+        checkIfGeneralStatsMatch(outputParts, parts, line, output);
+        String[] referenceGenes = parts[5].split("\\|");
+        String[] actualGenes = outputParts[5].split("\\|");
+        assertEquals(referenceGenes.length, actualGenes.length, "Number of genes does not match the reference solution\n" +
+                "Reference solution: " + line + "\n" +
+                "Actual solution: " + output + LINE_SEPARATOR);
+        for (String refGen : referenceGenes) {
+            String[] refGeneParts = refGen.split(":|,");
+            String refGenNAME = refGeneParts[0];
+            String refGenBioType = refGeneParts[1];
+            boolean isGeneFound = false;
+            for (String actualGene : actualGenes) {
+                String[] actualGeneParts = actualGene.split(":|,");
+                String actualGeneID = actualGeneParts[0];
+                String actualGeneBioType = actualGeneParts[1];
+                if (actualGeneID.equals(refGenNAME)) {
+                    isGeneFound = true;
+                    // BIotype
+                    assertEquals(refGenBioType, actualGeneBioType, "Biotype does not match the reference solution\n" +
+                            "Reference solution: " + line + "\n" +
+                            "Actual solution: " + output + LINE_SEPARATOR);
+                    // check if it says MERGED
+                    assertEquals(TYPE, actualGeneParts[2], "merged does not match the reference solution\n" +
+                            "Reference solution: " + line + "\n" +
+                            "Actual solution: " + output + LINE_SEPARATOR);
+                    break;
+                }
+            }
+            if (!isGeneFound) {
+                throw new IllegalStateException("Gene not found in the results:\n" +
+                        "Reference solution: " + line + "\n" +
+                        "Actual solution: " + output + LINE_SEPARATOR);
+            }
+        }
+    }
+
     @Test
     public void testReadAnnotator() throws IOException {
         Path bamPath = Paths.get("data", "bamfeatures");
@@ -79,7 +115,8 @@ public class ReadAnnotatorTest {
         List<ReferenceEntry> referenceEntries = readReferenceTable(refTable);
 
         // Iterate and print the entries
-        // Preprocess gtfs so that we don't have to do it for each read
+        // TODO: Preprocess gtfs so that we don't have to do it for each read
+        Collections.shuffle(referenceEntries);
         referenceEntries.parallelStream().forEach(x -> checkCorrectness(x, bamPath, gtfPath));
 
     }
@@ -214,45 +251,6 @@ public class ReadAnnotatorTest {
         }
         if (!readAnnotationMap.isEmpty()) {
             throw new IllegalStateException("There are read annotations that were not in the reference solution: " + readAnnotationMap.keySet());
-        }
-    }
-
-    private static void checkMergedAndIntronicCorrectness(ReadAnnotation readAnnotation, String[] parts, String line, String TYPE) {
-        String output = readAnnotation.output();
-        String outputParts[] = output.split("\t");
-        checkIfGeneralStatsMatch(outputParts, parts, line, output);
-        String[] referenceGenes = parts[5].split("\\|");
-        String[] actualGenes = outputParts[5].split("\\|");
-        assertEquals(referenceGenes.length, actualGenes.length, "Number of genes does not match the reference solution\n" +
-                "Reference solution: " + line + "\n" +
-                "Actual solution: " + output + LINE_SEPARATOR);
-        for (String refGen : referenceGenes) {
-            String[] refGeneParts = refGen.split(":|,");
-            String refGenNAME = refGeneParts[0];
-            String refGenBioType = refGeneParts[1];
-            boolean isGeneFound = false;
-            for (String actualGene : actualGenes) {
-                String[] actualGeneParts = actualGene.split(":|,");
-                String actualGeneID = actualGeneParts[0];
-                String actualGeneBioType = actualGeneParts[1];
-                if (actualGeneID.equals(refGenNAME)) {
-                    isGeneFound = true;
-                    // BIotype
-                    assertEquals(refGenBioType, actualGeneBioType, "Biotype does not match the reference solution\n" +
-                            "Reference solution: " + line + "\n" +
-                            "Actual solution: " + output + LINE_SEPARATOR);
-                    // check if it says MERGED
-                    assertEquals(TYPE, actualGeneParts[2], "merged does not match the reference solution\n" +
-                            "Reference solution: " + line + "\n" +
-                            "Actual solution: " + output + LINE_SEPARATOR);
-                    break;
-                }
-            }
-            if (!isGeneFound) {
-                throw new IllegalStateException("Gene not found in the results:\n" +
-                        "Reference solution: " + line + "\n" +
-                        "Actual solution: " + output + LINE_SEPARATOR);
-            }
         }
     }
 

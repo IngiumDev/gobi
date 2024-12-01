@@ -16,6 +16,8 @@ import static runners.ReadSimulatorRunner.cut;
 
 public class ReadAnnotation {
     public static final char PIPE = '|';
+    public static final String MERGED = "MERGED";
+    public static final String INTRONIC = "INTRON";
     private static final String SPLIT_INCONSISTENT = "\tsplit-inconsistent:true";
     private static final String MM = "\tmm:";
     private static final String CLIPPING = "\tclipping:";
@@ -25,23 +27,13 @@ public class ReadAnnotation {
     private static final String ANTISENSE_FALSE = "\tantisense:false";
     private static final String ANTISENSE_TRUE = "\tantisense:true";
     private static final String PCR_INDEX = "\tpcrindex: ";
-    public static final String MERGED = "MERGED";
-    public static final String INTRONIC = "INTRON";
     private static final char TAB = '\t';
     private static final char COMMA = ',';
     private static final char COLON = ':';
     private TreeSet<Interval> firstRead;
     private TreeSet<Interval> secondRead;
     private boolean transcriptomicProcess = false;
-    public String getReadID() {
-        return readID;
-    }
-
-    public List<Gene> getGenesThatInclude() {
-        return genesThatInclude;
-    }
-
-    private String readID;
+    private final String readID;
     private int splitCount;
     private int clippingSum;
     private int mismatchCount;
@@ -62,7 +54,6 @@ public class ReadAnnotation {
     private int secondAlignmentEnd;
     private boolean antisense;
     private int gdist;
-
     public ReadAnnotation(String readName) {
         this.readID = readName;
     }
@@ -93,6 +84,18 @@ public class ReadAnnotation {
             intervals.add(currentRegion);
         }
         return intervals;
+    }
+
+    public String getReadID() {
+        return readID;
+    }
+
+    public List<Gene> getGenesThatInclude() {
+        return genesThatInclude;
+    }
+
+    public void setGenesThatInclude(List<Gene> genesThatInclude) {
+        this.genesThatInclude = genesThatInclude;
     }
 
     public List<Pair<Gene, List<Transcript>>> getTranscriptomicMatches() {
@@ -198,7 +201,8 @@ public class ReadAnnotation {
     public TreeSet<Interval> getCombinedRead() {
         return combinedRead;
     }
-// TODO: merge caluclation of split with inconsistency calculation
+
+    // TODO: merge caluclation of split with inconsistency calculation
     public void calculateSplit() {
         // Split count: the size of the unique implied intron set
         //(fw and rw may imply the same intron(s))
@@ -277,18 +281,14 @@ public class ReadAnnotation {
         combinedRead.add(newInterval);
     }
 
-
     public void calculatePCRIndex(PCRIndexManager pcrIndex) {
         this.pcrIndex = pcrIndex.getPCRIndex(combinedRead, isReadStrandNegative);
-    }
-
-    public void setGenesThatInclude(List<Gene> genesThatInclude) {
-        this.genesThatInclude = genesThatInclude;
     }
 
     public int getGeneCount() {
         return geneCount;
     }
+
     public void processAntisense(IntervalTreeForestManager manager) {
         antisense = manager.isAntisenseBetter(this);
     }

@@ -19,17 +19,17 @@ import java.util.List;
 
 public class ReadAnnotator {
     private final StrandDirection strandSpecificity;
-    private SamReader samReader;
-    private File outputFile;
+    private final SamReader samReader;
+    private final File outputFile;
     private IntervalTreeForestManager forestManager;
-    private File gtfFile;
+    private final File gtfFile;
     private HashMap<String, SAMRecord> lookup;
     private List<SAMReadPair> readsToAnnotate;
     private String currentChromosome = "_";
     private PCRIndexManager pcrIndex;
     private BufferedWriter writer;
     private boolean returnAll = false;
-    private List<ReadAnnotation> allReadAnnotations = new ArrayList<>();
+    private final List<ReadAnnotation> allReadAnnotations = new ArrayList<>();
 
     private ReadAnnotator(Builder builder) {
         samReader = builder.samReader;
