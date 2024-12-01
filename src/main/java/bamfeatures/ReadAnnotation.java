@@ -1,12 +1,17 @@
 package bamfeatures;
 
+import gtf.structs.Exon;
 import gtf.structs.Gene;
 import gtf.structs.Interval;
+import gtf.structs.Transcript;
 import gtf.treecollections.PCRIndexManager;
 import htsjdk.samtools.AlignmentBlock;
 import htsjdk.samtools.SAMRecord;
+import readsimulator.Pair;
 
 import java.util.*;
+
+import static runners.ReadSimulatorRunner.*;
 
 public class ReadAnnotation {
     private TreeSet<Interval> firstRead;
@@ -17,8 +22,16 @@ public class ReadAnnotation {
     private int mismatchCount;
     private int geneCount;
     private int pcrIndex;
-    private List<Gene> resultGenes;
+    private List<Gene> genesThatInclude;
     private TreeSet<Interval> combinedRead;
+
+    // Tree possible result scenarios, but the merged and intronic can be combined
+    private List<Pair<Gene, List<Transcript>>> transcriptomicMatches;
+    private List<Gene> matchedGenes;
+
+    public List<Pair<Gene, List<Transcript>>> getTranscriptomicMatches() {
+        return transcriptomicMatches;
+    }
 
     private boolean isFirstStrandNegative;
     private int alignmentStart;
@@ -215,6 +228,60 @@ public class ReadAnnotation {
         this.pcrIndex = pcrIndex.getPCRIndex(combinedRead, isFirstStrandNegative);
     }
 
+    public void setGenesThatInclude(List<Gene> genesThatInclude) {
+        this.genesThatInclude = genesThatInclude;
+    }
+
+    public int getGeneCount() {
+        return geneCount;
+    }
+
+    public boolean findTranscriptomicMatches() {
+        transcriptomicMatches = new ArrayList<>();
+
+        boolean isFound;
+        List<Transcript> matchingTranscripts = null;
+        for (Gene gene : genesThatInclude) {
+            isFound = false;
+            // Iterate over each transcript of the gene
+            for (Transcript transcript : gene.getTranscripts().values()) {
+                TreeSet<Exon> exons = transcript.getExons();
+                // TODO: without cutting as this requires a new object
+                if (cut(exons, new Interval(firstRead.getFirst().getStart(), firstRead.getLast().getEnd())).equals(firstRead) && cut(exons, new Interval(secondRead.getFirst().getStart(),secondRead.getLast().getEnd())).equals(secondRead)) {
+                    if (isFound) {
+                        matchingTranscripts.add(transcript);
+                    } else {
+                        matchingTranscripts = new ArrayList<>();
+                        matchingTranscripts.add(transcript);
+                        isFound = true;
+                    }
+                }
+            }
+
+            if (isFound) {
+                transcriptomicMatches.add(new Pair<>(gene, matchingTranscripts));
+            }
+        }
+        geneCount = transcriptomicMatches.size();
+        return !transcriptomicMatches.isEmpty();
+    }
+
+
+
+
+
+
+
+
+
+
+    public boolean findMergedTranscriptomicMatches() {
+        matchedGenes = new ArrayList<>();
+        // TODO: Implement this method
+        return false;
+    }
+
+
     public int getPcrIndex() {
         return pcrIndex;
     }
@@ -258,4 +325,9 @@ public class ReadAnnotation {
     public int getSecondAlignmentEnd() {
         return secondAlignmentEnd;
     }
+
+    public List<Gene> getMatchedGenes() {
+        return matchedGenes;
+    }
+
 }

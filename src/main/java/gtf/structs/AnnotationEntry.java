@@ -8,6 +8,23 @@ public abstract class AnnotationEntry {
 
     // name of the chromosome or scaffold; chromosome names can be given with or without the 'chr' prefix. Important note: the seqname must be one used within Ensembl, i.e. a standard chromosome name or an Ensembl identifier such as a scaffold ID, without any additional content such as species or assembly. See the example GFF output below.
     private String seqname;
+
+    public String getSource() {
+        return source;
+    }
+
+    public String getFeature() {
+        return feature;
+    }
+
+    public double getScore() {
+        return score;
+    }
+
+    public FrameStarts getFrame() {
+        return frame;
+    }
+
     // name of the program that generated this feature, or the data source (database or project name)
     private String source;
     // feature type name, e.g. gtf.structs.Gene, Variation, Similarity

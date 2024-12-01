@@ -2,7 +2,6 @@ package runners;
 
 import gtf.structs.Exon;
 import gtf.structs.Interval;
-import gtf.types.StrandDirection;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.type.FileArgumentType;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -100,7 +99,7 @@ public class ReadSimulatorRunner {
     }
 
 
-    public static TreeSet<Interval> getCoveredRegion(TreeSet<Exon> exons, Interval localRegion, StrandDirection strandDirection) {
+    public static TreeSet<Interval> getCoveredRegion(TreeSet<Exon> exons, Interval localRegion) {
         TreeSet<Interval> coveredRegions = new TreeSet<>();
         int localStart = localRegion.getStart();
         int localEnd = localRegion.getEnd();
@@ -121,6 +120,33 @@ public class ReadSimulatorRunner {
 
         return coveredRegions;
     }
+    public static TreeSet<Interval> cut(TreeSet<Exon> exons, Interval cutRegion) {
+        TreeSet<Interval> cutRegions = new TreeSet<>();
+        int cutStart = cutRegion.getStart();
+        int cutEnd = cutRegion.getEnd();
+
+        for (Exon exon : exons) {
+            Interval exonInterval = exon.getInterval();
+
+            // Check if the exon overlaps with the cut region
+            if (exonInterval.getEnd() >= cutStart && exonInterval.getStart() <= cutEnd) {
+                // Calculate the overlap
+                int start = Math.max(exonInterval.getStart(), cutStart);
+                int end = Math.min(exonInterval.getEnd(), cutEnd);
+
+                // Add the overlapping region
+                cutRegions.add(new Interval(start, end));
+            }
+
+            // If the current exon ends beyond the cut region, stop processing
+            if (exonInterval.getStart() > cutEnd) {
+                break;
+            }
+        }
+
+        return cutRegions;
+    }
+
 
     public static Map<String, Map<String, Integer>> readCountsFile(String readCountsPath) {
         Map<String, Map<String, Integer>> geneTranscriptCounts = new HashMap<>();

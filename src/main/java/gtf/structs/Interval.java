@@ -64,4 +64,8 @@ public class Interval implements Comparable<Interval> {
         }
         return Integer.compare(this.end, o.end); // Compare by end if starts are equal
     }
+
+    public boolean contains(Interval toCheck) {
+        return this.start <= toCheck.start && toCheck.end <= this.end;
+    }
 }
