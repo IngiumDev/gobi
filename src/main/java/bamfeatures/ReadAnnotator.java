@@ -3,9 +3,7 @@ package bamfeatures;
 import gtf.GTFAnnotation;
 import gtf.structs.Gene;
 import gtf.structs.Interval;
-import gtf.treecollections.IntervalTreeForestManager;
-import gtf.treecollections.StrandSpecificForest;
-import gtf.treecollections.StrandUnspecificForest;
+import gtf.treecollections.*;
 import gtf.types.StrandDirection;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
@@ -23,7 +21,7 @@ public class ReadAnnotator {
     private HashMap<String, SAMRecord> lookup;
     private List<SAMReadPair> readsToAnnotate;
     private String currentChromosome = "_";
-    private HashMap<Set<Interval>, Integer> pcrIndex;
+    private PCRIndexManager pcrIndex;
 
     private ReadAnnotator(Builder builder) {
         samReader = builder.samReader;
@@ -37,13 +35,16 @@ public class ReadAnnotator {
         Iterator<SAMRecord> it = samReader.iterator();
         if (strandSpecificity == StrandDirection.UNSPECIFIED) {
             forestManager = new StrandUnspecificForest();
+            pcrIndex = new StrandUnSpecificPCRIndex();
         } else {
             //TODO: Possible migrate to tree pair instead of hasmap of strands
             forestManager = new StrandSpecificForest(strandSpecificity);
+            pcrIndex = new StrandSpecificPCRIndex();
         }
         // TODO: better GTF file handling
         GTFAnnotation gtfAnnotation = GTFParser.parseGTF(String.valueOf(gtfFile));
         forestManager.init(gtfAnnotation);
+        pcrIndex.initializePCRIndex();
         System.out.println();
         String referenceName;
         String readName;
@@ -59,12 +60,12 @@ public class ReadAnnotator {
                 readName = record.getReadName();
                 if (lookup.containsKey(readName)) {
                     // Check if the read is the first or second of the pair
-                    if (readName.equals("25838322")) {
-//                        System.out.println();
+                    if (readName.equals("40165301")) {
+                        System.out.println();
                     }
                     if (record.getFirstOfPairFlag()) {
                         readsToAnnotate.add(new SAMReadPair(record, lookup.get(readName)));
-                        ReadAnnotation ra = new ReadAnnotation();
+                        ReadAnnotation ra = new ReadAnnotation(readName);
                         ra.extractReadIntervals(record, lookup.get(readName));
                         ra.extractReadAlignmentStartEnd(record, lookup.get(readName));
                         if (readName.equals("19216203")) {
@@ -78,8 +79,11 @@ public class ReadAnnotator {
                         List<Gene> resultGenes = forestManager.getGenesThatInclude(ra);
                         if (!resultGenes.isEmpty()) {
                             // transcriptomic process
+
                             if (!ra.areReadsConsistent()) {
                                 System.out.println(readName + "\tsplit-inconsistent:true");
+                            } else {
+                                ra.calculatePCRIndex(pcrIndex);
                             }
                         } else {
                             // Check whether it contains a gene
@@ -87,7 +91,9 @@ public class ReadAnnotator {
                                 // gdist
                                 int gdist = forestManager.getDistanceToNearestNeighborGene(ra);
                                 if (ra.areReadsConsistent()) {
-                                    System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:0" + "\tgdist:" + gdist);
+                                    ra.calculatePCRIndex(pcrIndex);
+                                    System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:0" + "\tgdist:" + gdist+"\tpcrindex: "+ra.getPcrIndex());
+
                                 } else {
                                     System.out.println(readName + "\tsplit-inconsistent:true");
                                 }
@@ -99,7 +105,7 @@ public class ReadAnnotator {
 
                     } else {
                         readsToAnnotate.add(new SAMReadPair(lookup.get(readName), record));
-                        ReadAnnotation ra = new ReadAnnotation();
+                        ReadAnnotation ra = new ReadAnnotation(readName);
                         ra.extractReadIntervals(lookup.get(readName), record);
                         ra.extractReadAlignmentStartEnd(lookup.get(readName), record);
                         if (readName.equals("19216203")) {
@@ -113,8 +119,11 @@ public class ReadAnnotator {
                         List<Gene> resultGenes = forestManager.getGenesThatInclude(ra);
                         if (!resultGenes.isEmpty()) {
                             // transcriptomic process
+
                             if (!ra.areReadsConsistent()) {
                                 System.out.println(readName + "\tsplit-inconsistent:true");
+                            } else {
+                                ra.calculatePCRIndex(pcrIndex);
                             }
                         } else {
                             // Check whether it contains a gene
@@ -122,7 +131,9 @@ public class ReadAnnotator {
                                 // gdist
                                 int gdist = forestManager.getDistanceToNearestNeighborGene(ra);
                                 if (ra.areReadsConsistent()) {
-                                    System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:0" + "\tgdist:" + gdist);
+                                    ra.calculatePCRIndex(pcrIndex);
+                                    System.out.println(readName + "\tmm:" + ra.getMismatchCount() + "\tclipping:" + ra.getClippingSum() + "\tnsplit:" + ra.getSplitCount() + "\tgcount:0" + "\tgdist:" + gdist+"\tpcrindex: "+ra.getPcrIndex());
+
                                 } else {
                                     System.out.println(readName + "\tsplit-inconsistent:true");
                                 }
@@ -162,7 +173,7 @@ public class ReadAnnotator {
         forestManager.nextTree(referenceName);
         // TODO: implement readprocessing
         readsToAnnotate = new ArrayList<>();
-        pcrIndex = new HashMap<>();
+        pcrIndex.nextChromosome();
 
     }
 

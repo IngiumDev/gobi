@@ -2,6 +2,7 @@ package bamfeatures;
 
 import gtf.structs.Gene;
 import gtf.structs.Interval;
+import gtf.treecollections.PCRIndexManager;
 import htsjdk.samtools.AlignmentBlock;
 import htsjdk.samtools.SAMRecord;
 
@@ -17,6 +18,7 @@ public class ReadAnnotation {
     private int geneCount;
     private int pcrIndex;
     private List<Gene> resultGenes;
+    private TreeSet<Interval> combinedRead;
 
     private boolean isFirstStrandNegative;
     private int alignmentStart;
@@ -27,7 +29,8 @@ public class ReadAnnotation {
     private int secondAlignmentStart;
     private int secondAlignmentEnd;
 
-    public ReadAnnotation() {
+    public ReadAnnotation(String readName) {
+        this.readID = readName;
     }
 
     private static TreeSet<Interval> extractReadInterval(SAMRecord record) {
@@ -146,28 +149,75 @@ public class ReadAnnotation {
         clippingSum += second.getUnclippedEnd() - secondAlignmentEnd;
     }
 
+    public TreeSet<Interval> getCombinedRead() {
+        return combinedRead;
+    }
+
     public void calculateSplit() {
-        // split count: the size of the unique implied intron set
+        // Split count: the size of the unique implied intron set
         //(fw and rw may imply the same intron(s))
         Interval prev = null;
         splitCount = 0;
         Set<Interval> splits = new HashSet<>();
+
+        // TreeSet to hold combined intervals
+        TreeSet<Interval> combinedRead = new TreeSet<>();
+
+        // Process firstRead
         for (Interval interval : firstRead) {
             if (prev != null) {
                 splits.add(new Interval(prev.getEnd() + 1, interval.getStart() - 1));
             }
+            mergeInterval(combinedRead, interval);
             prev = interval;
         }
+
         prev = null;
+        // Process secondRead
         for (Interval interval : secondRead) {
             if (prev != null) {
                 splits.add(new Interval(prev.getEnd() + 1, interval.getStart() - 1));
             }
+            mergeInterval(combinedRead, interval);
             prev = interval;
         }
+
         splitCount = splits.size();
+        this.combinedRead = combinedRead; // Assuming combinedRead is a member variable
     }
 
+    /**
+     * Merges an interval into a TreeSet of intervals, ensuring no overlaps or adjacency.
+     */
+    private void mergeInterval(TreeSet<Interval> combinedRead, Interval newInterval) {
+        Interval lower = combinedRead.floor(newInterval);
+        Interval higher = combinedRead.ceiling(newInterval);
+
+        boolean merged = false;
+
+        if (lower != null && lower.getEnd() >= newInterval.getStart() - 1) {
+            // Merge with the lower interval if overlapping or adjacent
+            newInterval = new Interval(lower.getStart(), Math.max(lower.getEnd(), newInterval.getEnd()));
+            combinedRead.remove(lower);
+            merged = true;
+        }
+        if (higher != null && higher.getStart() <= newInterval.getEnd() + 1) {
+            // Merge with the higher interval if overlapping or adjacent
+            newInterval = new Interval(newInterval.getStart(), Math.max(higher.getEnd(), newInterval.getEnd()));
+            combinedRead.remove(higher);
+            merged = true;
+        }
+        // Add the merged interval
+        combinedRead.add(newInterval);
+    }
+
+    public void calculatePCRIndex(PCRIndexManager pcrIndex) {
+        this.pcrIndex = pcrIndex.getPCRIndex(combinedRead, isFirstStrandNegative);
+    }
+
+    public int getPcrIndex() {
+        return pcrIndex;
+    }
 
     public int getSplitCount() {
         return splitCount;
