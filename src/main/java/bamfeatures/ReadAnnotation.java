@@ -11,7 +11,7 @@ import readsimulator.Pair;
 
 import java.util.*;
 
-import static runners.ReadSimulatorRunner.*;
+import static runners.ReadSimulatorRunner.cut;
 
 public class ReadAnnotation {
     private TreeSet<Interval> firstRead;
@@ -24,23 +24,30 @@ public class ReadAnnotation {
     private int pcrIndex;
     private List<Gene> genesThatInclude;
     private TreeSet<Interval> combinedRead;
+    private boolean isConsistent;
 
     // Tree possible result scenarios, but the merged and intronic can be combined
     private List<Pair<Gene, List<Transcript>>> transcriptomicMatches;
-    private List<Gene> matchedGenes;
-
-    public List<Pair<Gene, List<Transcript>>> getTranscriptomicMatches() {
-        return transcriptomicMatches;
-    }
-
-    private boolean isFirstStrandNegative;
+    private List<Gene> mergedTranscriptomicMatches;
+    private boolean isReadStrandNegative;
     private int alignmentStart;
     private int alignmentEnd;
-    private boolean isReadFlipped;
     private int firstAlignmentStart;
     private int firstAlignmentEnd;
     private int secondAlignmentStart;
     private int secondAlignmentEnd;
+
+    private static final String SPLIT_INCONSISTENT = "\tsplit-inconsistent:true";
+    private static final String MM = "\tMM:";
+    private static final String CLIPPING = "\tclipping:";
+    private static final String NSPLIT = "\tnsplit:";
+    private static final String GCOUNT = "\tgcount:";
+    private static final String GDIST = "\tgdist:";
+    private static final String ANTISENSE_FALSE = "\tantisense:false";
+    private static final String ANTISENSE_TRUE = "\tantisense:true";
+    private static final String PCR_INDEX = "\tpcrindex:" ;
+    private static final String MERGED = "MERGED";
+    private static final String INTRONIC = "INTRON";
 
     public ReadAnnotation(String readName) {
         this.readID = readName;
@@ -74,10 +81,14 @@ public class ReadAnnotation {
         return intervals;
     }
 
+    public List<Pair<Gene, List<Transcript>>> getTranscriptomicMatches() {
+        return transcriptomicMatches;
+    }
+
     public void extractReadAlignmentStartEnd(SAMRecord first, SAMRecord second) {
 
         // Reads can be flipped in the alignment
-        isFirstStrandNegative = first.getReadNegativeStrandFlag();
+        isReadStrandNegative = first.getReadNegativeStrandFlag();
         firstAlignmentStart = first.getAlignmentStart();
         firstAlignmentEnd = first.getAlignmentEnd();
         secondAlignmentStart = second.getAlignmentStart();
@@ -86,8 +97,6 @@ public class ReadAnnotation {
         alignmentStart = Math.min(firstAlignmentStart, secondAlignmentStart);
         alignmentEnd = Math.max(firstAlignmentEnd, secondAlignmentEnd);
 
-        // Determine if the read is flipped
-        isReadFlipped = firstAlignmentStart >= secondAlignmentStart && (firstAlignmentStart != secondAlignmentStart || firstAlignmentEnd >= secondAlignmentEnd);
 
     }
 
@@ -103,11 +112,14 @@ public class ReadAnnotation {
     */
     public boolean areReadsConsistent() {
         // Check both directions since reads are interchangeable
-        return checkConsistency(firstRead, secondRead) && checkConsistency(secondRead, firstRead);
+
+        isConsistent = checkConsistency(firstRead, secondRead) && checkConsistency(secondRead, firstRead);
+        return isConsistent;
     }
 
     private boolean checkConsistency(TreeSet<Interval> readA, TreeSet<Interval> readB) {
         // Get the splits for readA
+        // TODO: don't call up getsplits since when need to calculate them anyway
         List<Interval> splits = getSplits(readA);
 
         // Check every interval in readB against splits in readA
@@ -206,26 +218,47 @@ public class ReadAnnotation {
         Interval lower = combinedRead.floor(newInterval);
         Interval higher = combinedRead.ceiling(newInterval);
 
-        boolean merged = false;
-
         if (lower != null && lower.getEnd() >= newInterval.getStart() - 1) {
             // Merge with the lower interval if overlapping or adjacent
             newInterval = new Interval(lower.getStart(), Math.max(lower.getEnd(), newInterval.getEnd()));
             combinedRead.remove(lower);
-            merged = true;
         }
         if (higher != null && higher.getStart() <= newInterval.getEnd() + 1) {
             // Merge with the higher interval if overlapping or adjacent
             newInterval = new Interval(newInterval.getStart(), Math.max(higher.getEnd(), newInterval.getEnd()));
             combinedRead.remove(higher);
-            merged = true;
         }
         // Add the merged interval
         combinedRead.add(newInterval);
     }
 
+    // TODO Check if can combined
+    private void mergeInterval2(TreeSet<Interval> combinedRead, Interval newInterval) {
+        boolean merged;
+        do {
+            merged = false;
+            Interval lower = combinedRead.floor(newInterval);
+            Interval higher = combinedRead.ceiling(newInterval);
+
+            if (lower != null && lower.getEnd() >= newInterval.getStart() - 1) {
+                // Merge with the lower interval
+                newInterval = new Interval(lower.getStart(), Math.max(lower.getEnd(), newInterval.getEnd()));
+                combinedRead.remove(lower);
+                merged = true;
+            }
+            if (higher != null && higher.getStart() <= newInterval.getEnd() + 1) {
+                // Merge with the higher interval
+                newInterval = new Interval(newInterval.getStart(), Math.max(higher.getEnd(), newInterval.getEnd()));
+                combinedRead.remove(higher);
+                merged = true;
+            }
+        } while (merged);
+        combinedRead.add(newInterval);
+    }
+
+
     public void calculatePCRIndex(PCRIndexManager pcrIndex) {
-        this.pcrIndex = pcrIndex.getPCRIndex(combinedRead, isFirstStrandNegative);
+        this.pcrIndex = pcrIndex.getPCRIndex(combinedRead, isReadStrandNegative);
     }
 
     public void setGenesThatInclude(List<Gene> genesThatInclude) {
@@ -247,7 +280,7 @@ public class ReadAnnotation {
             for (Transcript transcript : gene.getTranscripts().values()) {
                 TreeSet<Exon> exons = transcript.getExons();
                 // TODO: without cutting as this requires a new object
-                if (cut(exons, new Interval(firstRead.getFirst().getStart(), firstRead.getLast().getEnd())).equals(firstRead) && cut(exons, new Interval(secondRead.getFirst().getStart(),secondRead.getLast().getEnd())).equals(secondRead)) {
+                if (cut(exons, new Interval(firstRead.getFirst().getStart(), firstRead.getLast().getEnd())).equals(firstRead) && cut(exons, new Interval(secondRead.getFirst().getStart(), secondRead.getLast().getEnd())).equals(secondRead)) {
                     if (isFound) {
                         matchingTranscripts.add(transcript);
                     } else {
@@ -267,20 +300,58 @@ public class ReadAnnotation {
     }
 
 
-
-
-
-
-
-
-
-
     public boolean findMergedTranscriptomicMatches() {
-        matchedGenes = new ArrayList<>();
-        // TODO: Implement this method
-        return false;
+        mergedTranscriptomicMatches = new ArrayList<>();
+        // Iterate over all genes
+        for (Gene gene : genesThatInclude) {
+            // Merge all exons of all transcripts into a single TreeSet<Interval>
+            TreeSet<Interval> mergedGeneTranscript = new TreeSet<>();
+            for (Transcript transcript : gene.getTranscripts().values()) {
+                for (Exon exon : transcript.getExons()) {
+                    mergeInterval2(mergedGeneTranscript, exon.getInterval());
+                }
+            }
+
+            // Check if the combinedRead is fully contained within the mergedGeneTranscript
+            if (isReadContainedInMergedTranscript(combinedRead, mergedGeneTranscript)) {
+                mergedTranscriptomicMatches.add(gene);
+            }
+        }
+
+        // Return true if any gene matches
+        geneCount = mergedTranscriptomicMatches.size();
+        return !mergedTranscriptomicMatches.isEmpty();
     }
 
+    private boolean isReadContainedInMergedTranscript(TreeSet<Interval> readIntervals, TreeSet<Interval> mergedGeneTranscript) {
+        Iterator<Interval> readIter = readIntervals.iterator();
+        Iterator<Interval> mergedIter = mergedGeneTranscript.iterator();
+
+        Interval currentRead = readIter.hasNext() ? readIter.next() : null;
+        Interval currentMerged = mergedIter.hasNext() ? mergedIter.next() : null;
+
+        while (currentRead != null) {
+            // Ensure the current merged interval can fully contain the current read interval
+            while (currentMerged != null && currentMerged.getEnd() < currentRead.getStart()) {
+                currentMerged = mergedIter.hasNext() ? mergedIter.next() : null;
+            }
+
+            if (currentMerged == null || currentRead.getStart() < currentMerged.getStart() || currentRead.getEnd() > currentMerged.getEnd()) {
+                // No interval in mergedGeneTranscript can fully contain the current read interval
+                return false;
+            }
+
+            // Move to the next read interval
+            currentRead = readIter.hasNext() ? readIter.next() : null;
+        }
+
+        // All read intervals were contained
+        return true;
+    }
+
+    public void findIntronicGenes() {
+        geneCount = genesThatInclude.size();
+    }
 
     public int getPcrIndex() {
         return pcrIndex;
@@ -298,8 +369,8 @@ public class ReadAnnotation {
         return mismatchCount;
     }
 
-    public boolean isFirstStrandNegative() {
-        return isFirstStrandNegative;
+    public boolean isReadStrandNegative() {
+        return isReadStrandNegative;
     }
 
     public int getAlignmentStart() {
@@ -326,8 +397,10 @@ public class ReadAnnotation {
         return secondAlignmentEnd;
     }
 
-    public List<Gene> getMatchedGenes() {
-        return matchedGenes;
+    public List<Gene> getMergedTranscriptomicMatches() {
+        return mergedTranscriptomicMatches;
     }
+
+
 
 }
