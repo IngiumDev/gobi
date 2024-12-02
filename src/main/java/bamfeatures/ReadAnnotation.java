@@ -218,7 +218,7 @@ public class ReadAnnotation {
             if (prev != null) {
                 splits.add(new Interval(prev.getEnd() + 1, interval.getStart() - 1));
             }
-            mergeInterval(combinedRead, interval);
+            mergeInterval2(combinedRead, interval);
             prev = interval;
         }
 
@@ -228,7 +228,7 @@ public class ReadAnnotation {
             if (prev != null) {
                 splits.add(new Interval(prev.getEnd() + 1, interval.getStart() - 1));
             }
-            mergeInterval(combinedRead, interval);
+            mergeInterval2(combinedRead, interval);
             prev = interval;
         }
 

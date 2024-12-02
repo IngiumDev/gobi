@@ -120,6 +120,22 @@ public class ReadAnnotatorTest {
         referenceEntries.parallelStream().forEach(x -> checkCorrectness(x, bamPath, gtfPath));
 
     }
+    @Test
+    public void testReadAnnotatorNonParallel() throws IOException {
+        Path bamPath = Paths.get("data", "bamfeatures");
+        Path gtfPath = Paths.get("data", "gtf");
+        File refTable = new File(String.valueOf(Paths.get("data", "bamfeatures", "ref.table")));
+
+        List<ReferenceEntry> referenceEntries = readReferenceTable(refTable);
+
+        // Iterate and print the entries
+        // TODO: Preprocess gtfs so that we don't have to do it for each read
+        Collections.shuffle(referenceEntries);
+        for (ReferenceEntry x : referenceEntries) {
+            checkCorrectness(x, bamPath, gtfPath);
+        }
+
+    }
 
     private void checkCorrectness(ReferenceEntry x, Path bamPath, Path gtfPath) {
         SamReader samReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(bamPath.toString(), x.bam));

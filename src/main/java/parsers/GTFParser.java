@@ -171,12 +171,13 @@ public class GTFParser {
 
 
     private static void processGTFLine(String line, GTFAnnotation GTFAnnotation) {
+        // TODO: Don't need the whole string comparison, just the first character
         String[] data = line.split("\t");
-        switch (data[FEATURE_COL]) {
-            case "gene" -> processGene(data, GTFAnnotation);
-            case "transcript" -> processTranscript(data, GTFAnnotation);
-            case "exon" -> processExon(data, GTFAnnotation);
-            case "CDS" -> processCDS(data, GTFAnnotation);
+        switch (data[FEATURE_COL].charAt(0)) {
+            case 'g' -> processGene(data, GTFAnnotation);
+            case 't' -> processTranscript(data, GTFAnnotation);
+            case 'e' -> processExon(data, GTFAnnotation);
+            case 'C' -> processCDS(data, GTFAnnotation);
         }
     }
 
