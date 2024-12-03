@@ -16,20 +16,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ReadAnnotator {
     private final StrandDirection strandSpecificity;
     private final SamReader samReader;
     private final File outputFile;
-    private IntervalTreeForestManager forestManager;
     private final File gtfFile;
+    private final List<ReadAnnotation> allReadAnnotations = new ArrayList<>();
+    private IntervalTreeForestManager forestManager;
     private HashMap<String, SAMRecord> lookup;
     private List<SAMReadPair> readsToAnnotate;
     private String currentChromosome = "_";
     private PCRIndexManager pcrIndex;
     private BufferedWriter writer;
     private boolean returnAll = false;
-    private final List<ReadAnnotation> allReadAnnotations = new ArrayList<>();
 
     private ReadAnnotator(Builder builder) {
         samReader = builder.samReader;
@@ -112,10 +114,8 @@ public class ReadAnnotator {
     private void processNewChromosome(String referenceName) {
         // TODO: implement readprocessing
         if (readsToAnnotate != null) {
-            List<ReadAnnotation> readAnnotations = processReads();
-            if (outputFile != null) {
-                outputReads(readAnnotations, outputFile);
-            }
+            processAndWriteReads();
+
         }
         readsToAnnotate = new ArrayList<>();
         lookup = new HashMap<>();
@@ -142,15 +142,52 @@ public class ReadAnnotator {
 
     }
 
-    private List<ReadAnnotation> processReads() {
-        List<ReadAnnotation> readAnnotations = new ArrayList<>();
-        for (SAMReadPair SAMReadPair : readsToAnnotate) {
-            readAnnotations.add(processRead(SAMReadPair));
+    private void processAndWriteReads() {
+        if (outputFile != null) {
+            AtomicBoolean producerDone = new AtomicBoolean(false);
+            ConcurrentLinkedQueue<ReadAnnotation> queue = new ConcurrentLinkedQueue<>();
+            Thread producerThread = new Thread(() -> {
+                for (SAMReadPair samReadPair : readsToAnnotate) {
+                    ReadAnnotation readAnnotation = processRead(samReadPair);
+                    if (readAnnotation != null) {
+                        queue.add(readAnnotation);
+                        if (returnAll) {
+                            allReadAnnotations.add(readAnnotation);
+                        }
+                    }
+                }
+                producerDone.set(true);
+            });
+            Thread consumerThread = new Thread(() -> {
+                try {
+                    while (!producerDone.get() || !queue.isEmpty()) {
+                        ReadAnnotation data = queue.poll();
+                        if (data != null) {
+                            writer.write(data.output());
+                            writer.newLine();
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+            producerThread.start();
+            consumerThread.start();
+            try {
+                producerThread.join();
+                consumerThread.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+        } else if (returnAll) {
+            for (SAMReadPair samReadPair : readsToAnnotate) {
+                ReadAnnotation readAnnotation = processRead(samReadPair);
+                if (readAnnotation != null) {
+                    allReadAnnotations.add(readAnnotation);
+                }
+            }
         }
-        if (returnAll) {
-            allReadAnnotations.addAll(readAnnotations);
-        }
-        return readAnnotations;
     }
 
     private ReadAnnotation processRead(SAMReadPair samReadPair) {
@@ -198,14 +235,11 @@ public class ReadAnnotator {
 
 
     private void processLastChromosome() {
-        List<ReadAnnotation> readAnnotations = processReads();
-        if (outputFile != null) {
-            outputReads(readAnnotations, outputFile);
-            try {
-                writer.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+        processAndWriteReads();
+        try {
+            writer.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

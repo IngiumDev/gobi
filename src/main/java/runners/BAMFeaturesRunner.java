@@ -56,6 +56,5 @@ sample inputs along with the strandness information and path to the reference ou
                 .setStrandSpecificity(strandSpecific)
                 .build();
         readAnnotator.annotateReads();
-        System.out.println();
     }
 }

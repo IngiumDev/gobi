@@ -184,7 +184,6 @@
         <profile>
         <id>BAMFeaturesRunner</id>
         <build>
-
             <resources>
                 <resource>
                     <directory>${basedir}/src/main/java</directory>
