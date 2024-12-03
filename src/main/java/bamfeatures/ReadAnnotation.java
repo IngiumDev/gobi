@@ -75,6 +75,7 @@ public class ReadAnnotation {
             } else {
                 // Merge with the existing region
                 currentRegion.setEnd(end);
+
             }
             lastEnd = end;
         }
@@ -110,7 +111,6 @@ public class ReadAnnotation {
         firstAlignmentEnd = first.getAlignmentEnd();
         secondAlignmentStart = second.getAlignmentStart();
         secondAlignmentEnd = second.getAlignmentEnd();
-
         alignmentStart = Math.min(firstAlignmentStart, secondAlignmentStart);
         alignmentEnd = Math.max(firstAlignmentEnd, secondAlignmentEnd);
 
