@@ -34,6 +34,7 @@ sample inputs along with the strandness information and path to the reference ou
         parser.addArgument("-bam").required(true).help("BAM file").metavar("<bamfile>").type(new FileArgumentType().verifyIsFile());
         parser.addArgument("-o").required(true).help("Output file").metavar("<output_tsv>");
         parser.addArgument("-frstrand").help("true/false").metavar("<true/false>");
+        parser.addArgument("-analysis").help("Path to the analysis file").metavar("<analysis-file-path>");
         if (args.length == 0) {
             parser.printHelp();
             System.exit(1);
@@ -54,7 +55,12 @@ sample inputs along with the strandness information and path to the reference ou
                 .setGtfFile(new File(res.getString("gtf")))
                 .setOutputFile(new File(res.getString("o")))
                 .setStrandSpecificity(strandSpecific)
+                .setAnalysisFilePath(res.getString("analysis"))
                 .build();
+        long start = System.currentTimeMillis();
         readAnnotator.annotateReads();
+        readAnnotator.analyzeIfSet();
+        System.out.println("Time annotate: " + (System.currentTimeMillis() - start) + "ms");
+        // todo close samreader
     }
 }

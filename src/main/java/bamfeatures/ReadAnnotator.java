@@ -7,15 +7,13 @@ import gtf.types.StrandDirection;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import parsers.GTFParser;
+import readsimulator.IdenticalPair;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -25,6 +23,7 @@ public class ReadAnnotator {
     private final File outputFile;
     private final File gtfFile;
     private final List<ReadAnnotation> allReadAnnotations = new ArrayList<>();
+    int totalReadsMapped = 0;
     private IntervalTreeForestManager forestManager;
     private HashMap<String, SAMRecord> lookup;
     private List<SAMReadPair> readsToAnnotate;
@@ -32,12 +31,18 @@ public class ReadAnnotator {
     private PCRIndexManager pcrIndex;
     private BufferedWriter writer;
     private boolean returnAll = false;
+    private String analysisFilePath;
+    private Map<String, IdenticalPair<Integer>> rpkmMap;
 
     private ReadAnnotator(Builder builder) {
         samReader = builder.samReader;
         gtfFile = builder.gtfFile;
         outputFile = builder.outputFile;
         strandSpecificity = builder.strandSpecificity;
+        analysisFilePath = builder.analysisFilePath;
+        if (analysisFilePath != null) {
+            rpkmMap = new HashMap<>();
+        }
     }
 
     public List<ReadAnnotation> annotateAndReturnReads() {
@@ -154,6 +159,10 @@ public class ReadAnnotator {
                         if (returnAll) {
                             allReadAnnotations.add(readAnnotation);
                         }
+                        if (analysisFilePath != null) {
+                            analyzeRead(readAnnotation);
+
+                        }
                     }
                 }
                 producerDone.set(true);
@@ -188,6 +197,32 @@ public class ReadAnnotator {
                 }
             }
         }
+    }
+
+    private void analyzeRead(ReadAnnotation readAnnotation) {
+        // rpkmMap.get by Genename if not there add it. +1 to the getFirst() of the pair and +1 to the getSecond() of the pair only if readAnnotation.getPCR is 0
+        if (!readAnnotation.getGenesThatInclude().isEmpty()) {
+            totalReadsMapped++;
+            for (Gene gene : readAnnotation.getGenesThatInclude()) {
+                IdenticalPair<Integer> pair = rpkmMap.get(gene.getGeneID());
+                if (pair == null) {
+                    pair = new IdenticalPair<>(0, 0);
+                    rpkmMap.put(gene.getGeneID(), pair);
+                }
+                if (readAnnotation.getPcrIndex() == 0) {
+                    pair.setSecond(pair.getSecond() + 1);
+                }
+                pair.setFirst(pair.getFirst() + 1);
+            }
+        }
+    }
+
+    private double calculateRPKM(int numReadsMappedToGene, int totalReadsMapped, int geneLength) {
+        return (numReadsMappedToGene * 1_000 * 1_000_000.0) / (totalReadsMapped * geneLength);
+    }
+
+    public Map<String, IdenticalPair<Integer>> getRpkmMap() {
+        return rpkmMap;
     }
 
     private ReadAnnotation processRead(SAMReadPair samReadPair) {
@@ -243,14 +278,38 @@ public class ReadAnnotator {
         }
     }
 
+    public void analyzeIfSet() {
+        // Output Format is geneID<tab>RPKM-ALL<tab>RPKM-PCR0
+        if (analysisFilePath != null) {
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(analysisFilePath))) {
+                for (Map.Entry<String, IdenticalPair<Integer>> entry : rpkmMap.entrySet()) {
+                    IdenticalPair<Integer> pair = entry.getValue();
+                    // calc gene length
+                    int geneLength = calculateGeneLength(gtf
+                    int RPKMall =
+                    bw.write(entry.getKey() + "\t" + calculateRPKM(pair.getFirst(), pair.getFirst() + pair.getSecond(), 1));
+                    bw.newLine();
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
 
     public static final class Builder {
         private SamReader samReader;
         private File gtfFile;
         private File outputFile;
         private StrandDirection strandSpecificity;
+        private String analysisFilePath;
 
         public Builder() {
+        }
+
+        public Builder setAnalysisFilePath(String analysisFilePath) {
+            this.analysisFilePath = analysisFilePath;
+            return this;
         }
 
         public Builder setSamReader(SamReader val) {
