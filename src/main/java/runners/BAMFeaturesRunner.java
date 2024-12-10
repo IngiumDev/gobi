@@ -47,6 +47,7 @@ sample inputs along with the strandness information and path to the reference ou
         }
     }
 
+    // TODO: Ignore unneeded chromosomes, ignore cds, etc
     private static void start(Namespace res) {
         SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(res.getString("bam")));
         StrandDirection strandSpecific = (res.getString("frstrand") == null) ? StrandDirection.UNSPECIFIED : (res.getString("frstrand").equals("true") ? StrandDirection.FORWARD : StrandDirection.REVERSE);

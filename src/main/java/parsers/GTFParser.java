@@ -171,7 +171,6 @@ public class GTFParser {
 
 
     private static void processGTFLine(String line, GTFAnnotation GTFAnnotation) {
-        // TODO: Don't need the whole string comparison, just the first character
         String[] data = line.split("\t");
         switch (data[FEATURE_COL].charAt(0)) {
             case 'g' -> processGene(data, GTFAnnotation);

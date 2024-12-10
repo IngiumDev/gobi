@@ -79,6 +79,7 @@ public class ReadAnnotator {
         String referenceName;
         String readName;
         SAMRecord record;
+        // TODO: remove from lookup once it's processed
         boolean isFirstOfPair;
         while (it.hasNext()) {
             record = it.next();
@@ -271,10 +272,12 @@ public class ReadAnnotator {
 
     private void processLastChromosome() {
         processAndWriteReads();
-        try {
-            writer.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (outputFile != null) {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
