@@ -1,0 +1,282 @@
+%! suppress = LineBreak
+\documentclass{article}
+
+\usepackage{graphicx} % Required for inserting images
+\usepackage{fancyhdr}
+\usepackage{minted}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage{booktabs} % For cleaner tables (optional)
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{caption}
+\usepackage{listings}
+\lstset{
+    breaklines=true,
+    breakatwhitespace=true,
+    basicstyle=\ttfamily,
+    columns=fullflexible
+}
+
+
+
+
+\usepackage[sorting=none,backend=biber]{biblatex}
+
+
+\usepackage[
+    a4paper,
+    left=0.75in,
+    right=0.75in,
+    top=0.75in,
+    bottom=0.75in
+]{geometry}
+
+
+\addbibresource{BamFeatures.bib}
+
+
+\hypersetup{
+    colorlinks=true,   % Farben statt Umrandung für Links
+    linkcolor=black,    % Farbe für interne Links
+    citecolor=blue,    % Farbe für Zitate
+    filecolor=blue,    % Farbe für Dateien
+    urlcolor=blue      % Farbe für URLs
+}
+
+
+\usepackage{array}
+\pagestyle{fancy}
+\title{Topic 3: BamFeatures\\\large Genome-Oriented Bioinformatics Practical Course}
+\author{}
+\date{December 2024}
+
+
+\begin{document}
+
+    \maketitle
+    \hrule
+    \tableofcontents
+    \vspace{10pt} % Optional: Add space after the TOC as well
+    \hrule
+    \renewcommand{\abstractname}{}
+
+    \begin{abstract}
+        \large
+
+    \end{abstract}
+
+
+    \pagebreak
+    \maketitle
+
+
+    \section{Introduction}
+    RNA sequencing (RNAseq) is a powerful and widely used method for analyzing the transcriptome, providing insights into gene expression patterns, alternative splicing, and discovering novel transcripts. By converting RNA into complementary DNA (cDNA) and sequencing it using high-throughput platforms, researchers can quantify and characterize the complete set of RNA transcripts present in a sample. The results of an RNAseq experiment are a set of sequenced reads in the FASTQ format (either single-end or paired-end. These reads are then mapped back onto the reference genome using a mapper like \texttt{STAR}\cite{star}.
+    A sample workflow for an RNAseq workflow would include extracting the sample, sequencing mapping, annotation, and downstream analysis like a differential expression analysis. In a perfect world, each read comes exactly from exactly one transcript. However,sometimes it is not clear from which transcript or even gene a read originates. Additionally, annotations can be incomplete, sequencing or mapping errors can occur and genes or transcripts can overlap, complicating the mapping process. The annotation steps attempts to correct for these errors and sort out improbably or incorrect reads. Strand specificity in RNA sequencing refers to the ability to determine the strand of DNA from which an RNA transcript originates. This property is important because transcription is inherently directional, with RNA synthesized from only one strand of the DNA template. Strand-specific sequencing protocols preserve this directionality, allowing researchers to distinguish between overlapping genes transcribed on opposite strands or sense and antisense transcription. The need for strand specificity arises from the complexity of eukaryotic genomes, where overlapping genes, antisense transcription, and non-coding RNAs are common. Without strand-specific information, it can be challenging to accurately assign reads to their source transcripts, leading to ambiguous or erroneous interpretations. By maintaining strand-specificity, RNA-seq enables a more precise understanding of transcriptional regulation, splicing, and gene expression patterns. Thus, some of the experiments used in this project will be strand specific while others aren't.
+    \subsection[SAM Format]{Sequence Alignment Map Format}
+    The Sequence Alignment Map (SAM) format is a widely-used text-based format for storing biological sequences that are aligned to a reference genome. Each entry in a SAM file contains detailed information about a read and its alignment, such as the alignment positions and possible mismatches. While SAM files are human-readable, they are relatively large in size, as each field is stored as plain text. BAM files are the binary equivalent of SAM files, designed to store the same alignment information in a compressed and efficient manner. Unlike the plain-text SAM format, BAM files use binary encoding to represent data, significantly reducing their storage requirements. For example, when storing numbers in plaintext encoded in UTF-8, the number '64' would be encoded as the characters '6' and '4', each requiring 8 bits. In contrast, the binary representation of 64 would be \texttt{01000000} 8 bits in total. This is an oversimplified exampling, but illustrates the advantages of the binary format. BAM files can be indexed and sorted by name or position, enabling fast access to specific regions of interest. However, this means that a single forward/reverse read pair might not come after each other as the reads are sorted by their position on the reference genome. There are several other read inconsistencies that occur in BAM files that we dont want to include:
+    - A read in a pair maps to a different chromosome than the other
+    - Both reads in a pair map to the same strand
+    - Reads in a read pair overlap, but imply different introns, as illustrated in Figure \ref{fig:overlapping-inconsistent-blocks}
+    When annotating, the goal is to identify the most plausible explanation for each read based on its alignment and features. A read may originate from a transcript, reflecting active transcription within an annotated gene, or from a gene's transcribed region but not its exons, such as an intronic region or novel isoform—especially if splicing events are observed. Alternatively, reads may align antisense to known transcripts, potentially indicating by-products or genuine antisense transcription. Some reads may be classified as intergenic, often aligning near gene boundaries, which could signal novel isoforms, unannotated untranslated regions (UTRs), or transcriptional read-throughs or read-outs into adjacent regions.
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.3\textwidth]{figures/BamFeatures/overlapping-inconsistent-blocks}
+        \caption
+        {Diagram showing an example of an inconsistent read where the reads in a pair overlap but imply different introns.}
+        \label{fig:overlapping-inconsistent-blocks}
+    \end{figure}
+
+    \subsection{Read Mapping Types}
+    A consistent read pair can either be \texttt{genic}, \texttt{intergenic}, or \texttt{intergenic containing}. A genic read pair is one where both reads in a par are contained within a gene. Formally speaking that means all mapped bases of the read are $\geq$ gene start and $\leq$ gene end (with end-inclusive). A read pair is intergenic if it is not genic and the read pair does not completely contain one or more genes. Containg a gene is defined as follows: the first mapped base of a read $\leq$ start of a gene and the last mapped base of a read $\geq$ end of the gene. All other read pairs are intergenic contained.
+    Genic read pair can either be \texttt{transcriptomic}, \texttt{merged-transcriptomic}, or \texttt{intronic}. A read pair is considered \texttt{transcriptomic} if it is fully contained within at least one annotated transcript and matches contiguously to a specific transcript section (Figure \ref{fig:transcriptomic-read}). This means that the intron boundaries observed in the read pair are consistent with those defined in the transcript annotation. Formally, a read pair matches a transcript if both read Region Vectors (RVs) are sub-RVs of at least one transcript. A read pair is classified as \texttt{merged-transcriptomic} if it aligns to the merged transcript of a gene but does not necessarily match contiguously (Figure \ref{fig:merged-transcriptomic-read}). The merged transcript represents the union of all exonic regions of a gene, disregarding specific intron boundaries. This classification accounts for reads that may span novel isoforms or unannotated transcripts. Formally, a read pair matches the merged transcript if each base of the read pair aligns to some exon in the merged transcript. This broader definition enables the identification of potential new transcript variants while maintaining consistency with the gene’s exon structure. A read pair is classified as \texttt{intronic} if it is fully contained within the gene body but does not align to any annotated transcript or merged transcript (Figure \ref{fig:intronic-read}). Intronic reads may represent unprocessed RNA, novel isoforms with unannotated intron retention, or other transcriptional events within the gene body.
+
+    Since we are only looking for the most biologically plausible explanation, we only want to consider the most plausible case (\texttt{transcriptomic} $\gt$ \texttt{merged-transcriptomic} $gt$\texttt{intronic}). For example, if a read pair matches to a specific transcript of one gene but to the merged transcript of another gene, we would only consider the transcriptomic match, as it is more plausible. If a read pair matches to multiple transcript of multiple genes, we would want to know all the matched transcripts.
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/transcriptomic-read}
+        \caption
+        {Diagram showing an example of a transcriptomic read pair. The read pair is fully contained within a gene and matches contiguously to a specific transcript section.}
+        \label{fig:transcriptomic-read}
+    \end{figure}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/merged-transcriptomic-read}
+        \caption
+        {Diagram showing an example of a merged transcriptomic read pair. The read pair aligns to the merged transcript of a gene but does not necessarily match contiguously.}
+        \label{fig:merged-transcriptomic-read}
+    \end{figure}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/merged-transcriptomic-read}
+        \caption
+        {Diagram showing an example of a intronic read pair. The read pair is fully contained within the gene body but does not align to any annotated transcript or merged transcript.}
+        \label{fig:intronic-read}
+    \end{figure}
+
+    \subsection{PCR Amplification}
+    PCR amplification is a key step in RNA-seq library preparation, where DNA fragments are exponentially amplified to generate sufficient material for sequencing. While essential, this process can introduce biases, as some fragments are amplified more than others. A possible reason for this is because the process is exponential, if a fragment is amplified, it increases the chance that it will be amplified again. This continues exponentially and can lead to overrepresentation of certain fragments, distorting the quantitative nature of RNA-seq data. The PCR index (\texttt{pcrindex}) is a metric used to identify read pairs that may have been amplified multiple times due to PCR cycles. It is calculated by tracking all observed read pairs and their associated regions (e.g., Region Vectors or \texttt{RV}s). If a read pair’s Region Vector matches previously observed regions, it is flagged as a potential PCR duplicate. This approach ensures that repeated fragments, whether arising from overamplification or technical artifacts, are systematically identified.
+    There are multiple methods that are frequently used to address this distortion. Downsampling simply involves downweighting overamplified fragments. Barcoding fragments before PCR allow us to distinguish true biological duplicates from ones created due to PCR amplification. In this project, we will compare the results of all reads and of those that are unique.
+
+    \subsection{Test Files}
+    To optimize computation time, the submission server will only verify the correctness of the program using small test
+    files. Therefore, three large complete BAM files are provided for evaluation. The objective of the project is to
+    process the \texttt{ebna2\_hisat.bam}
+    file within one hour while using a maximum of 10GB of RAM. Additionally, the read annotations of the test files will
+    be analyzed. The other files used in this assignment are shown in Tables \ref{tab:complete-bams} \&
+    \ref{tab:reference-bams} (Supplement)
+
+    \subsection{Gene Expression Units}
+    Gene expression levels in RNA sequencing are often quantified using standardized units that account for sequencing depth and gene length. One commonly used metric is Reads Per Kilobase of transcript per Million mapped reads (RPKM), which normalizes read counts to enable comparisons across genes and samples (Equation \ref{eq:rpkm})\cite{bedre_2021}. This metric is calculated per gene.
+    \begin{equation*}
+        RPKM = \frac{r\times 10^3\times 10^6}{t\times l}
+        \label{eq:rpkm}
+        \caption{RPKM Formula with $r$ being the number of reads mapped to the gene, $t$ being the total number of mapped reads in the experiment, and $l$ being the length of the gene in base pairs (merged transcriptomic length.)}
+    \end{equation*}
+
+
+    \section{Program Structure}
+
+    \subsection{Program Usage}
+    \begin{verbatim}
+usage: java -jar bamfeatures.jar [-h] -gtf <gtf_file> -bam <bamfile>
+                         -o <output_tsv> [-frstrand <true/false>]
+
+named arguments:
+  -h, --help             show this help message and exit
+  -gtf <gtf_file>        GTF file
+  -bam <bamfile>         BAM file
+  -o <output_tsv>        Output file
+  -frstrand <true/false>
+                         true/false
+    \end{verbatim}
+
+    \subsection{Program Procedure}
+    Figures \ref{fig:program-procedure}
+    shows the general process for solving the BamFeatures assignment. Due to the complexity of this assignment and the
+    numerous cases, a flowchart is optimal for understanding the task. This allows optimal
+    structuring of a implementation, as one can see which checks can be performed first, in order to possibly rule out
+    other checks from needing to be made, saving computation time.
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/BamFeaturesProcess-crop.pdf}
+        \caption
+        {Flowchart illustrating the logical program flow for solving the BamFeatures Assignment. Rectangles represent
+        procedures, diamonds represent decisions,
+            and rounded blocks represent start and end points. The process involves iterating through the BAM file and
+            performing various checks and calculations. Once the both forward and reverse reads have been found,
+            the processing is performed.}
+        \label{fig:program-procedure}
+    \end{figure}
+
+    \subsection{Output Format}
+% The output should contain one line per read pair in the format
+% readid<tab>annotation.
+% Rest of output depends on what feature the read has
+    The output is structured in a TSV, with each line representing one read pair with the first column representing the read ID. The rest of the annotation is dependent on what type of annotation it is. Only valid reads that are \texttt{genic} or \texttt{intergenic} are outputted. If they are inconsistent we annotate with \texttt{split-inconsistent:true}. If not, we annotate the general statistics:
+    \begin{itemize}
+        \item \textbf{Mismatch count}: \texttt{mm:<mismatch-count>}
+        \item \textbf{Clipping size}: \texttt{clipping:<clipping-count>}
+        \item \textbf{Split count}: \texttt{nsplit:<split-count}
+        \item \textbf{Gene count}: \texttt{gcount:<gene-count>}
+    \end{itemize}
+    If the read is genic, we also output the following depending on the match level:
+    \begin{itemize}
+        \item \textbf{Transcriptomic}: \texttt{<gene-id1>,<gene-biotype1>:<transcript-id1>,...|[gene-2...]}
+        \item \textbf{Merged-Transcriptomic}: \texttt{<gene-id1>,<gene-biotype1>:MERGED|[gene-2...]}
+        \item \textbf{Intronic}: \texttt{<gene-id1>,<gene-biotype1>:INTRON|[gene-2...]}
+    \end{itemize}
+    If it is intergenic, we output the gene distance (the distance to the next sense gene): \texttt{gdist:<gene-distance>} and whether the read pair matches a gene on the other strand \texttt{antisense:true|false} (If it is a strand unspecific experiment, it is always false).
+    Additionally, we output the PCR index of the read pair (i.e.\ the number of read-pairs mapped exactly to the same genomic region as this read pair so far): \texttt{pcrindex:<pcrindex>}.
+
+
+    \section{Analysis}
+
+    % Plot ideas
+    % RPKM vs fpkm etc
+    % rpkm by chromosome
+    %rpkbm with pcr vs without scatter plot
+    % bar plot which ones are inconsistent, which ones are transcriptomic, merged, gdist
+    % Distribiution of pcr indexes
+
+    \subsection{Correctness}
+
+    \subsubsection{JUnit tests}
+    When optimizing the program for performance, this testing suite helps verify that improvements do not compromise
+    correctness. By running this test after performance-related modifications, we ensure that our changes do not affect
+    the accuracy.
+    A JUnit test was implemented in order to test the correctness of the program by comparing it to the reference
+    solutions. In order to run the tests for all provided BAM files with annotations, a reference table format is used (
+    Table \ref{tab:ref-table-format}
+    . The reference solution is read in, storing the lines in a map by read ID. When we process a new line in our
+    program's solution, we compare it to the reference solution and remove it from the map. If the annotation does not
+    match, an error is thrown, and the test fails. The testing suite is robust and ignores trivial differences, such as
+    a different order of the listed genes in the transcriptomic case. If we don't find the read ID of the currently
+    processed line of our solution, an error is thrown. Additionally, once we finish processing our solution, if there
+    are still entries in the reference solution map, it means that we are missing a read ID, and the test also fails.
+
+    \begin{table}[]
+        \centering
+        \captionsetup{skip=10pt} % Adjust the space between caption and table (default is 10pt)
+        \caption
+        {Reference Table Format. Columns are separated by tabs. Bam: the name of the BAM file. gtf: The corresponding
+        annotation file in GTF format. strandness: Specifies the strandness of the experiment. If the strandness is not
+        given, this column will be empty. reference\_solution: The reference solution associated with the experiment.}
+        \label{tab:ref-table-format}
+        \resizebox{0.7\textwidth}{!}{%
+            \begin{tabular}{|l|l|l|l|}
+                \hline
+                \textbf{bam} & \textbf{gtf} & \textbf{strandness} & \textbf{reference\_solution} \\ \hline
+            \end{tabular}%
+        }
+    \end{table}
+
+    \subsection{Time}
+
+    \subsubsection{Runtime}
+
+    \subsubsection{Complexity}
+
+
+    \section{Supplement}
+    \begin{table}[h]
+        \centering
+        \caption{List of the Complete Bamfiles provided with the respective gtf and experiment strandness}
+        \label{tab:complete-bams}
+        \resizebox{0.7\textwidth}{!}{%
+            \begin{tabular}{|c|c|c|}
+                \hline
+                \textbf{bam}    & \textbf{gtf}                             & \textbf{strandness} \\ \hline
+                nookaew\_cm.bam & Saccharomyces\_cerevisiae.R64-1-1.75.gtf & y.ns.2.annot        \\ \hline
+                hes\_star.bam   & Homo\_sapiens.GRCh37.75.gtf              & false               \\ \hline
+                ebna\_hisat.bam & Homo\_sapiens.GRCh37.75.gtf              & true                \\ \hline
+            \end{tabular}%
+        }
+    \end{table}
+    \begin{table}[h]
+        \centering
+        \caption
+        {List of the Bamfiles provided that have reference solutions with the respective gtf and experiment strandness}
+        \label{tab:reference-bams}
+        \resizebox{0.7\textwidth}{!}{%
+            \begin{tabular}{|c|c|c|}
+                \hline
+                \textbf{bam} & \textbf{gtf}                             & \textbf{strandness} \\ \hline
+                y.ns.2.bam   & Saccharomyces\_cerevisiae.R64-1-1.75.gtf & y.ns.2.annot        \\ \hline
+                y.ns.5.bam   & Saccharomyces\_cerevisiae.R64-1-1.75.gtf & y.ns.5.annot        \\ \hline
+                h.sn.1.bam   & Homo\_sapiens.GRCh37.75.gtf              & false               \\ \hline
+                h.sn.7.bam   & Homo\_sapiens.GRCh37.75.gtf              & false               \\ \hline
+                h.sp.3.bam   & Homo\_sapiens.GRCh37.75.gtf              & true                \\ \hline
+                h.sp.8.bam   & Homo\_sapiens.GRCh37.75.gtf              & true                \\ \hline
+            \end{tabular}%
+        }
+    \end{table}
+
+    \AtNextBibliography{\small}
+    \printbibliography
+\end{document}
