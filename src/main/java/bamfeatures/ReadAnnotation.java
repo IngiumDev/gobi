@@ -259,7 +259,7 @@ public class ReadAnnotation {
 
     // TODO Check if can combined
     // TODO do merge interval only once for transcriptomic
-    private void mergeInterval2(TreeSet<Interval> combinedRead, Interval newInterval) {
+    public static void mergeInterval2(TreeSet<Interval> combinedRead, Interval newInterval) {
         boolean merged;
         do {
             merged = false;

@@ -281,23 +281,7 @@ public class ReadAnnotator {
         }
     }
 
-    public void analyzeIfSet() {
-        // Output Format is geneID<tab>RPKM-ALL<tab>RPKM-PCR0
-        if (analysisFilePath != null) {
-            try (BufferedWriter bw = new BufferedWriter(new FileWriter(analysisFilePath))) {
-                for (Map.Entry<String, IdenticalPair<Integer>> entry : rpkmMap.entrySet()) {
-                    IdenticalPair<Integer> pair = entry.getValue();
-                    // calc gene length
-                    int geneLength = calculateGeneLength(gtf
-                    int RPKMall =
-                    bw.write(entry.getKey() + "\t" + calculateRPKM(pair.getFirst(), pair.getFirst() + pair.getSecond(), 1));
-                    bw.newLine();
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
+
 
 
     public static final class Builder {

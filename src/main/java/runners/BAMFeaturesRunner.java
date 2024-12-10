@@ -60,7 +60,7 @@ sample inputs along with the strandness information and path to the reference ou
                 .build();
         long start = System.currentTimeMillis();
         readAnnotator.annotateReads();
-        readAnnotator.analyzeIfSet();
+
         System.out.println("Time annotate: " + (System.currentTimeMillis() - start) + "ms");
         // todo close samreader
     }
