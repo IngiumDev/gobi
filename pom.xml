@@ -79,7 +79,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>runners.ExonSkipRunner</mainClass>
+                                    <mainClass>me.ingiumdev.gobi.runners.ExonSkipRunner</mainClass>
                                 </manifest>
                             </archive>
                             <finalName>ExonSkipRunner</finalName>
@@ -100,7 +100,7 @@
                                     <transformers>
                                         <transformer
                                                 implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                            <mainClass>runners.ExonSkipRunner</mainClass>
+                                            <mainClass>me.ingiumdev.gobi.runners.ExonSkipRunner</mainClass>
                                         </transformer>
                                     </transformers>
                                     <finalName>ExonSkipRunner</finalName>
@@ -135,7 +135,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>runners.ReadSimulatorRunner</mainClass>
+                                    <mainClass>me.ingiumdev.gobi.runners.ReadSimulatorRunner</mainClass>
                                 </manifest>
                             </archive>
                             <finalName>ReadSimulatorRunner</finalName>
@@ -157,7 +157,7 @@
                                     <transformers>
                                         <transformer
                                                 implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                            <mainClass>runners.ReadSimulatorRunner</mainClass>
+                                            <mainClass>me.ingiumdev.gobi.runners.ReadSimulatorRunner</mainClass>
                                         </transformer>
                                     </transformers>
                                     <finalName>ReadSimulatorRunner</finalName>
@@ -197,7 +197,7 @@
                     <configuration>
                         <archive>
                             <manifest>
-                                <mainClass>runners.BAMFeaturesRunner</mainClass>
+                                <mainClass>me.ingiumdev.gobi.runners.BAMFeaturesRunner</mainClass>
                             </manifest>
                         </archive>
                         <finalName>BAMFeaturesRunner</finalName>
@@ -233,7 +233,7 @@
                                 <transformers>
                                     <!-- Add Manifest Transformer for Main Class -->
                                     <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                        <mainClass>runners.BAMFeaturesRunner</mainClass>
+                                        <mainClass>me.ingiumdev.gobi.runners.BAMFeaturesRunner</mainClass>
                                     </transformer>
 
                                 </transformers>
