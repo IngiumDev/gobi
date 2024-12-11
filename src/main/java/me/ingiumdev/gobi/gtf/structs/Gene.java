@@ -14,6 +14,15 @@ public class Gene extends AnnotationEntry implements augmentedTree.Interval {
     private final Map<String, Transcript> transcripts;
     // Only when process introns is run
     private Set<Interval> introns;
+    TreeSet<Interval> mergedGeneTranscript;
+
+    public TreeSet<Interval> getMergedGeneTranscript() {
+        return mergedGeneTranscript;
+    }
+
+    public void setMergedGeneTranscript(TreeSet<Interval> mergedGeneTranscript) {
+        this.mergedGeneTranscript = mergedGeneTranscript;
+    }
 
     //If we read a gene line
     public Gene(String seqname, String source, String feature, Interval interval, double score, StrandDirection strand, FrameStarts frame, GTFAttributes GTFAttributes) {

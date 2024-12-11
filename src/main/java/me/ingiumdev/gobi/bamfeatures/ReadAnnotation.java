@@ -336,12 +336,8 @@ public class ReadAnnotation {
         // Iterate over all genes
         for (Gene gene : genesThatInclude) {
             // Merge all exons of all transcripts into a single TreeSet<Interval>
-            TreeSet<Interval> mergedGeneTranscript = new TreeSet<>();
-            for (Transcript transcript : gene.getTranscripts().values()) {
-                for (Exon exon : transcript.getExons()) {
-                    mergeInterval2(mergedGeneTranscript, exon.getInterval());
-                }
-            }
+            TreeSet<Interval> mergedGeneTranscript = getMergedGeneTranscript(gene);
+
 
             // Check if the combinedRead is fully contained within the mergedGeneTranscript
             if (isReadContainedInMergedTranscript(combinedRead, mergedGeneTranscript)) {
@@ -355,6 +351,19 @@ public class ReadAnnotation {
             geneCount = genesThatInclude.size();
         }
         return !mergedTranscriptomicMatches.isEmpty();
+    }
+
+    private TreeSet<Interval> getMergedGeneTranscript(Gene gene) {
+        if (gene.getMergedGeneTranscript() == null) {
+            TreeSet<Interval> mergedGeneTranscript = new TreeSet<>();
+            for (Transcript transcript : gene.getTranscripts().values()) {
+                for (Exon exon : transcript.getExons()) {
+                    mergeInterval2(mergedGeneTranscript, exon.getInterval());
+                }
+            }
+            gene.setMergedGeneTranscript(mergedGeneTranscript);
+        }
+        return gene.getMergedGeneTranscript();
     }
 
     private boolean isReadContainedInMergedTranscript(TreeSet<Interval> readIntervals, TreeSet<Interval> mergedGeneTranscript) {

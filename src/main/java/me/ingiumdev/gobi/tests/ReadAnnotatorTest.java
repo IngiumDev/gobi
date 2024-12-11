@@ -131,7 +131,7 @@ public class ReadAnnotatorTest {
 
         // Iterate and print the entries
         // TODO: Preprocess gtfs so that we don't have to do it for each read
-        Collections.shuffle(referenceEntries);
+        //Collections.shuffle(referenceEntries);
         for (ReferenceEntry x : referenceEntries) {
             checkCorrectness(x, bamPath, gtfPath);
         }
@@ -146,9 +146,7 @@ public class ReadAnnotatorTest {
                 .setGtfFile(new File(gtfPath.toString(), x.gtf))
                 .setStrandSpecificity(strandSpecificity)
                 .build();
-        long startTime = System.currentTimeMillis();
         List<ReadAnnotation> results = readAnnotator.annotateAndReturnReads();
-        System.out.println("Annotation time\t" + (System.currentTimeMillis() - startTime));
         // CAUTION: there are null results (if it was skipped)
         // Add the non null to a Map by the read name, if there are multiple results for the same read name, error
         Map<String, ReadAnnotation> readAnnotationMap = new HashMap<>();

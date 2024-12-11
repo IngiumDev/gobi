@@ -53,7 +53,6 @@ public class ReadAnnotator {
     }
 
     public void annotateReads() {
-        // TODO: init forestManager
         Iterator<SAMRecord> it = samReader.iterator();
         if (strandSpecificity == StrandDirection.UNSPECIFIED) {
             forestManager = new StrandUnspecificForest();
@@ -74,6 +73,7 @@ public class ReadAnnotator {
 
         // TODO: better GTF file handling
         GTFAnnotation gtfAnnotation = GTFParser.parseGTF(String.valueOf(gtfFile));
+        long startTime = System.currentTimeMillis();
         forestManager.init(gtfAnnotation);
         pcrIndex.initializePCRIndex();
         String referenceName;
@@ -102,6 +102,7 @@ public class ReadAnnotator {
             }
         }
         processLastChromosome();
+        System.out.println("Annotation Time taken: " + (System.currentTimeMillis() - startTime) + "ms");
 
     }
 
@@ -118,7 +119,6 @@ public class ReadAnnotator {
     }
 
     private void processNewChromosome(String referenceName) {
-        // TODO: implement readprocessing
         if (readsToAnnotate != null) {
             processAndWriteReads();
 
