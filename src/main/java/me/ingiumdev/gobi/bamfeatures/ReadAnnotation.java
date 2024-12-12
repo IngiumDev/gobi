@@ -362,8 +362,9 @@ public class ReadAnnotation {
                 }
             }
             gene.setMergedGeneTranscript(mergedGeneTranscript);
-        }
-        return gene.getMergedGeneTranscript();
+            return mergedGeneTranscript;
+        } else {
+        return gene.getMergedGeneTranscript();}
     }
 
     private boolean isReadContainedInMergedTranscript(TreeSet<Interval> readIntervals, TreeSet<Interval> mergedGeneTranscript) {
