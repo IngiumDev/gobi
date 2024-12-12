@@ -90,6 +90,7 @@ public class ReadAnnotation {
 
     // TODO Check if can combined
     // TODO do merge interval only once for transcriptomic
+    // TODO: just sort the exons so that we don't need to go back and forth
     public static void mergeInterval2(TreeSet<Interval> combinedRead, Interval newInterval) {
         boolean merged;
         do {

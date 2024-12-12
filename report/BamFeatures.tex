@@ -18,12 +18,7 @@
     columns=fullflexible
 }
 
-
-
-
 \usepackage[sorting=none,backend=biber]{biblatex}
-
-
 \usepackage[
     a4paper,
     left=0.75in,
@@ -31,8 +26,6 @@
     top=0.75in,
     bottom=0.75in
 ]{geometry}
-
-
 \addbibresource{BamFeatures.bib}
 
 
@@ -92,7 +85,7 @@
     A consistent read pair can either be \texttt{genic}, \texttt{intergenic}, or \texttt{intergenic containing}. A genic read pair is one where both reads in a par are contained within a gene. Formally speaking that means all mapped bases of the read are $\geq$ gene start and $\leq$ gene end (with end-inclusive). A read pair is intergenic if it is not genic and the read pair does not completely contain one or more genes. Containg a gene is defined as follows: the first mapped base of a read $\leq$ start of a gene and the last mapped base of a read $\geq$ end of the gene. All other read pairs are intergenic contained.
     Genic read pair can either be \texttt{transcriptomic}, \texttt{merged-transcriptomic}, or \texttt{intronic}. A read pair is considered \texttt{transcriptomic} if it is fully contained within at least one annotated transcript and matches contiguously to a specific transcript section (Figure \ref{fig:transcriptomic-read}). This means that the intron boundaries observed in the read pair are consistent with those defined in the transcript annotation. Formally, a read pair matches a transcript if both read Region Vectors (RVs) are sub-RVs of at least one transcript. A read pair is classified as \texttt{merged-transcriptomic} if it aligns to the merged transcript of a gene but does not necessarily match contiguously (Figure \ref{fig:merged-transcriptomic-read}). The merged transcript represents the union of all exonic regions of a gene, disregarding specific intron boundaries. This classification accounts for reads that may span novel isoforms or unannotated transcripts. Formally, a read pair matches the merged transcript if each base of the read pair aligns to some exon in the merged transcript. This broader definition enables the identification of potential new transcript variants while maintaining consistency with the gene’s exon structure. A read pair is classified as \texttt{intronic} if it is fully contained within the gene body but does not align to any annotated transcript or merged transcript (Figure \ref{fig:intronic-read}). Intronic reads may represent unprocessed RNA, novel isoforms with unannotated intron retention, or other transcriptional events within the gene body.
 
-    Since we are only looking for the most biologically plausible explanation, we only want to consider the most plausible case (\texttt{transcriptomic} $\gt$ \texttt{merged-transcriptomic} $gt$\texttt{intronic}). For example, if a read pair matches to a specific transcript of one gene but to the merged transcript of another gene, we would only consider the transcriptomic match, as it is more plausible. If a read pair matches to multiple transcript of multiple genes, we would want to know all the matched transcripts.
+    Since we are only looking for the most biologically plausible explanation, we only want to consider the most plausible case (\texttt{transcriptomic} $>$ \texttt{merged-transcriptomic} $gt$\texttt{intronic}). For example, if a read pair matches to a specific transcript of one gene but to the merged transcript of another gene, we would only consider the transcriptomic match, as it is more plausible. If a read pair matches to multiple transcript of multiple genes, we would want to know all the matched transcripts.
     \begin{figure}
         \centering
         \includegraphics[width=0.7\textwidth]{figures/BamFeatures/transcriptomic-read}
@@ -129,11 +122,14 @@
 
     \subsection{Gene Expression Units}
     Gene expression levels in RNA sequencing are often quantified using standardized units that account for sequencing depth and gene length. One commonly used metric is Reads Per Kilobase of transcript per Million mapped reads (RPKM), which normalizes read counts to enable comparisons across genes and samples (Equation \ref{eq:rpkm})\cite{bedre_2021}. This metric is calculated per gene.
-    \begin{equation*}
-        RPKM = \frac{r\times 10^3\times 10^6}{t\times l}
+    \begin{figure}[h]
+        \centering
+        \begin{equation}
+            RPKM = \frac{r \times 10^3 \times 10^6}{t \times l}
         \label{eq:rpkm}
-        \caption{RPKM Formula with $r$ being the number of reads mapped to the gene, $t$ being the total number of mapped reads in the experiment, and $l$ being the length of the gene in base pairs (merged transcriptomic length.)}
-    \end{equation*}
+        \end{equation}
+        \caption{RPKM Formula with $r$ being the number of reads mapped to the gene, $t$ being the total number of mapped reads in the experiment, and $l$ being the length of the gene in base pairs (merged transcriptomic length).}
+    \end{figure}
 
 
     \section{Program Structure}
@@ -201,6 +197,34 @@ named arguments:
     % Distribiution of pcr indexes
 
     \subsection{Correctness}
+
+    \subsubsection{RPKM Plot}
+
+    \begin{figure}[]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/BamFeatures/annot/ebna_hisat_log_rpkm_distribution}
+            \label{fig:ebna_hisat_log_rpkm_distribution}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/BamFeatures/annot/hes_star_log_rpkm_distribution}
+            \label{fig:hes_star_log_rpkm_distribution}
+        \end{minipage}
+        \caption{test}
+    \end{figure}
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/annot/nookaew_cm_log_rpkm_distribution}
+        \caption
+        {}
+        \label{fig:nookaew_cm_log_rpkm_distribution}
+    \end{figure}
+
+
 
     \subsubsection{JUnit tests}
     When optimizing the program for performance, this testing suite helps verify that improvements do not compromise
