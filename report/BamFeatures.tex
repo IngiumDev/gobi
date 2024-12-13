@@ -39,7 +39,7 @@
 
 
 \pagestyle{fancy}
-\title{Topic 3: BamFeatures\\\large Genome-Oriented Bioinformatics Practical Course}
+\title{Topic 3: BamFeatures\\\large Lab Course Genome-Oriented Bioinformatics}
 \author{}
 \date{December 2024}
 
@@ -226,6 +226,15 @@ named arguments:
     \subsection{Correctness}
 
     \subsubsection{RPKM Distribution}
+    %
+%over all detected genes both considering all reads or only non-PCR duplicated reads (PCR index
+%= 0)
+
+    The \texttt{RPKM} values was calculated for all genes mapped in the three provided analysis files using the formula in Figure \ref{eq:rpkm}. The \texttt{RPKM} values were calculated for all reads and for unique reads (non-PCR amplified reads) separately. The distribution of the \texttt{RPKM} values was then plotted on a log scale for each file. The distribution of the \texttt{RPKM} values for all reads and unique reads is shown in Figure \ref{fig:rpkm-distribution}. The distribution of the \texttt{RPKM} values for the top 10 genes in each file is shown in Figure \ref{fig:rpkm-scatter}. The comparison of the \texttt{RPKM} values for all reads and unique reads is shown in Figure \ref{fig:total-vs-unique-scatter}.
+
+
+    Figure \ref{fig:rpkm-distribution} presents the log-transformed distribution of \texttt{RPKM} values for all genes in each dataset, overlayed with a kernel density estimate (KDE). The bin size was chosen based on the minimum of the Sturges and Freedman-Diaconis estimators to achieve an optimal balance between resolution and interpretability. The unique (non-PCR amplified) \texttt{RPKM} values are consistently lower than the total \texttt{RPKM} values, indicating the removal of duplicated reads likely due to PCR amplification. The magnitude of this difference varies across datasets, reflecting differences in sequencing quality, depth, and library preparation protocols.
+
 
     % TODO Names cut off the top of plot, better naming
     \begin{figure}[]
