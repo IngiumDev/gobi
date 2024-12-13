@@ -113,7 +113,7 @@ def plot_gdist_cdf(annotation_name, gdists, output_path):
     plt.gca().xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f'{x:,.0f}'))
     # Show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_gdist_cdf.png', dpi=900)
+    plt.savefig(f'{output_path}/{annotation_name}_gdist_cdf.pdf', format='pdf')
     plt.close()
 
 
@@ -140,7 +140,7 @@ def plot_pcr_index_distribution(annotation_name, output_path, pcr_index_count):
     # plt.xticks(ticks=range(pcr_index_df['PCR Index'].min(), pcr_index_df['PCR Index'].max() + 1))
 
     # Show the plot
-    plt.savefig(f'{output_path}/{annotation_name}_pcr_index_distribution.png', dpi=900)
+    plt.savefig(f'{output_path}/{annotation_name}_pcr_index_distribution.pdf', format='pdf')
     # Assuming pcr_index_df has columns: 'PCR Index', 'Count'
     # Calculate lambda for Poisson
     lambda_ = (pcr_index_df['PCR Index'] * pcr_index_df['Count']).sum() / pcr_index_df['Count'].sum()
@@ -181,7 +181,7 @@ def plot_pcr_index_distribution(annotation_name, output_path, pcr_index_count):
     plt.legend()
     # Show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_pcr_index_distributions.png', dpi=900)
+    plt.savefig(f'{output_path}/{annotation_name}_pcr_index_distributions.pdf', format='pdf')
     # Plot cumulative distribution with Negative Binomial overlay
     plt.figure(figsize=(10, 6))
     plt.plot(pcr_index_df['PCR Index'], pcr_index_df['Cumulative Count'], linestyle='-', color='b',
@@ -203,7 +203,7 @@ def plot_pcr_index_distribution(annotation_name, output_path, pcr_index_count):
     plt.legend()
     # Show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_pcr_index_negative_binomial_fit.png', dpi=900)
+    plt.savefig(f'{output_path}/{annotation_name}_pcr_index_negative_binomial_fit.pdf', format='pdf')
 
 
 def plot_annotation_categories(annotation_name, genic_count, intergenic_count, intronic_count,
@@ -234,7 +234,7 @@ def plot_annotation_categories(annotation_name, genic_count, intergenic_count, i
 
     # Show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_annotation_counts.png', dpi=900)
+    plt.savefig(f'{output_path}/{annotation_name}_annotation_counts.pdf', format='pdf')
 
 
 def plot_log_total_vs_unique_rpkm(annotation_name, output_path, rpkm_df):
@@ -254,7 +254,7 @@ def plot_log_total_vs_unique_rpkm(annotation_name, output_path, rpkm_df):
     scatter_plot.legend(title='Chromosome', bbox_to_anchor=(1.05, 1), loc='upper left')
     # Show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_log_total_rpkm_vs_unique_scatter.png', dpi=900)
+    plt.savefig(f'{output_path}/{annotation_name}_log_total_rpkm_vs_unique_scatter.pdf', format='pdf')
 
 
 def plot_total_vs_unique_rpkm(annotation_name, output_path, rpkm_df):
@@ -280,7 +280,7 @@ def plot_total_vs_unique_rpkm(annotation_name, output_path, rpkm_df):
 
     # Show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_total_rpkm_vs_unique_scatter.png', dpi=900)
+    plt.savefig(f'{output_path}/{annotation_name}_total_rpkm_vs_unique_scatter.pdf', format='pdf')
 
 
 def plot_rpkm_scatter(annotation_name, output_path, rpkm_df):
@@ -344,7 +344,7 @@ def plot_rpkm_scatter(annotation_name, output_path, rpkm_df):
 
     # Adjust layout and show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_rpkm_scatter.png', dpi=900)
+    plt.savefig(f'{output_path}/{annotation_name}_rpkm_scatter.pdf', format='pdf')
 
 
 
@@ -390,7 +390,7 @@ def plot_log_rpkm_histogram(annotation_name, output_path, rpkm_df):
 
     # Adjust layout and show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_log_rpkm_distribution.png', dpi=900)
+    plt.savefig(f'{output_path}/{annotation_name}_log_rpkm_distribution.pdf', format='pdf')
 
 
 def plot_rpkm_histogram(annotation_name, output_path, rpkm_df):
@@ -407,7 +407,7 @@ def plot_rpkm_histogram(annotation_name, output_path, rpkm_df):
     axes[1].set_ylabel('Frequency')
     # Adjust layout and show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_rpkm_distribution.png', dpi=900)
+    plt.savefig(f'{output_path}/{annotation_name}_rpkm_distribution.pdf', format='pdf')
 
 
 def calculate_all_rpkm(gene_dict, genic_count, length_dict):

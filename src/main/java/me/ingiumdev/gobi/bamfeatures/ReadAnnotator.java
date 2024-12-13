@@ -58,7 +58,7 @@ public class ReadAnnotator {
             forestManager = new StrandUnspecificForest();
             pcrIndex = new StrandUnSpecificPCRIndex();
         } else {
-            //TODO: Possible migrate to tree pair instead of hasmap of strands
+            //TODO: Possible migrate to tree pair instead of hashmap of strands
             forestManager = new StrandSpecificForest(strandSpecificity);
             pcrIndex = new StrandSpecificPCRIndex();
         }
