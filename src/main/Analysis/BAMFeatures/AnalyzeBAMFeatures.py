@@ -254,7 +254,7 @@ def plot_log_total_vs_unique_rpkm(annotation_name, output_path, rpkm_df):
     scatter_plot.legend(title='Chromosome', bbox_to_anchor=(1.05, 1), loc='upper left')
     # Show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_log_total_rpkm_vs_unique_scatter.pdf', format='pdf')
+    plt.savefig(f'{output_path}/{annotation_name}_log_total_rpkm_vs_unique_scatter.png', dpi=300)
 
 
 def plot_total_vs_unique_rpkm(annotation_name, output_path, rpkm_df):
@@ -280,7 +280,7 @@ def plot_total_vs_unique_rpkm(annotation_name, output_path, rpkm_df):
 
     # Show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_total_rpkm_vs_unique_scatter.pdf', format='pdf')
+    plt.savefig(f'{output_path}/{annotation_name}_total_rpkm_vs_unique_scatter.png', dpi=300)
 
 
 def plot_rpkm_scatter(annotation_name, output_path, rpkm_df):
@@ -344,7 +344,7 @@ def plot_rpkm_scatter(annotation_name, output_path, rpkm_df):
 
     # Adjust layout and show the plot
     plt.tight_layout()
-    plt.savefig(f'{output_path}/{annotation_name}_rpkm_scatter.pdf', format='pdf')
+    plt.savefig(f'{output_path}/{annotation_name}_rpkm_scatter.png', dpi=300)
 
 
 

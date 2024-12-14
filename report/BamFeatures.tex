@@ -26,6 +26,7 @@
     top=0.75in,
     bottom=0.75in
 ]{geometry}
+\usepackage{mathtools}
 \addbibresource{BamFeatures.bib}
 
 
@@ -149,12 +150,12 @@ named arguments:
     \end{verbatim}
 
     \subsection{Program Procedure}
-    Figures\ref{fig:program-procedure}
+    Figure \ref{fig:program-procedure}
     shows the general process for solving the BamFeatures assignment. Due to the complexity of this assignment and the
     numerous cases, a flowchart is optimal for understanding the task. This allows optimal
     structuring of an implementation, as one can see which checks can be performed first, in order to possibly rule out
     other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementations processes the reads in batches (by chromosome), instead of one by one.
-    \begin{figure}[htpb]
+    \begin{figure}[!htpb]
         \centering
         \includegraphics[width=0.7\textwidth]{figures/BamFeatures/BamFeaturesProcess-crop}
         \caption
@@ -162,7 +163,7 @@ named arguments:
         procedures, diamonds represent decisions,
             and rounded blocks represent start and end points. The process involves iterating through the BAM file and
             performing various checks and calculations. Once the both forward and reverse reads have been found,
-            the processing is performed. n}
+            the processing is performed.}
         \label{fig:program-procedure}
     \end{figure}
     \begin{enumerate}
@@ -197,7 +198,39 @@ named arguments:
             \item Process the reads like in Step \ref{sec:read-processing}. Close the writer.
         \end{enumerate}
     \end{enumerate}
-    During initialization, all the required data structures for proccesing are initilialized. Depending on whether an experiment is stranded or not, the interval tree searching and PCR index processing are slightly different, but only in the implementation and not in the functionality required. This presents the perfect opportunity to use an Interface. Two interfaces are used: \texttt{IntervalTreeForestManager} and \texttt{PCRIndexManager} Both of them have two implementations each, one for a strand specific experiment, and one for an unstranded experiment. A strand specific manager has two trees for each chromosome, one for each strand as we only want to search the relevant strand for the read. In contrast, in an unstranded experiment, only one tree is required, since we always want to search both strand for the best match. Subsequently, the methods that calculate the \texttt{igenes}, \texttt{cgenes}, and \texttt{gdist} are all slightly different but still perform the same search. However, the \texttt{isAntisenseBetter} method always returns false in unstranded experiments, as we are already checking the antisense strand anyway, while it has to perform an actual check in a stranded experiment. The \texttt{PCRIndexManager} differs in stranded and unstranded experiments because in stranded experiments we want to make sure that the read mapped exactly to the same location (which is by strand) and therefore have to keep two cache maps, one for each strand. The PCR index is organized by a Treeset of the region vectors of the reads mapping to the PCR index. Crucially, the region vectors need to be melted (as explained later), since an alignment of (5,10) and (10,15) is the same as (5,15) and should be counted together.
+    During initialization, all the required data structures for processing are initialized. Depending on whether an experiment is stranded or not, the interval tree searching and PCR index processing are slightly different, but only in the implementation and not in the functionality required. This presents the perfect opportunity to use an Interface. Two interfaces are used: \texttt{IntervalTreeForestManager} and \texttt{PCRIndexManager} Both of them have two implementations each, one for a strand specific experiment, and one for an unstranded experiment. A strand specific manager has two trees for each chromosome, one for each strand as we only want to search the relevant strand for the read. In contrast, in an unstranded experiment, only one tree is required, since we always want to search both strand for the best match. Subsequently, the methods that calculate the \texttt{igenes}, \texttt{cgenes}, and \texttt{gdist} are all slightly different but still perform the same search. However, the \texttt{isAntisenseBetter} method always returns false in unstranded experiments, as we are already checking the antisense strand anyway, while it has to perform an actual check in a stranded experiment. The \texttt{PCRIndexManager} differs in stranded and unstranded experiments because in stranded experiments we want to make sure that the read mapped exactly to the same location (which is by strand) and therefore have to keep two cache maps, one for each strand. The PCR index is organized by a Treeset of the region vectors of the reads mapping to the PCR index. Crucially, the region vectors need to be melted (as explained later), since an alignment of (5,10) and (10,15) is the same as (5,15) and should be counted together.
+    When iterating through the SAMRecords, if the read is on a new chromosome, we can process all the reads from the last one. Since the File is organized by chromosome and by position, we can reset the PCR index and Lookup data structure (explained below). The reads are processed in a producer-consumer pattern. The record is then checked for validity. All conditions need to be true for a read to be valid:
+    \begin{enumerate}
+        \item The read is mapped
+        \item The read is part of a pair
+        \item The mate read is mapped
+        \item The reads are on different strands
+        \item The reads are on the same chromosome
+        \item The read is not a supplementary alignment
+    \end{enumerate}
+    This check ensures the correctness of the annotation, since only valid reads are processed. Since we need both SAMRecords of the first and second of pair, we can only start processing once we have found both. A lookup table exists to match a read to its pair. If the read's mate has not been found, we add it to the lookup table by the read name, which is identical for read mates, but unique in the experiment. If the mate has been found, we add the reads to the readsToAnnotate list in the correct order. Once the chromosome is complete, all the pairs in readsToAnnotate are annotated, and any outstanding entries in the lookup table are ignored.
+    The annotation of a read pair begins with the extraction of the alignment start and end. The coordinates are then used to find the genes (on the current chromosome and relevant strand) that completely include the read pair on the interval tree. If there are genes that contain it, we start the checks for a genic read. First, the alignment blocks of each read are saved and melted. This entails combining overlapping and neighboring blocks into one. For two end exclusive region vectors $x$ and $y$, iff $x_{end}\geq y_{start}$ a new region vector $z$ is created with $z\coloneqq(x_{start},y_{end})$, for all combinations and orderings of $x,y$. This covers multiple edge cases, ensuring the correct calculation of the PCR Index, gene matches, and splits. Then the reads are checked for consistency, checking for both reads if there is a base of an implied intron of the other read inside the other read (see Figure X). This process already calculated the number of splits, and is directly saved. If the pair is consistent, we calculate the basic read info like clipping, mismatches, and PCR index. The read is then checked to determine whether it is transcriptomic, merged-transcriptomic, or intronic. In order to check if a read is transcriptomic, both reads region vectors need to be sub-region vectors of at least one transcript. Sub-region vectors is defined as follows: A read region vector $r$ is a sub-RV of a transcript $t$, iff $\text{cut}(t, r_{start}, r_{end}) == r$, as demonstrated in Figure \ref{fig:transcriptomic-cut}. All matching transcripts are outputted. If there is not a transcriptomic match, we check if there is a merged transcript match. The merged transcript is the union of all exonic regions of a gene. If both reads are contained in the merged transcript, the read is considered a merged-transcriptomic match. Contained is defined as each base of the read aligns to some exon in the merged transcript (Figure \ref{fig:merged-transcriptomic-contained}). If there is no merged transcript match, the read is considered intronic.
+
+    If there were no containing, the read is checked for intergenic status. The interval tree is searched if the read pair completely contains a gene, in which case we ignore it. The same checks and calculations occur as in the genic case, but the gene distance is calculated and the antisense match is checked. The gene distance is checked by finding the closest gene on the same strand. The antisense match is checked by searching the interval tree for the antisense strand. If a gene is found, the read pair is considered antisense matching. The PCR index is calculated by checking the cache map for the region vectors of the read pair. If the region vectors are found, the read pair is considered a PCR duplicate. The read pair is then outputted.
+
+
+
+
+    \begin{figure}[!htpb]
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/transcriptomic-cut}
+        \caption
+        {Diagram showing how the cut method works for checking if a read matches a transcript. The transcript is cut starting from the first base of the read and ending at the last base of the read. If the cut transcript is the same as the read, the read matches the transcript.}
+        \label{fig:transcriptomic-cut}
+    \end{figure}
+
+    \begin{figure}[!htpb]
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/merged-transcriptomic-contained}
+        \caption
+        {Diagram showing how contained works for checking if a read matches a merged transcript. The read is contained in the merged transcript if each base of the read aligns to some exon in the merged transcript.}
+        \label{fig:merged-transcriptomic-contained}
+    \end{figure}
 
     \subsection{Output Format}
 % The output should contain one line per read pair in the format
@@ -230,14 +263,9 @@ named arguments:
 %over all detected genes both considering all reads or only non-PCR duplicated reads (PCR index
 %= 0)
 
-    The \texttt{RPKM} values was calculated for all genes mapped in the three provided analysis files using the formula in Figure \ref{eq:rpkm}. The \texttt{RPKM} values were calculated for all reads and for unique reads (non-PCR amplified reads) separately. The distribution of the \texttt{RPKM} values was then plotted on a log scale for each file. The distribution of the \texttt{RPKM} values for all reads and unique reads is shown in Figure \ref{fig:rpkm-distribution}. The distribution of the \texttt{RPKM} values for the top 10 genes in each file is shown in Figure \ref{fig:rpkm-scatter}. The comparison of the \texttt{RPKM} values for all reads and unique reads is shown in Figure \ref{fig:total-vs-unique-scatter}.
-
-
-    Figure \ref{fig:rpkm-distribution} presents the log-transformed distribution of \texttt{RPKM} values for all genes in each dataset, overlayed with a kernel density estimate (KDE). The bin size was chosen based on the minimum of the Sturges and Freedman-Diaconis estimators to achieve an optimal balance between resolution and interpretability. The unique (non-PCR amplified) \texttt{RPKM} values are consistently lower than the total \texttt{RPKM} values, indicating the removal of duplicated reads likely due to PCR amplification. The magnitude of this difference varies across datasets, reflecting differences in sequencing quality, depth, and library preparation protocols.
-
-
-    % TODO Names cut off the top of plot, better naming
-    \begin{figure}[]
+    The \texttt{RPKM} values was calculated for all genes mapped in the three provided analysis files using the formula in Figure \ref{eq:rpkm}. The \texttt{RPKM} values were calculated for all reads and for unique reads (non-PCR amplified reads) separately. The distribution of the \texttt{RPKM} values was then plotted on a log scale for each file. The distribution of the \texttt{RPKM} values for all reads and unique reads is shown in Figure \ref{fig:rpkm-distribution}. The distribution of the \texttt{RPKM} values for the top 10 genes in each file is shown in Figure \ref{fig:rpkm-scatter}. The comparison of the \texttt{RPKM} values for all reads and unique reads is shown in Figure \ref{fig:total-vs-unique-scatter}. We can see that the unique \texttt{RPKM} values are lower than the total \texttt{RPKM} values with \texttt{hes\_star} and \texttt{ebna\_hist} having a larger difference than \texttt{nookaew\_cm}.
+    % log rpkm distribution
+    \begin{figure}[!htbp]
         \centering
         \begin{minipage}{0.48\textwidth}
             \centering
@@ -259,9 +287,14 @@ named arguments:
         \caption{Log distribution of the total (all reads) vs unique (non-PCR amplified) RPKM values for the provided analysis files with the kernel density function overlayed. Bin size determined by the minimum of the sturges and fd estimators. The RPKM values get smaller in the unique case.}
         \label{fig:rpkm-distribution}
     \end{figure}
-    % TODO: better caption
 
-    \begin{figure}[]
+    Figure \ref{fig:rpkm-distribution} presents the log-transformed distribution of \texttt{RPKM} values for all genes in each dataset, overlayed with a kernel density estimate (KDE). The bin size was chosen based on the minimum of the Sturges and Freedman-Diaconis estimators to achieve an optimal balance between resolution and interpretability. The unique (non-PCR amplified) \texttt{RPKM} values are lower than the total \texttt{RPKM} values, indicating the removal of duplicated reads likely due to PCR amplification. The magnitude of this difference varies across datasets, reflecting differences in sequencing quality, depth, and library preparation protocols. However, it demonstrates the importance of this correction step in ensuring accurate gene expression quantification while noting that the unique \texttt{RPKM} values are overcorrecting for true biological replicates (as explained earlier). For the following analysis, we will only consider the result genes for the unique \texttt{RPKM} values (Figure \ref{fig:rpkm-scatter}, green plot). The top gene for the \texttt{hes\_star} experiment, \href{https://grch37.ensembl.org/Homo_sapiens/Gene/Summary?g=ENSG00000210082;r=MT:1671-3229;t=ENST00000387347}{ENSG00000210082}, codes for the mitochondrial 16sRNA. The top few genes for \texttt{nookaew\_cm} are all related to Glycolosis like \href{https://www.yeastgenome.org/locus/S000003424}{YGR192C} which codes for Glyceraldehyde-3-phosphate dehydrogenase (GAPDH), \href{https://www.yeastgenome.org/locus/S000001543}{YKL060C} which codes for Fructose 1,6-bisphosphate aldolase, and \href{https://www.yeastgenome.org/locus/S000001217}{YHR174W} which codes for ENOlase. Similarly to \texttt{hes\_star}, the top genes for \texttt{ebna\_hist} are mostly noncoding RNAs, such as \href{https://grch37.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000249335;r=5:68128412-68257985;t=ENST00000503268}{ENSG00000249335} and \href{https://grch37.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000256725;r=12:131112861-131200826}{ENSG00000256725} which are LincRNAs.
+
+    % TODO Names cut off the top of plot, better naming
+
+    % TODO: better caption
+    %rpkm scatter
+    \begin{figure}[!htbp]
         \centering
         \begin{minipage}{0.48\textwidth}
             \centering
@@ -282,7 +315,8 @@ named arguments:
         \caption{Scatter plot of the total (all reads) vs unique (non-PCR amplified) RPKM values for the provided analysis files separated by chromosome. The top 10 genes are labeled. The unique transformation greatly changes \texttt{hes\_star}, as it has an extreme outlier RN5-8S6, a ribosomal pseudogene. \texttt{nookaew\_cm} is more consistent and barely changes the top 10, with most being gene coding for proteins in Glycolysis. \texttt{ebna\_hisat} has a few outliers, but the top 10 are mostly the same and also rRNAs.}
         \label{fig:rpkm-scatter}
     \end{figure}
-    \begin{figure}[]
+    %rpkm unique vs total scatter
+    \begin{figure}[!htbp]
         \centering
         \begin{minipage}{0.32\textwidth}
             \centering
@@ -306,7 +340,10 @@ named arguments:
         \label{fig:total-vs-unique-scatter}
     \end{figure}
 
-    \begin{figure}[]
+    \subsubsection{Annotation Counts}
+    The annotation count analysis reveals distinct patterns across the datasets. The \textit{ebna\_hisat} dataset exhibits a high proportion of intronic reads, suggesting substantial transcriptional activity in non-coding regions, which might indicate alternative splicing events or incomplete processing. The \textit{hes\_star} dataset also shows significant intronic read representation but to a lesser extent, implying a less pronounced but still notable non-coding transcriptional activity. In contrast, the \textit{nookaew\_cm} dataset, derived from yeast, demonstrates minimal intronic reads, consistent with the compact genome organization of yeast, which features fewer and shorter intronic regions compared to higher eukaryotes. The relatively large amount of intergenic reads could be due to an incorrect annotation, or a ncRNAS transcribed from from intergenic regions.
+    % annotation counts
+    \begin{figure}[!htbp]
         \centering
         \begin{minipage}{0.32\textwidth}
             \centering
@@ -325,37 +362,44 @@ named arguments:
             \includegraphics[width=\textwidth]{figures/BamFeatures/annot/nookaew_cm_annotation_counts}
             \label{fig:nookaew_cm_annotation_counts}
         \end{minipage}
-        \caption{test}
         \caption{Comparison of read counts across annotation categories for the provided analysis files. Categories include genic regions, intergenic regions, transcripts, introns, and inconsistent annotations, with the total annotated reads being the sum of genic, intergenic, and split inconsistent categories. The \textit{ebna\_hisat} dataset exhibits a high proportion of intronic reads, indicating significant transcriptional activity in non-coding regions. Similarly, \textit{hes\_star} shows a substantial intronic component, though to a lesser extent. In contrast, the \textit{nookaew\_cm} dataset, derived from yeast, contains very few intronic reads, reflecting the compact genome organization of yeast with minimal intronic sequences.}
         \label{fig:annotation-counts}
     \end{figure}
 % TODO: Better caption
+    \subsubsection{PCR Index Distribution}
+    The cumulative distributions of PCR index counts for three datasets were analyzed and modeled using a negative binomial distribution, as shown in Figure~\ref{fig:pcr-index}. The \textit{ebna\_hisat} experiment spans PCR index counts up to approximately 3,000,000, while \textit{hes\_star} reaches over 1,000,000, driven largely by a single outlier read with a PCR index of 1,063,959. In contrast, the \textit{nookaew\_cm} dataset has a much smaller range, with PCR index values capped below 200. These differences highlight substantial variability in amplification dynamics across datasets.
 
-
-    \begin{figure}[]
+    %pcr index distribution
+    \begin{figure}[!htbp]
         \centering
         \begin{minipage}{0.32\textwidth}
             \centering
-            \includegraphics[width=\textwidth]{figures/BamFeatures/annot/ebna_hisat_pcr_index_negative_binomial_fit}
+            \includegraphics[width=\textwidth]{figures/BamFeatures/annot/ebna_hisat_pcr_index_distribution}
             \label{fig:ebna_hisat_pcr_index_negative_binomial_fit}
         \end{minipage}
         \hfill
         \begin{minipage}{0.32\textwidth}
             \centering
-            \includegraphics[width=\textwidth]{figures/BamFeatures/annot/hes_star_pcr_index_negative_binomial_fit}
+            \includegraphics[width=\textwidth]{figures/BamFeatures/annot/hes_star_pcr_index_distribution}
             \label{fig:hes_star_pcr_index_negative_binomial_fit}
         \end{minipage}
         \hfill
         \begin{minipage}{0.32\textwidth}
             \centering
-            \includegraphics[width=\textwidth]{figures/BamFeatures/annot/nookaew_cm_pcr_index_negative_binomial_fit}
+            \includegraphics[width=\textwidth]{figures/BamFeatures/annot/nookaew_cm_pcr_index_distribution}
             \label{fig:nookaew_cm_pcr_index_negative_binomial_fit}
         \end{minipage}
-        \caption{Cumulative distributions of PCR index counts fitted with a negative binomial distribution for the provided analysis files. The x-axis represents the PCR index values, and the y-axis shows the cumulative count of reads. The blue line shows the empirical cumulative distribution, while the dashed green line represents the fitted negative binomial distribution, with parameters $r$ and $p$ indicated in the legend. Notably, the x-axis scale differs significantly across datasets: \textit{ebna\_hisat} and \textit{hes\_star} span thousands or hundreds of thousands of PCR index counts, whereas \textit{nookaew\_cm} spans fewer than 200. However, the x-axis is extremely distored in the \textit{hes\_star} by single read with a max pcr index of 1,063,959. The close fit of the negative binomial model to the empirical data supports its suitability for modeling PCR amplification variability across datasets.}
+        \caption{Cumulative distributions of PCR index counts for the provided analysis files. The x-axis represents the PCR index values, and the y-axis shows the cumulative count of reads. The blue line shows the empirical cumulative distribution. Notably, the x-axis scale differs significantly across datasets: \textit{ebna\_hisat} and \textit{hes\_star} span thousands or hundreds of thousands of PCR index counts, whereas \textit{nookaew\_cm} spans fewer than 200. However, the x-axis is extremely distored in the \textit{hes\_star} experiment by single read with a max pcr index of 1,063,959 }
 
-        \label{fig:pcr-index-negative-binomial-fit}
+        \label{fig:pcr-index}
     \end{figure}
-    \begin{figure}[]
+    To model the PCR Index distributions, various distributions were tested, including the Poisson, negative binomial, and gamma distributions. However, no distribution provided a perfect fit for the data without explicitly modelling the parameters of the distribution after the results annotation. Modelling using the negative binomial distribution fitted better than the other distributions tested, with the parameters $r$ and $p$ calculated through the known variance and mean of the experiment.
+
+
+    \subsubsection{Gene Distance Distribution}
+    The cumulative distribution functions (CDFs) of distances from reads to the nearest annotated gene are shown in Figure~\ref{fig:gdist-cdf}. The x-axis represents the distance to the nearest gene in base pairs, while the y-axis shows the cumulative probability. For all datasets, the majority of intergenic reads are located very close to annotated genes, as indicated by the steep initial rise in the CDFs. This pattern suggests potential annotation issues, such as unannotated intronic retention events or the presence of novel transcripts.
+    % gdist distribution
+    \begin{figure}[!htbp]
         \centering
         \begin{minipage}{0.32\textwidth}
             \centering
@@ -377,6 +421,10 @@ named arguments:
         \caption{Cumulative distribution functions (CDFs) of distances from reads to the nearest annotated gene for the provided analysis files.. The x-axis represents the distance to the nearest gene in base pairs, while the y-axis shows the cumulative probability. For all datasets, the majority of intergenic reads are located very close to annotated genes, as indicated by the steep initial rise in the CDFs. This suggests the possibility of annotation errors, such as unannotated intronic retention events or novel transcripts. Notably, the scale of the x-axis varies, with \textit{nookaew\_cm} (yeast) showing much smaller distances compared to the human datasets (\textit{ebna\_hisat} and \textit{hes\_star}), consistent with the compact nature of the yeast genome.}
         \label{fig:gdist-cdf}
     \end{figure}
+    The x-axis scale varies significantly across datasets, reflecting differences in genome organization. In the \textit{nookaew\_cm} dataset (yeast), distances to the nearest gene are generally much smaller, consistent with the compact nature of the yeast genome. In contrast, the \textit{ebna\_hisat} and \textit{hes\_star} datasets (human) exhibit larger distances, as expected given the greater prevalence of intergenic regions in the human genome. Despite these differences, the sharp rise in the CDFs near zero for all datasets highlights that most reads align close to genes. This observation supports the notion that many intergenic reads may originate from unannotated genomic features, which could include novel transcripts or retained introns.
+    The large number of annotated reads that have a distance of zero, is largely due to reads that are partially overlapping with the gene. This is due to the way the program calculates the distance, by finding the closest gene to the read pair. If the read pair is partially overlapping with the gene, the distance is zero. This suggests the reliance of gene rich regions for the mapper. The gradual tailing of the distributions in the human experiments displays a subset of reads that are likely 'truly' from intergenic regions, possibly from ncRNAs or other unannotated regions.
+
+
 
     \subsubsection{JUnit tests}
     When optimizing the program for performance, this testing suite helps verify that improvements do not compromise
