@@ -16,7 +16,7 @@ bamfeaturesbasepath="/mnt/biosoft/praktikum/genprakt-data/BamFeatures/complete_b
 outputpath=$5
 
 # Read the reference table and process each line
-tail -n +2 "$ref_table" | while IFS=$'\t' read -r bam gtf strandness; do
+tail -n +2 "$ref_table" | while IFS=$'\t' read -r bam gtf strandness reference_solution; do
   # Extract the base names
   bamname=$(basename "$bam" .bam)
   gtfname=$(basename "$gtf")

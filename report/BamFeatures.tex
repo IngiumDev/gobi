@@ -366,6 +366,7 @@ named arguments:
         \label{fig:annotation-counts}
     \end{figure}
 % TODO: Better caption
+
     \subsubsection{PCR Index Distribution}
     The cumulative distributions of PCR index counts for three datasets were analyzed and modeled using a negative binomial distribution, as shown in Figure~\ref{fig:pcr-index}. The \textit{ebna\_hisat} experiment spans PCR index counts up to approximately 3,000,000, while \textit{hes\_star} reaches over 1,000,000, driven largely by a single outlier read with a PCR index of 1,063,959. In contrast, the \textit{nookaew\_cm} dataset has a much smaller range, with PCR index values capped below 200. These differences highlight substantial variability in amplification dynamics across datasets.
 
@@ -395,7 +396,6 @@ named arguments:
     \end{figure}
     To model the PCR Index distributions, various distributions were tested, including the Poisson, negative binomial, and gamma distributions. However, no distribution provided a perfect fit for the data without explicitly modelling the parameters of the distribution after the results annotation. Modelling using the negative binomial distribution fitted better than the other distributions tested, with the parameters $r$ and $p$ calculated through the known variance and mean of the experiment.
 
-
     \subsubsection{Gene Distance Distribution}
     The cumulative distribution functions (CDFs) of distances from reads to the nearest annotated gene are shown in Figure~\ref{fig:gdist-cdf}. The x-axis represents the distance to the nearest gene in base pairs, while the y-axis shows the cumulative probability. For all datasets, the majority of intergenic reads are located very close to annotated genes, as indicated by the steep initial rise in the CDFs. This pattern suggests potential annotation issues, such as unannotated intronic retention events or the presence of novel transcripts.
     % gdist distribution
@@ -423,8 +423,6 @@ named arguments:
     \end{figure}
     The x-axis scale varies significantly across datasets, reflecting differences in genome organization. In the \textit{nookaew\_cm} dataset (yeast), distances to the nearest gene are generally much smaller, consistent with the compact nature of the yeast genome. In contrast, the \textit{ebna\_hisat} and \textit{hes\_star} datasets (human) exhibit larger distances, as expected given the greater prevalence of intergenic regions in the human genome. Despite these differences, the sharp rise in the CDFs near zero for all datasets highlights that most reads align close to genes. This observation supports the notion that many intergenic reads may originate from unannotated genomic features, which could include novel transcripts or retained introns.
     The large number of annotated reads that have a distance of zero, is largely due to reads that are partially overlapping with the gene. This is due to the way the program calculates the distance, by finding the closest gene to the read pair. If the read pair is partially overlapping with the gene, the distance is zero. This suggests the reliance of gene rich regions for the mapper. The gradual tailing of the distributions in the human experiments displays a subset of reads that are likely 'truly' from intergenic regions, possibly from ncRNAs or other unannotated regions.
-
-
 
     \subsubsection{JUnit tests}
     When optimizing the program for performance, this testing suite helps verify that improvements do not compromise
@@ -458,24 +456,27 @@ named arguments:
 
     \subsubsection{Runtime}
 
+
+
+    \begin{table}[]
+        \centering
+        \caption{List of the Bamfiles provided that have reference solutions with the respective gtf, experiment strandness, and the runtime. The bam file were processed on the bioclient grid with -Xmx10g and queued with QueueGridForRefTable.sh}
+        \label{tab:reference-bam-runtime}
+        \resizebox{\textwidth}{!}{%
+            \begin{tabular}{l|l|l|l|l}
+                \textbf{BAM} & \textbf{GTF}                         & \textbf{Strandness} & \textbf{Runtime (seconds)} & \textbf{Number of Annotated Reads} \\ \hline
+                ebna\_hisat  & Homo\_sapiens.GRCh37.75              & true                & 442                  & 47,270,566                         \\ \hline
+                hes\_star    & Homo\_sapiens.GRCh37.75              & false               & 173                  & 21,266,162                         \\ \hline
+                nookaew\_cm  & Saccharomyces\_cerevisiae.R64-1-1.75 & null                & 29                   & 5,054,624
+            \end{tabular}%
+        }
+    \end{table}
+
     \subsubsection{Complexity}
 
 
     \section{Supplement}
-    \begin{table}[h]
-        \centering
-        \caption{List of the Complete Bamfiles provided with the respective gtf and experiment strandness}
-        \label{tab:complete-bams}
-        \resizebox{0.7\textwidth}{!}{%
-            \begin{tabular}{|c|c|c|}
-                \hline
-                \textbf{bam}    & \textbf{gtf}                             & \textbf{strandness} \\ \hline
-                nookaew\_cm.bam & Saccharomyces\_cerevisiae.R64-1-1.75.gtf & y.ns.2.annot        \\ \hline
-                hes\_star.bam   & Homo\_sapiens.GRCh37.75.gtf              & false               \\ \hline
-                ebna\_hisat.bam & Homo\_sapiens.GRCh37.75.gtf              & true                \\ \hline
-            \end{tabular}%
-        }
-    \end{table}
+
     \begin{table}[h]
         \centering
         \caption
@@ -485,7 +486,7 @@ named arguments:
             \begin{tabular}{|c|c|c|}
                 \hline
                 \textbf{bam} & \textbf{gtf}                             & \textbf{strandness} \\ \hline
-                y.ns.2.bam   & Saccharomyces\_cerevisiae.R64-1-1.75.gtf & y.ns.2.annot        \\ \hline
+                y.ns.2.bam   & Saccharomyces\_cerevisiae.R64-1-1.75.gtf & y.ns.2re.annot      \\ \hline
                 y.ns.5.bam   & Saccharomyces\_cerevisiae.R64-1-1.75.gtf & y.ns.5.annot        \\ \hline
                 h.sn.1.bam   & Homo\_sapiens.GRCh37.75.gtf              & false               \\ \hline
                 h.sn.7.bam   & Homo\_sapiens.GRCh37.75.gtf              & false               \\ \hline
