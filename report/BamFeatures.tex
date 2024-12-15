@@ -76,9 +76,9 @@
 
     \begin{figure}
         \centering
-        \includegraphics[width=0.3\textwidth]{figures/BamFeatures/overlapping-inconsistent-blocks}
+        \includegraphics[width=0.5\textwidth]{figures/BamFeatures/overlapping-inconsistent-blocks}
         \caption
-        {Diagram showing an example of an inconsistent read where the reads in a pair overlap but imply different introns.}
+        {Diagram showing an example of an inconsistent read where the reads in a pair overlap but imply different introns (marked in red).}
         \label{fig:overlapping-inconsistent-blocks}
     \end{figure}
 
@@ -91,21 +91,21 @@
         \centering
         \includegraphics[width=0.7\textwidth]{figures/BamFeatures/transcriptomic-read}
         \caption
-        {Diagram showing an example of a transcriptomic read pair. The read pair is fully contained within a gene and matches contiguously to a specific transcript section.}
+        {Diagram showing an example of a transcriptomic read pair. The read pair is fully contained within a gene and matches contiguously to a specific transcript section. The color indicates the strand}
         \label{fig:transcriptomic-read}
     \end{figure}
     \begin{figure}
         \centering
         \includegraphics[width=0.7\textwidth]{figures/BamFeatures/merged-transcriptomic-read}
         \caption
-        {Diagram showing an example of a merged transcriptomic read pair. The read pair aligns to the merged transcript of a gene but does not necessarily match contiguously.}
+        {Diagram showing an example of a merged transcriptomic read pair. The read pair aligns to the merged transcript of a gene but does not necessarily match contiguously. The color indicates the strand}
         \label{fig:merged-transcriptomic-read}
     \end{figure}
     \begin{figure}
         \centering
-        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/merged-transcriptomic-read}
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/intronic-read}
         \caption
-        {Diagram showing an example of a intronic read pair. The read pair is fully contained within the gene body but does not align to any annotated transcript or merged transcript.}
+        {Diagram showing an example of a intronic read pair. The read pair is fully contained within the gene body but does not align to any annotated transcript or merged transcript. The color indicates the strand.}
         \label{fig:intronic-read}
     \end{figure}
 
@@ -118,8 +118,8 @@
     files. Therefore, three large complete BAM files are provided for evaluation. The objective of the project is to
     process the \texttt{ebna2\_hisat.bam}
     file within one hour while using a maximum of 10GB of RAM. Additionally, the read annotations of the test files will
-    be analyzed. The other files used in this assignment are shown in Tables \ref{tab:complete-bams} \&
-    \ref{tab:reference-bams} (Supplement)
+    be analyzed. The other files used in this assignment are shown in Tables \ref{tab:test-bam-runtime} \&
+    \ref{tab:reference-bam-runtime} (Supplement)
 
     \subsection{Gene Expression Units}
     Gene expression levels in RNA sequencing are often quantified using standardized units that account for sequencing depth and gene length. One commonly used metric is Reads Per Kilobase of transcript per Million mapped reads (RPKM), which normalizes read counts to enable comparisons across genes and samples (Equation \ref{eq:rpkm})\cite{bedre_2021}. This metric is calculated per gene.
@@ -150,11 +150,6 @@ named arguments:
     \end{verbatim}
 
     \subsection{Program Procedure}
-    Figure \ref{fig:program-procedure}
-    shows the general process for solving the BamFeatures assignment. Due to the complexity of this assignment and the
-    numerous cases, a flowchart is optimal for understanding the task. This allows optimal
-    structuring of an implementation, as one can see which checks can be performed first, in order to possibly rule out
-    other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementations processes the reads in batches (by chromosome), instead of one by one.
     \begin{figure}[!htpb]
         \centering
         \includegraphics[width=0.7\textwidth]{figures/BamFeatures/BamFeaturesProcess-crop}
@@ -166,6 +161,12 @@ named arguments:
             the processing is performed.}
         \label{fig:program-procedure}
     \end{figure}
+    Figure \ref{fig:program-procedure}
+    shows the general process for solving the BamFeatures assignment. Due to the complexity of this assignment and the
+    numerous cases, a flowchart is optimal for understanding the task. This allows optimal
+    structuring of an implementation, as one can see which checks can be performed first, in order to possibly rule out
+    other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementations processes the reads in batches (by chromosome), instead of one by one.
+
     \begin{enumerate}
         \item \textbf{Initialization and Setup}: Creation of the \texttt{ReadAnnotator} object, which initializes the \texttt{SamReader}, \texttt{IntervalTreeForestManager}, \texttt{PCRIndexManager} and various data structures to keep track of the reads to annotate.
         \item \textbf{Iteration Process}:
@@ -209,7 +210,7 @@ named arguments:
         \item The read is not a supplementary alignment
     \end{enumerate}
     This check ensures the correctness of the annotation, since only valid reads are processed. Since we need both SAMRecords of the first and second of pair, we can only start processing once we have found both. A lookup table exists to match a read to its pair. If the read's mate has not been found, we add it to the lookup table by the read name, which is identical for read mates, but unique in the experiment. If the mate has been found, we add the reads to the readsToAnnotate list in the correct order. Once the chromosome is complete, all the pairs in readsToAnnotate are annotated, and any outstanding entries in the lookup table are ignored.
-    The annotation of a read pair begins with the extraction of the alignment start and end. The coordinates are then used to find the genes (on the current chromosome and relevant strand) that completely include the read pair on the interval tree. If there are genes that contain it, we start the checks for a genic read. First, the alignment blocks of each read are saved and melted. This entails combining overlapping and neighboring blocks into one. For two end exclusive region vectors $x$ and $y$, iff $x_{end}\geq y_{start}$ a new region vector $z$ is created with $z\coloneqq(x_{start},y_{end})$, for all combinations and orderings of $x,y$. This covers multiple edge cases, ensuring the correct calculation of the PCR Index, gene matches, and splits. Then the reads are checked for consistency, checking for both reads if there is a base of an implied intron of the other read inside the other read (see Figure X). This process already calculated the number of splits, and is directly saved. If the pair is consistent, we calculate the basic read info like clipping, mismatches, and PCR index. The read is then checked to determine whether it is transcriptomic, merged-transcriptomic, or intronic. In order to check if a read is transcriptomic, both reads region vectors need to be sub-region vectors of at least one transcript. Sub-region vectors is defined as follows: A read region vector $r$ is a sub-RV of a transcript $t$, iff $\text{cut}(t, r_{start}, r_{end}) == r$, as demonstrated in Figure \ref{fig:transcriptomic-cut}. All matching transcripts are outputted. If there is not a transcriptomic match, we check if there is a merged transcript match. The merged transcript is the union of all exonic regions of a gene. If both reads are contained in the merged transcript, the read is considered a merged-transcriptomic match. Contained is defined as each base of the read aligns to some exon in the merged transcript (Figure \ref{fig:merged-transcriptomic-contained}). If there is no merged transcript match, the read is considered intronic.
+    The annotation of a read pair begins with the extraction of the alignment start and end. The coordinates are then used to find the genes (on the current chromosome and relevant strand) that completely include the read pair on the interval tree. If there are genes that contain it, we start the checks for a genic read. First, the alignment blocks of each read are saved and melted. This entails combining overlapping and neighboring blocks into one. For two end exclusive region vectors $x$ and $y$, iff $x_{end}\geq y_{start}$ a new region vector $z$ is created with $z\coloneqq(x_{start},y_{end})$, for all combinations and orderings of $x,y$. This covers multiple edge cases, ensuring the correct calculation of the PCR Index, gene matches, and splits. Then the reads are checked for consistency, checking for both reads if there is a base of an implied intron of the other read inside the other read (see Figure X). This process already calculated the number of splits, and is directly saved. If the pair is consistent, we calculate the basic read info like clipping, mismatches, and PCR index. The read is then checked to determine whether it is transcriptomic, merged-transcriptomic, or intronic. In order to check if a read is transcriptomic, both reads region vectors need to be sub-region vectors of at least one transcript. Sub-region vectors is defined as follows: A read region vector $r$ is a sub-RV of a transcript $t$, iff $\text{cut}(t, r_{start}, r_{end}) == r$, as demonstrated in Figure \ref{fig:transcriptomic-cut}. All matching transcripts are outputted. The set of the result of the cut operation is compared with the set of the read vectors, and checked for equivalence. If there is not a transcriptomic match, we check if there is a merged transcript match. The merged transcript is the union of all exonic regions of a gene. If both reads are contained in the merged transcript, the read is considered a merged-transcriptomic match. Contained is defined as each base of the read aligns to some exon in the merged transcript (Figure \ref{fig:merged-transcriptomic-contained}). If there is no merged transcript match, the read is considered intronic.
 
     If there were no containing, the read is checked for intergenic status. The interval tree is searched if the read pair completely contains a gene, in which case we ignore it. The same checks and calculations occur as in the genic case, but the gene distance is calculated and the antisense match is checked. The gene distance is checked by finding the closest gene on the same strand. The antisense match is checked by searching the interval tree for the antisense strand. If a gene is found, the read pair is considered antisense matching. The PCR index is calculated by checking the cache map for the region vectors of the read pair. If the region vectors are found, the read pair is considered a PCR duplicate. The read pair is then outputted.
 
@@ -460,8 +461,8 @@ named arguments:
 
     \begin{table}[]
         \centering
-        \caption{List of the Bamfiles provided that have reference solutions with the respective gtf, experiment strandness, and the runtime. The bam file were processed on the bioclient grid with -Xmx10g and queued with QueueGridForRefTable.sh}
-        \label{tab:reference-bam-runtime}
+        \caption{List of the BAMfiles provided with the respective gtf, experiment strandness, and the runtime (excluding GTF Parsing). The bam file were processed on the bioclient grid (write/read to/from HDD) with -Xmx10g and queued with QueueGridForRefTable.sh}
+        \label{tab:test-bam-runtime}
         \resizebox{\textwidth}{!}{%
             \begin{tabular}{l|l|l|l|l}
                 \textbf{BAM} & \textbf{GTF}                         & \textbf{Strandness} & \textbf{Runtime (seconds)} & \textbf{Number of Annotated Reads} \\ \hline
@@ -472,29 +473,31 @@ named arguments:
         }
     \end{table}
 
+    % Please add the following required packages to your document preamble:
+% \usepackage{graphicx}
+    \begin{table}[]
+        \centering
+        \caption{List of the Bamfiles provided that have reference solutions with the respective gtf, experiment strandness, and the runtime (excluding GTF Parsing). The bam file were processed on the bioclient grid (write/read to/from HDD) with -Xmx10g and queued with QueueGridForRefTable.sh}
+        \label{tab:reference-bam-runtime}
+        \resizebox{\textwidth}{!}{%
+            \begin{tabular}{l|l|l|l|l}
+                \textbf{BAM} & \textbf{GTF} & \textbf{Strandness} & \textbf{Runtime (seconds)} & \textbf{Number of Annotated Reads} \\ \hline
+                y.ns.2 & Saccharomyces\_cerevisiae.R64-1-1.75 & null  & 0.350 & 20,876 \\ \hline
+                y.ns.5 & Saccharomyces\_cerevisiae.R64-1-1.75 & null  & 0.372 & 18,505 \\ \hline
+                h.sn.1 & Homo\_sapiens.GRCh37.75              & false & 0.336 & 17,209 \\ \hline
+                h.sn.7 & Homo\_sapiens.GRCh37.75              & false & 0.340 & 16,116 \\ \hline
+                h.sp.3 & Homo\_sapiens.GRCh37.75              & true  & 0.375 & 22,806 \\ \hline
+                h.sp.8 & Homo\_sapiens.GRCh37.75              & true  & 0.425 & 21,092
+            \end{tabular}%
+        }
+    \end{table}
+
     \subsubsection{Complexity}
 
 
     \section{Supplement}
 
-    \begin{table}[h]
-        \centering
-        \caption
-        {List of the Bamfiles provided that have reference solutions with the respective gtf and experiment strandness}
-        \label{tab:reference-bams}
-        \resizebox{0.7\textwidth}{!}{%
-            \begin{tabular}{|c|c|c|}
-                \hline
-                \textbf{bam} & \textbf{gtf}                             & \textbf{strandness} \\ \hline
-                y.ns.2.bam   & Saccharomyces\_cerevisiae.R64-1-1.75.gtf & y.ns.2re.annot      \\ \hline
-                y.ns.5.bam   & Saccharomyces\_cerevisiae.R64-1-1.75.gtf & y.ns.5.annot        \\ \hline
-                h.sn.1.bam   & Homo\_sapiens.GRCh37.75.gtf              & false               \\ \hline
-                h.sn.7.bam   & Homo\_sapiens.GRCh37.75.gtf              & false               \\ \hline
-                h.sp.3.bam   & Homo\_sapiens.GRCh37.75.gtf              & true                \\ \hline
-                h.sp.8.bam   & Homo\_sapiens.GRCh37.75.gtf              & true                \\ \hline
-            \end{tabular}%
-        }
-    \end{table}
+
 
     \AtNextBibliography{\small}
     \printbibliography
