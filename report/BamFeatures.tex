@@ -49,81 +49,84 @@
 \begin{document}
 
     \maketitle
+    \renewcommand{\abstractname}{}
+    \begin{abstract}
+        \large
+
+        This report presents the BAMFeatures program, a tool developed for the classification of RNA sequencing (RNAseq) read pairs based on their alignment to the genome by a mapper. BAMFeatures categorizes read pairs into classes such as \texttt{genic}, \texttt{intergenic}, and \texttt{intergenic containing}, with further distinctions for genic reads as \texttt{transcriptomic}, \texttt{merged-transcriptomic}, or \texttt{intronic}. These classifications are determined by evaluating whether read pairs are fully contained within genes, align contiguously to specific transcripts, match to merged transcripts, or reside within intronic regions. The formal definitions of each category are detailed and the biological plausibility of read pair mappings is discussed. Additionally, the runtime performance of BAMFeatures across different datasets is benchmarked, demonstrating its scalability and efficiency in processing large BAM files. Finally, The results of the program are analyzed and the distribution of Reads Per Kilobase of transcript per Million mapped reads (RPKM) values is presented.
+    \end{abstract}
     \hrule
     \tableofcontents
     \vspace{10pt} % Optional: Add space after the TOC as well
     \hrule
-    \renewcommand{\abstractname}{}
 
-    \begin{abstract}
-        \large
-        In this report, the BAMFeatures program is presented, a tool developed for the classification of RNA sequencing (RNAseq) read pairs based on their alignment to the genome by a mapper. BAMFeatures categorizes read pairs into classes such as \texttt{genic}, \texttt{intergenic}, and \texttt{intergenic containing}, with further distinctions for genic reads as \texttt{transcriptomic}, \texttt{merged-transcriptomic}, or \texttt{intronic}. These classifications are determined by evaluating whether read pairs are fully contained within genes, align contiguously to specific transcripts, match to merged transcripts, or reside within intronic regions. The formal definitions of each category are detailed and the biological plausibility of read pair mappings is discussed. Additionally, the runtime performance of BAMFeatures across different datasets is benchmarked, demonstrating its scalability and efficiency in processing large BAM files. The results of the program are analyzed and the distribution of Reads Per Kilobase of transcript per Million mapped reads (RPKM) values is presented.
-    \end{abstract}
 
 
     \pagebreak
-    \maketitle
 
 
     \section{Introduction}
-    RNA sequencing (RNAseq) is a powerful and widely used method for analyzing the transcriptome, providing insights into gene expression patterns, alternative splicing, and discovering novel transcripts. By converting RNA into complementary DNA (cDNA) and sequencing it using high-throughput platforms, researchers can quantify and characterize the complete set of RNA transcripts (those that are sequencable) present in a sample. The results of an RNAseq experiment are a set of sequenced reads in the FASTQ format (either single-end or paired-end. These reads are then mapped back onto the reference genome using a mapper like \texttt{STAR}\cite{star}.
-    A sample workflow for an RNAseq workflow would include extracting the sample, sequencing mapping, annotation, and downstream analysis like a differential expression analysis. In a perfect world, each read comes exactly from exactly one transcript. However, sometimes it is unclear from which transcript or even gene a read originates. Additionally, annotations can be incomplete, sequencing or mapping errors can occur, and genes or transcripts can overlap, complicating the mapping process. The annotation steps attempt to quantify and correct these errors, sort out improbable or incorrect reads, and assign reads to genes. Strand specificity in RNA sequencing refers to the ability to determine the strand of DNA from which an RNA transcript originates. This property is important because transcription is inherently directional, with RNA synthesized from only one DNA template strand. Strand-specific sequencing protocols preserve this directionality, allowing researchers to distinguish between overlapping genes transcribed on opposite strands or sense and antisense transcription. The need for strand specificity arises from the complexity of eukaryotic genomes, where overlapping genes, antisense transcription, and non-coding RNAs are common. It can be challenging to accurately assign reads to their source transcripts without strand-specific information, leading to ambiguous or erroneous interpretations. By maintaining strand-specificity, RNA-seq enables a more precise understanding of transcriptional regulation, splicing, and gene expression patterns. Thus, some of the experiments used in this project will be strand-specific while others aren't.
+    RNA sequencing (RNAseq) is a powerful and widely used method for analyzing the transcriptome, providing insights into gene expression patterns, alternative splicing, and the discovery of novel transcripts. By converting RNA into complementary DNA (cDNA) and sequencing it using high-throughput platforms, researchers can quantify and characterize the complete set of RNA transcripts (those that are sequencable) present in a sample. The results of an RNAseq experiment are a set of sequenced reads in the FASTQ format, either single-end or paired-end. These reads are then mapped back onto the reference genome using a mapper such as \texttt{STAR}~\cite{star}.
+
+    A typical RNAseq workflow includes sample extraction, sequencing, mapping, annotation, and downstream analyses such as differential expression analysis. In a perfect scenario, each read originates from exactly one transcript. However, sometimes it is unclear from which transcript or even gene a read originates. Additionally, annotations can be incomplete, sequencing or mapping errors can occur, and genes or transcripts can overlap, complicating the mapping process. The annotation steps attempt to quantify and correct these errors, sort out improbable or incorrect reads, and assign reads to genes.
+
+    Strand specificity in RNA sequencing refers to the ability to determine the strand of DNA from which an RNA transcript originates. This property is important because transcription is inherently directional, with RNA synthesized from only one DNA template strand. Strand-specific sequencing protocols preserve this directionality, allowing researchers to distinguish between overlapping genes transcribed on opposite strands or sense and antisense transcription. The need for strand specificity arises from the complexity of eukaryotic genomes, where overlapping genes, antisense transcription, and non-coding RNAs are common. It can be challenging to accurately assign reads to their source transcripts without strand-specific information, leading to ambiguous or erroneous interpretations. By maintaining strand specificity, RNAseq enables a more precise understanding of transcriptional regulation, splicing, and gene expression patterns. Thus, some of the experiments used in this project will be strand-specific while others are not.
+
     \subsection[SAM Format]{Sequence Alignment Map Format}
-    The Sequence Alignment Map (SAM) format is a widely used text-based format for storing biological sequences that are aligned to a reference genome. Each entry in a SAM file contains detailed information about a read and its alignment, such as the alignment positions and possible mismatches. While SAM files are human-readable, they are relatively large in size, as each field is stored as plain text. BAM files are the binary equivalent of SAM files, designed to store the same alignment information in a compressed and efficient manner. Unlike the plain-text SAM format, BAM files use binary encoding to represent data, significantly reducing their storage requirements. For example, when storing numbers in plaintext encoded in UTF-8, the number '64' would be encoded as the characters '6' and '4', each requiring 8 bits. In contrast, the binary representation of 64 would be \texttt{01000000} 8 bits in total. This is an oversimplified example but it illustrates some of the advantages of the binary format. BAM files can be indexed and sorted by name or position, enabling fast access to specific regions of interest. However, this means that a single forward/reverse read pair might not come after each other as the reads are sorted by their position on the reference genome. Several other read inconsistencies occur in BAM files that we do not want to include:
+    The Sequence Alignment Map (SAM) format is a widely used text-based format for storing biological sequences that are aligned to a reference genome. Each entry in a SAM file contains detailed information about a read and its alignment, such as the alignment positions and possible mismatches. While SAM files are human-readable, they are relatively large in size, as each field is stored as plain text.
+
+    BAM files are the binary equivalent of SAM files, designed to store the same alignment information in a compressed and efficient manner. Unlike the plain-text SAM format, BAM files use binary encoding to represent data, significantly reducing their storage requirements. For example, when storing numbers in plaintext encoded in UTF-8, the number '64' would be encoded as the characters '6' and '4', each requiring 8 bits. In contrast, the binary representation of 64 would be \texttt{01000000}, which is 8 bits in total. This is an oversimplified example but it illustrates some of the advantages of the binary format. BAM files can be indexed and sorted by name or position, enabling fast access to specific regions of interest. However, this means that a single forward/reverse read pair might not appear consecutively, as the reads are sorted by their position on the reference genome. Several read inconsistencies occur in BAM files that should be excluded from analysis:
     \begin{itemize}
-        \item A read in a pair maps to a different chromosome than the other
-        \item Both reads in a pair map to the same strand
-        \item Reads in a read pair overlap, but imply different introns, as illustrated in Figure \ref{fig:overlapping-inconsistent-blocks}
+        \item Reads in a pair mapping to different chromosomes.
+        \item Both reads in a pair mapping to the same strand.
+        \item Overlapping reads in a pair that imply different introns (see Figure \ref{fig:overlapping-inconsistent-blocks}).
     \end{itemize}
 
-    When annotating, the goal is to identify the most plausible explanation for each read based on its alignment and features. A read may originate from a transcript, reflecting active transcription within an annotated gene, or from a gene's transcribed region but not its exons, such as an intronic region or novel isoform—especially if splicing events are observed. Alternatively, reads may align antisense to known transcripts, potentially indicating by-products or genuine antisense transcription. Some reads may be classified as intergenic, often aligning near gene boundaries. This could signal novel isoforms, unannotated untranslated regions (UTRs), or transcriptional read-throughs or read-outs into adjacent regions.
+    When annotating, the goal is to identify the most plausible explanation for each read based on its alignment and features. A read may originate from a transcript, reflecting active transcription within an annotated gene, or from a gene's transcribed region but not its exons, such as an intronic region or a novel isoform—especially if splicing events are observed. Alternatively, reads may align antisense to known transcripts, potentially indicating by-products or genuine antisense transcription. Some reads may be classified as intergenic, often aligning near gene boundaries. This could signal novel isoforms or unannotated untranslated regions (UTRs).
 
     \begin{figure}
         \centering
         \includegraphics[width=0.5\textwidth]{figures/BamFeatures/overlapping-inconsistent-blocks}
-        \caption
-        {Diagram showing an example of an inconsistent read where the reads in a pair overlap but imply different introns (marked in red).}
+        \caption{Diagram showing an example of an inconsistent read where the reads in a pair overlap but imply different introns (marked in red).}
         \label{fig:overlapping-inconsistent-blocks}
     \end{figure}
 
     \subsection{Read Mapping Types}
-    A consistent read pair can either be \texttt{genic}, \texttt{intergenic}, or \texttt{intergenic containing}. A genic read pair is one where both reads in a par are contained within a gene. Formally speaking, that means all mapped bases of the read are $\geq$ gene start and $\leq$ gene end (with end-inclusive). A read pair is \texttt{intergenic} if it is not \texttt{genic}, and the read pair does not completely contain one or more genes. Containing a gene is defined as follows: the first mapped base of a read $\leq$ start of a gene and the last mapped base of a read $\geq$ end of the gene. All other read pairs are \texttt{intergenic-contained}.
-    A \texttt{genic} read pair can either be \texttt{transcriptomic}, \texttt{merged-transcriptomic}, or \texttt{intronic}. A read pair is considered \texttt{transcriptomic} if it is fully contained within at least one annotated transcript and matches contiguously to a specific transcript section (Figure \ref{fig:transcriptomic-read}). This means that the intron boundaries observed in the read pair are consistent with those defined in the transcript annotation. Formally, a read pair matches a transcript if both read Region Vectors (RVs) are sub-RVs (defined later) of at least one transcript. A read pair is classified as \texttt{merged-transcriptomic} if it aligns to the merged transcript of a gene but does not necessarily match contiguously (Figure \ref{fig:merged-transcriptomic-read}). The merged transcript represents the union of all exonic regions of a gene, disregarding specific intron boundaries. This classification accounts for reads that may span novel isoforms or unannotated transcripts. Formally, a read pair matches the merged transcript if each base of the read pair aligns with some exon in the merged transcript. This broader definition enables the identification of potential new transcript variants while maintaining consistency with the gene’s exon structure. A read pair is classified as \texttt{intronic} if it is fully contained within the gene body but does not align to any annotated transcript or merged transcript (Figure \ref{fig:intronic-read}). Intronic reads may represent unprocessed RNA, novel isoforms with unannotated intron retention, or other transcriptional events within the gene body.
+
+    To accurately classify read pairs, it is essential to define the different types of mappings. A consistent read pair can be classified as \texttt{genic}, \texttt{intergenic}, or \texttt{intergenic containing}. A genic read pair is one where both reads in a pair are contained within a gene. Formally, this means all mapped bases of the read are greater than or equal to the gene start position and less than or equal to the gene end position (inclusive). A read pair is \texttt{intergenic} if it is not \texttt{genic} and does not completely contain one or more genes. A read contains a gene if the first mapped base of the read is less than or equal to the start of the gene and the last mapped base is greater than or equal to the end of the gene. All other read pairs are \texttt{intergenic-contained}.
+
+    A \texttt{genic} read pair can be further classified as \texttt{transcriptomic}, \texttt{merged-transcriptomic}, or \texttt{intronic}. A read pair is considered \texttt{transcriptomic} if it is fully contained within at least one annotated transcript and aligns contiguously to a specific transcript sequence section (see Figure~\ref{fig:transcriptomic-read}). This means that the intron boundaries observed in the read pair are consistent with those defined in the transcript annotation. Formally, a read pair matches a transcript if both read Region Vectors (RVs) are sub-RVs (defined later) of at least one transcript.
+
+    A read pair is classified as \texttt{merged-transcriptomic} if it aligns to the merged transcript of a gene but does not necessarily match contiguously (Figure \ref{fig:merged-transcriptomic-read}). The merged transcript represents the union of all exonic regions of a gene, disregarding specific intron boundaries. This classification accounts for reads that may span novel isoforms or unannotated transcripts. Formally, a read pair matches the merged transcript if each base of the read pair aligns with some exon in the merged transcript. This broader definition enables the identification of potential new transcript variants while maintaining consistency with the gene's exon structure.
+
+    A read pair is classified as \texttt{intronic} if it is fully contained within the gene body but does not align to any annotated transcript or merged transcript (Figure \ref{fig:intronic-read}). Intronic reads may represent unprocessed RNA, novel isoforms with unannotated intron retention, or other transcriptional events within the gene body.
 
     Since we are only looking for the most biologically plausible explanation, we only want to consider the most plausible case (\texttt{transcriptomic} $>$ \texttt{merged-transcriptomic} $>$\texttt{intronic}). For example, if a read pair matches a specific transcript of one gene but also the merged transcript of another gene, we would only consider the transcriptomic match as it is more plausible. If a read pair matches multiple transcripts of multiple genes, we would want to know all the matched transcripts.
     \begin{figure}
         \centering
         \includegraphics[width=0.7\textwidth]{figures/BamFeatures/transcriptomic-read}
-        \caption
-        {Diagram showing an example of a transcriptomic read pair. The read pair is fully contained within a gene and matches contiguously to a specific transcript section. The color indicates the strand}
+        \caption{Diagram showing an example of a transcriptomic read pair. The read pair is fully contained within a gene and matches contiguously to a specific transcript section. The color indicates the strand.}
         \label{fig:transcriptomic-read}
     \end{figure}
     \begin{figure}
         \centering
         \includegraphics[width=0.7\textwidth]{figures/BamFeatures/merged-transcriptomic-read}
-        \caption
-        {Diagram showing an example of a merged transcriptomic read pair. The read pair aligns to the merged transcript of a gene but does not necessarily match contiguously. The color indicates the strand}
+        \caption{Diagram showing an example of a merged transcriptomic read pair. The read pair aligns to the merged transcript of a gene but does not necessarily match contiguously. The color indicates the strand.}
         \label{fig:merged-transcriptomic-read}
     \end{figure}
     \begin{figure}
         \centering
         \includegraphics[width=0.7\textwidth]{figures/BamFeatures/intronic-read}
-        \caption
-        {Diagram showing an example of an intronic read pair. The read pair is fully contained within the gene body but does not align with any annotated transcript or merged transcript. The color indicates the strand.}
+        \caption{Diagram showing an example of an intronic read pair. The read pair is fully contained within the gene body but does not align with any annotated transcript or merged transcript. The color indicates the strand.}
         \label{fig:intronic-read}
     \end{figure}
 
     \subsection{PCR Amplification}
-    PCR amplification is a key step in RNA-seq library preparation, where DNA fragments are exponentially amplified to generate sufficient material for sequencing. While essential, this process can introduce biases, as some fragments are amplified more than others. A possible reason for this is because the process is exponential, if a fragment is amplified, it increases the chance that it will be amplified again. This continues exponentially and can lead to the overrepresentation of certain fragments, distorting the quantitative nature of RNA-seq data. The PCR index (\texttt{pcrindex}) is a metric used to identify read pairs that may have been amplified multiple times due to PCR cycles. It is calculated by tracking all observed read pairs and their associated regions (e.g., Region Vectors or \texttt{RV}s). If a read pair’s Region Vector matches previously observed regions, it is flagged as a potential PCR duplicate. This approach ensures that repeated fragments, whether arising from overamplification or technical artifacts, are systematically identified.
+    Polymerase Chain Reaction (PCR) amplification is a crucial step in RNA sequencing workflows to increase the quantity of DNA fragments before sequencing. However, PCR amplification can introduce biases, such as the preferential amplification of certain fragments, leading to overrepresentation of some reads in the dataset. A possible reason for this is because the process is exponential, if a fragment is amplified, it increases the chance that it will be amplified again. This continues exponentially and can lead to the overrepresentation of certain fragments. These PCR duplicates can affect downstream analyses, including quantification of gene expression levels. The PCR index (\texttt{pcrindex}) is a metric used to identify read pairs that may have been amplified multiple times due to PCR cycles. It is calculated by tracking all observed read pairs and their associated regions (e.g., Region Vectors or \texttt{RV}s). If a read pair’s Region Vector matches previously observed regions, it is flagged as a potential PCR duplicate. This approach ensures that repeated fragments, whether arising from overamplification or technical artifacts, are systematically identified.
     There are multiple methods that are frequently used to address this distortion. Downsampling simply involves downweighting overamplified fragments. Barcoding fragments before PCR allows us to distinguish true biological duplicates from ones created due to PCR amplification. In this project, we will compare the results of all reads and those that are unique.
 
     \subsection{Test Files}
-    To optimize computation time, the submission server will only verify the correctness of the program using small test
-    files. Therefore, three large complete BAM files are provided for evaluation. The objective of the project is to
-    process the \texttt{ebna\_hisat.bam}
-    file within one hour while using a maximum of 10GB of RAM. Additionally, the read annotations of the test files will
-    be analyzed. The other files used in this assignment are shown in Tables \ref{tab:test-bam-runtime} \&
-    \ref{tab:reference-bam-runtime}.
+    To optimize computation time, the submission server will verify correctness using small test files. However, for evaluation, three large complete BAM files are provided. The objective of the project is to process the \texttt{ebna\_hisat.bam} file within one hour while using a maximum of 10GB of RAM. Additionally, the annotations of the read pairs in the test files will be analyzed. The other files used in this assignment are shown in Tables \ref{tab:test-bam-runtime} and \ref{tab:reference-bam-runtime}.
 
     \subsection{Gene Expression Units}
     Gene expression levels in RNA sequencing are often quantified using standardized units that account for sequencing depth and gene length. One commonly used metric is Reads Per Kilobase of transcript per Million mapped reads (RPKM), which normalizes read counts to enable comparisons across genes and samples (Equation \ref{eq:rpkm})\cite{bedre_2021}. This metric is calculated per gene.
@@ -172,7 +175,7 @@ named arguments:
     other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementations processes the reads in batches (by chromosome), instead of one by one.
 
     \begin{enumerate}
-        \item \textbf{Initialization and Setup}: Creation of the \texttt{ReadAnnotator} object, which initializes the \texttt{SamReader}, \texttt{IntervalTreeForestManager}, \texttt{PCRIndexManager} and various data structures to keep track of the reads to annotate.
+        \item \textbf{Initialization and Setup}: Creation of the \texttt{ReadAnnotator} object, which initializes the \texttt{SamReader}, \texttt{IntervalTreeForestManager}, \texttt{PCRIndexManager}, and various data structures to keep track of the reads to annotate.
         \item \textbf{Iteration Process}:
         \begin{enumerate}
             \item \textbf{Iterate through the SamReader}: Iterate to the next record, unless the end of the file is reached in which case go to step \ref{sec:last-chromosome-processing} \label{sec:iterate-samreader}
@@ -579,6 +582,7 @@ named arguments:
 
 
     \section{Supplement}
+    The following sections provide additional details and usage examples.
 
     \subsection{Feature Counts Usage}\label{sec:feature-counts-usage}
     \begin{verbatim}
@@ -595,7 +599,7 @@ counts <- featureCounts(
   nthreads = 8,
   allowMultiOverlap = TRUE,
   primaryOnly = TRUE,
-  strandSpecific = -, # Depends on the experiment 0=null, 1=true, 2=false
+  strandSpecific = -, % Depends on the experiment 0=null, 1=true, 2=false
   requireBothEndsMapped = TRUE,
   countReadPairs = TRUE,
   countChimericFragments = FALSE,
