@@ -17,6 +17,7 @@ def main(annotation_name, annotation_file, lengths_file, output_path):
 
     genic_count = 0
     genic_count_more_one_gene = 0
+    genic_count_pcr_index_zero = 0
     split_inconsistent_count = 0
     intergenic_count = 0
     transcriptomic_count = 0
@@ -46,6 +47,8 @@ def main(annotation_name, annotation_file, lengths_file, output_path):
                         pcr_index = parts[6].split(" ")[1]
                         add_to_pcr_index(pcr_index_count, pcr_index)
                         add_to_gene_dict(gene_dict, gene_id, pcr_index)
+                        if pcr_index == '0':
+                            genic_count_pcr_index_zero += 1
                         if matching_gene_parts[1].startswith("MERGED"):
                             merged_transcriptomic_count += 1
                         elif matching_gene_parts[1].startswith("INTRON"):
@@ -60,7 +63,7 @@ def main(annotation_name, annotation_file, lengths_file, output_path):
                 split_inconsistent_count += 1
             total_annotated_count += 1
     print("Finished processing annotation file")
-    rpkm_df = calculate_all_rpkm(gene_dict, genic_count, length_dict)
+    rpkm_df = calculate_all_rpkm(gene_dict, genic_count, length_dict, genic_count_pcr_index_zero)
     print("Finished calculating RPKM values")
     # plot_rpkm_histogram(annotation_name, output_path, rpkm_df)
     print("Finished plotting RPKM histogram")
@@ -215,7 +218,7 @@ def plot_annotation_categories(annotation_name, genic_count, intergenic_count, i
               'Split Inconsistent': split_inconsistent_count, 'Intergenic': intergenic_count}
     counts_df = pd.DataFrame(list(counts.items()), columns=['Category', 'Count'])
     # Create the bar plot
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 8))
     bar_plot = sns.barplot(x='Category', y='Count', data=counts_df, palette='viridis')
     # Set plot title and labels
     bar_plot.set_title(f"Number of Reads by Annotation Category for {annotation_name}")
@@ -231,7 +234,8 @@ def plot_annotation_categories(annotation_name, genic_count, intergenic_count, i
     for p in bar_plot.patches:
         bar_plot.annotate(format(int(p.get_height()), ','), (p.get_x() + p.get_width() / 2., p.get_height()),
                           ha='center', va='center', xytext=(0, 9), textcoords='offset points')
-
+    max_count = counts_df['Count'].max()
+    plt.ylim(0, max_count * 1.1)
     # Show the plot
     plt.tight_layout()
     plt.savefig(f'{output_path}/{annotation_name}_annotation_counts.pdf', format='pdf')
@@ -307,7 +311,7 @@ def plot_rpkm_scatter(annotation_name, output_path, rpkm_df):
         color = 'blue' if i % 2 == 0 else 'lightblue'
         chrom_data = rpkm_df_copy[rpkm_df_copy['chromosome'] == chrom]
         axes[0].scatter(chrom_data['x_pos_jitter_total'], chrom_data['total_rpkm'], color=color, alpha=0.7)
-    axes[0].set_title(f'Scatter Plot of Total RPKM (all Reads) by Chromosome for {annotation_name}')
+    axes[0].set_title(f'Scatter Plot of Total RPKM by Chromosome for {annotation_name}')
     axes[0].set_xlabel('Chromosome')
     axes[0].set_ylabel('RPKM')
     axes[0].set_xticks(ticks=range(len(chromosomes)))
@@ -318,14 +322,16 @@ def plot_rpkm_scatter(annotation_name, output_path, rpkm_df):
     texts_total = []
     for _, row in top_10_total_rpkm.iterrows():
         texts_total.append(axes[0].text(row['x_pos_jitter_total'], row['total_rpkm'], row['gene_id'], fontsize=8))
-    adjust_text(texts_total, ax=axes[0], arrowprops=dict(arrowstyle='->', color='black'))
+    adjust_text(texts_total, ax=axes[0], arrowprops=dict(arrowstyle='->', color='black'), expand_text=(1.2, 1.2))
+    for rank, (_, row) in enumerate(top_10_total_rpkm.iterrows(), start=1):
+        print(f"Rank {rank}: {row['gene_id']}")
 
     # Plot scatter plot for unique_rpkm
     for i, chrom in enumerate(chromosomes):
         color = 'green' if i % 2 == 0 else 'lightgreen'
         chrom_data = rpkm_df_copy[rpkm_df_copy['chromosome'] == chrom]
         axes[1].scatter(chrom_data['x_pos_jitter_unique'], chrom_data['unique_rpkm'], color=color, alpha=0.7)
-    axes[1].set_title(f'Scatter Plot of Unique RPKM (non-PCR duplicated reads) by Chromosome for {annotation_name}')
+    axes[1].set_title(f'Scatter Plot of Unique RPKM by Chromosome for {annotation_name}')
     axes[1].set_xlabel('Chromosome')
     axes[1].set_ylabel('RPKM')
     axes[1].set_xticks(ticks=range(len(chromosomes)))
@@ -347,15 +353,13 @@ def plot_rpkm_scatter(annotation_name, output_path, rpkm_df):
     plt.savefig(f'{output_path}/{annotation_name}_rpkm_scatter.png', dpi=300)
 
 
-
-
 def plot_log_rpkm_histogram(annotation_name, output_path, rpkm_df):
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
 
     # Plot histogram and KDE for log(total_rpkm)
     sns.histplot(np.log1p(rpkm_df['total_rpkm']), bins='auto', kde=True, ax=axes[0], color='blue', alpha=0.7,
                  kde_kws={'bw_adjust': 0.5})
-    axes[0].set_title(f'Log Distribution of Total RPKM (all Reads) for {annotation_name}')
+    axes[0].set_title(f'Log Distribution of Total RPKM for {annotation_name}')
     axes[0].set_xlabel('Log(RPKM)')
     axes[0].set_ylabel('Frequency')
     axes[0].yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: format(int(x), ',')))
@@ -363,7 +367,7 @@ def plot_log_rpkm_histogram(annotation_name, output_path, rpkm_df):
     # Plot histogram and KDE for log(unique_rpkm)
     sns.histplot(np.log1p(rpkm_df['unique_rpkm']), bins='auto', kde=True, ax=axes[1], color='green', alpha=0.7,
                  kde_kws={'bw_adjust': 0.5})
-    axes[1].set_title(f'Log Distribution of Unique RPKM (non-PCR duplicated reads) for {annotation_name}')
+    axes[1].set_title(f'Log Distribution of Unique RPKM for {annotation_name}')
     axes[1].set_xlabel('Log(RPKM)')
     axes[1].set_ylabel('Frequency')
     axes[1].yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: format(int(x), ',')))
@@ -375,7 +379,7 @@ def plot_log_rpkm_histogram(annotation_name, output_path, rpkm_df):
     # Plot histogram and KDE for log(total_rpkm)
     sns.histplot(np.log1p(rpkm_df['total_rpkm']), bins='auto', kde=True, ax=axes[0], color='blue', alpha=0.7,
                  kde_kws={'bw_adjust': 0.5})
-    axes[0].set_title(f'Log Distribution of Total RPKM (all Reads) for {annotation_name}')
+    axes[0].set_title(f'Log Distribution of Total RPKM for {annotation_name}')
     axes[0].set_xlabel('Log(RPKM)')
     axes[0].set_ylabel('Frequency')
     axes[0].yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: format(int(x), ',')))
@@ -383,7 +387,7 @@ def plot_log_rpkm_histogram(annotation_name, output_path, rpkm_df):
     # Plot histogram and KDE for log(unique_rpkm)
     sns.histplot(np.log1p(rpkm_df['unique_rpkm']), bins='auto', kde=True, ax=axes[1], color='green', alpha=0.7,
                  kde_kws={'bw_adjust': 0.5})
-    axes[1].set_title(f'Log Distribution of Unique RPKM (non-PCR duplicated reads) for {annotation_name}')
+    axes[1].set_title(f'Log Distribution of Unique RPKM for {annotation_name}')
     axes[1].set_xlabel('Log(RPKM)')
     axes[1].set_ylabel('Frequency')
     axes[1].yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: format(int(x), ',')))
@@ -410,14 +414,14 @@ def plot_rpkm_histogram(annotation_name, output_path, rpkm_df):
     plt.savefig(f'{output_path}/{annotation_name}_rpkm_distribution.pdf', format='pdf')
 
 
-def calculate_all_rpkm(gene_dict, genic_count, length_dict):
+def calculate_all_rpkm(gene_dict, genic_count, length_dict, genic_count_pcr_index_zero):
     rows = []
     # Iterate through the gene_dict
     for gene_id, vals in gene_dict.items():
         length = length_dict[gene_id]["length"]
         chr = length_dict[gene_id]["chromosome"]
         total_rpkm = calc_rpkm(vals[0], genic_count, length)
-        unique_rpkm = calc_rpkm(vals[1], genic_count, length)
+        unique_rpkm = calc_rpkm(vals[1], genic_count_pcr_index_zero, length)
 
         # Append a dictionary to the list
         rows.append({'chromosome': chr, 'gene_id': gene_id, 'total_rpkm': total_rpkm, 'unique_rpkm': unique_rpkm})

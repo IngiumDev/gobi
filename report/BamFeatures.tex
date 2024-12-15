@@ -11,6 +11,7 @@
 \usepackage[table,xcdraw]{xcolor}
 \usepackage{caption}
 \usepackage{listings}
+
 \lstset{
     breaklines=true,
     breakatwhitespace=true,
@@ -56,7 +57,7 @@
 
     \begin{abstract}
         \large
-
+        In this report, the BAMFeatures program is presented, a tool developed for the classification of RNA sequencing (RNAseq) read pairs based on their alignment to the genome by a mapper. BAMFeatures categorizes read pairs into classes such as \texttt{genic}, \texttt{intergenic}, and \texttt{intergenic containing}, with further distinctions for genic reads as \texttt{transcriptomic}, \texttt{merged-transcriptomic}, or \texttt{intronic}. These classifications are determined by evaluating whether read pairs are fully contained within genes, align contiguously to specific transcripts, match to merged transcripts, or reside within intronic regions. The formal definitions of each category are detailed and the biological plausibility of read pair mappings is discussed. Additionally, the runtime performance of BAMFeatures across different datasets is benchmarked, demonstrating its scalability and efficiency in processing large BAM files. The results of the program are analyzed and the distribution of Reads Per Kilobase of transcript per Million mapped reads (RPKM) values is presented.
     \end{abstract}
 
 
@@ -116,10 +117,10 @@
     \subsection{Test Files}
     To optimize computation time, the submission server will only verify the correctness of the program using small test
     files. Therefore, three large complete BAM files are provided for evaluation. The objective of the project is to
-    process the \texttt{ebna2\_hisat.bam}
+    process the \texttt{ebna\_hisat.bam}
     file within one hour while using a maximum of 10GB of RAM. Additionally, the read annotations of the test files will
     be analyzed. The other files used in this assignment are shown in Tables \ref{tab:test-bam-runtime} \&
-    \ref{tab:reference-bam-runtime} (Supplement)
+    \ref{tab:reference-bam-runtime}.
 
     \subsection{Gene Expression Units}
     Gene expression levels in RNA sequencing are often quantified using standardized units that account for sequencing depth and gene length. One commonly used metric is Reads Per Kilobase of transcript per Million mapped reads (RPKM), which normalizes read counts to enable comparisons across genes and samples (Equation \ref{eq:rpkm})\cite{bedre_2021}. This metric is calculated per gene.
@@ -453,9 +454,89 @@ named arguments:
         }
     \end{table}
 
-    \subsection{Time}
+    \subsubsection{Feature Counts}
+    In order to properly compare the results of the program, the \texttt{featureCounts} method in R was used \cite{liao_smyth_shi_2013}. The tool calculates the count of each feature (gene) per Read Pair. The paramaters used for the program are listed in the Supplement \ref{sec:feature-counts-usage}. The results were then converted to RPKM values using the formula in Figure \ref{eq:rpkm}. The top 10 genes for each program were then compared. The results are shown in Table \ref{tab:feature-counts-comparison}. The top 10 genes for each program are similar, with some overlap. However, it is important to note that it is not possible to configure \texttt{featureCounts} to perform in the same way as our program. For example, merged-transcriptomic and intronic read pairs are not assigned to a gene. For example, \texttt{ebna\_hist} has a very large proportion of intronic matches, which naturally won't be found be the \texttt{featureCounts} method. This can be used as a sanity check, but cannot be used to certify the program correctness. Naturally, there are many ambiguities when solving this problem where it is not clear what should be done with a certain read or what exactly to count into the RPKM value. Likewise, if this assignment were to be solved by 100 talented programmers, you would likely get 100 different but similar answers.
+    \begin{table}[]
+        \centering
+        \caption{Top 10 Total RPKM values obtained from the program described in this paper vs obtained from the feature counts of the featureCounts package in R, converted to RPKM. Gene Names in bold mean that the gene is present in the top 10 of the other program, respectively. Left column is the program described in this paper and the right column is the featureCounts results. There is significant overlap between the top 10 values.}
+        \label{tab:feature-counts-comparison}
+        \resizebox{\textwidth}{!}{%
+            \begin{tabular}{cc|cc|cc}
+                \multicolumn{2}{c|}{\textbf{ebna\_hist}} &
+                \multicolumn{2}{c|}{\textbf{hes\_star}} &
+                \multicolumn{2}{c}{\textbf{nookaew\_cm}} \\ \hline
+                \multicolumn{1}{c|}{BAMFeatures} &
+                featureCounts &
+                \multicolumn{1}{c|}{BAMFeatures} &
+                featureCounts &
+                \multicolumn{1}{c|}{BAMFeatures} &
+                featureCounts \\ \hline
+                \multicolumn{1}{c|}{ENSG00000234883} &
+                \textit{\textbf{ENSG00000202198}} &
+                \multicolumn{1}{c|}{\textit{\textbf{ENSG00000251705}}} &
+                \textit{\textbf{ENSG00000251705}} &
+                \multicolumn{1}{c|}{YGR192C} &
+                \textit{\textbf{YLR167W}} \\ \hline
+                \multicolumn{1}{c|}{\textit{\textbf{ENSG00000202198}}} &
+                \textit{\textbf{ENSG00000238622}} &
+                \multicolumn{1}{c|}{\textit{\textbf{ENSG00000210082}}} &
+                ENSG00000239776 &
+                \multicolumn{1}{c|}{\textit{\textbf{YKL060C}}} &
+                \textit{\textbf{YKL060C}} \\ \hline
+                \multicolumn{1}{c|}{ENSG00000226779} &
+                ENSG00000269900 &
+                \multicolumn{1}{c|}{\textit{\textbf{ENSG00000211459}}} &
+                ENSG00000241781 &
+                \multicolumn{1}{c|}{YBR118W} &
+                YDR524C-B \\ \hline
+                \multicolumn{1}{c|}{ENSG00000249335} &
+                ENSG00000251562 &
+                \multicolumn{1}{c|}{ENSG00000206596} &
+                ENSG00000200434 &
+                \multicolumn{1}{c|}{YHR174W} &
+                \textit{\textbf{YLR110C}} \\ \hline
+                \multicolumn{1}{c|}{ENSG00000233844} &
+                ENSG00000265695 &
+                \multicolumn{1}{c|}{ENSG00000206652} &
+                \textbf{ENSG00000210082} &
+                \multicolumn{1}{c|}{\textit{\textbf{YKL152C}}} &
+                YDR524W-C \\ \hline
+                \multicolumn{1}{c|}{ENSG00000026508} &
+                ENSG00000266019 &
+                \multicolumn{1}{c|}{ENSG00000163046} &
+                ENSG00000209082 &
+                \multicolumn{1}{c|}{\textit{\textbf{YLR167W}}} &
+                YKL153W \\ \hline
+                \multicolumn{1}{c|}{\textit{\textbf{ENSG00000238622}}} &
+                ENSG00000265150 &
+                \multicolumn{1}{c|}{\textit{\textbf{ENSG00000202198}}} &
+                \textit{\textbf{ENSG00000211459}} &
+                \multicolumn{1}{c|}{YLR044C} &
+                YLR076C \\ \hline
+                \multicolumn{1}{c|}{ENSG00000258486} &
+                ENSG00000263900 &
+                \multicolumn{1}{c|}{\textit{\textbf{ENSG00000258486}}} &
+                ENSG00000265150 &
+                \multicolumn{1}{c|}{YLR075W} &
+                YDL133C-A \\ \hline
+                \multicolumn{1}{c|}{ENSG00000256725} &
+                ENSG00000211593 &
+                \multicolumn{1}{c|}{ENSG00000226958} &
+                \textit{\textbf{ENSG00000258486}} &
+                \multicolumn{1}{c|}{YOL086C} &
+                \textit{\textbf{YKL152C}} \\ \hline
+                \multicolumn{1}{c|}{ENSG00000164330} &
+                ENSG00000211595 &
+                \multicolumn{1}{c|}{ENSG00000198804} &
+                \textit{\textbf{ENSG00000202198}} &
+                \multicolumn{1}{c|}{\textit{\textbf{YLR110C}}} &
+                YHL015W
+            \end{tabular}%
+        }
+    \end{table}
 
-    \subsubsection{Runtime}
+    \subsection{Time}
+    The runtime of the program depends on 1) the number of records in the BAM File and 2) the size of the GTF file. However, for large BAM files, the processing of the GTF File can be disregarded since the GTF File is a constant size and much quicker to parse then the BAM File. The runtime of the program was measured for the provided BAM files and is shown in Table \ref{tab:test-bam-runtime}. The runtime of the program was also measured for the BAM files with reference solutions and is shown in Table \ref{tab:reference-bam-runtime}. Compared to \texttt{hes\_star}, processing \texttt{ebna\_hist} takes ~2.5 times longer, while only having ~2.2 more annotations. However, multiple reasons can lead to this discrepancy. Firstly, \texttt{ebna\_hist} has a far larger proportion of intronic reads, which require far more processing than transcriptomic reads as the merged transcriptome needs to be created. Additionally, \texttt{hes\_star} has far more split inconsistent reads, even though it is a smaller file. Split inconsistent reads are comparatively quick to process, as they are only checked for consistency and then outputted. Due to this, it is reasonable to conclude that the runtime of the program is linear in the amount of records. The runtime of \texttt{nookaew\_cm} is much shorter than the human experiments.
 
 
 
@@ -466,9 +547,9 @@ named arguments:
         \resizebox{\textwidth}{!}{%
             \begin{tabular}{l|l|l|l|l}
                 \textbf{BAM} & \textbf{GTF}                         & \textbf{Strandness} & \textbf{Runtime (seconds)} & \textbf{Number of Annotated Reads} \\ \hline
-                ebna\_hisat  & Homo\_sapiens.GRCh37.75              & true                & 442                  & 47,270,566                         \\ \hline
-                hes\_star    & Homo\_sapiens.GRCh37.75              & false               & 173                  & 21,266,162                         \\ \hline
-                nookaew\_cm  & Saccharomyces\_cerevisiae.R64-1-1.75 & null                & 29                   & 5,054,624
+                ebna\_hisat  & Homo\_sapiens.GRCh37.75              & true                & 325.619                    & 47,270,566                         \\ \hline
+                hes\_star    & Homo\_sapiens.GRCh37.75              & false               & 129.077                    & 21,266,162                         \\ \hline
+                nookaew\_cm  & Saccharomyces\_cerevisiae.R64-1-1.75 & null                & 29.621                     & 5,054,624
             \end{tabular}%
         }
     \end{table}
@@ -481,23 +562,41 @@ named arguments:
         \label{tab:reference-bam-runtime}
         \resizebox{\textwidth}{!}{%
             \begin{tabular}{l|l|l|l|l}
-                \textbf{BAM} & \textbf{GTF} & \textbf{Strandness} & \textbf{Runtime (seconds)} & \textbf{Number of Annotated Reads} \\ \hline
-                y.ns.2 & Saccharomyces\_cerevisiae.R64-1-1.75 & null  & 0.350 & 20,876 \\ \hline
-                y.ns.5 & Saccharomyces\_cerevisiae.R64-1-1.75 & null  & 0.372 & 18,505 \\ \hline
-                h.sn.1 & Homo\_sapiens.GRCh37.75              & false & 0.336 & 17,209 \\ \hline
-                h.sn.7 & Homo\_sapiens.GRCh37.75              & false & 0.340 & 16,116 \\ \hline
-                h.sp.3 & Homo\_sapiens.GRCh37.75              & true  & 0.375 & 22,806 \\ \hline
-                h.sp.8 & Homo\_sapiens.GRCh37.75              & true  & 0.425 & 21,092
+                \textbf{BAM} & \textbf{GTF}                         & \textbf{Strandness} & \textbf{Runtime (seconds)} & \textbf{Number of Annotated Reads} \\ \hline
+                y.ns.2       & Saccharomyces\_cerevisiae.R64-1-1.75 & null                & 0.350                      & 20,876                             \\ \hline
+                y.ns.5       & Saccharomyces\_cerevisiae.R64-1-1.75 & null                & 0.372                      & 18,505                             \\ \hline
+                h.sn.1       & Homo\_sapiens.GRCh37.75              & false               & 0.336                      & 17,209                             \\ \hline
+                h.sn.7       & Homo\_sapiens.GRCh37.75              & false               & 0.340                      & 16,116                             \\ \hline
+                h.sp.3       & Homo\_sapiens.GRCh37.75              & true                & 0.375                      & 22,806                             \\ \hline
+                h.sp.8       & Homo\_sapiens.GRCh37.75              & true                & 0.425                      & 21,092
             \end{tabular}%
         }
     \end{table}
 
-    \subsubsection{Complexity}
-
 
     \section{Supplement}
 
+    \subsection{Feature Counts Usage}\label{sec:feature-counts-usage}
+    \begin{verbatim}
 
+counts <- featureCounts(
+  files = bam_file,
+  annot.ext = annotation_file,
+  isGTFAnnotationFile = TRUE,
+  GTF.featureType = "exon",
+  GTF.attrType = "gene_id",
+  useMetaFeatures = TRUE,
+  isPairedEnd = TRUE,
+  countMultiMappingReads = FALSE,
+  nthreads = 8,
+  allowMultiOverlap = TRUE,
+  primaryOnly = TRUE,
+  strandSpecific = -, # Depends on the experiment 0=null, 1=true, 2=false
+  requireBothEndsMapped = TRUE,
+  countReadPairs = TRUE,
+  countChimericFragments = FALSE,
+)
+    \end{verbatim}
 
     \AtNextBibliography{\small}
     \printbibliography
