@@ -261,6 +261,74 @@
             </plugins>
         </build>
     </profile>
+        <profile>
+            <id>AlternativeSplicingRunner</id>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>${basedir}/src/main/java</directory>
+                    </resource>
+                </resources>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>3.4.2</version>
+                        <configuration>
+                            <archive>
+                                <manifest>
+                                    <mainClass>me.ingiumdev.gobi.runners.AlternativeSplicingRunner</mainClass>
+                                </manifest>
+                            </archive>
+                            <finalName>AlternativeSplicingRunner</finalName>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Maven Shade Plugin -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <version>3.6.0</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>shade</goal>
+                                </goals>
+                                <configuration>
+                                    <minimizeJar>true</minimizeJar>
+                                    <filters>
+                                        <filter>
+                                            <!-- Exclude unnecessary files such as javadocs and sources -->
+                                            <artifact>*:*</artifact>
+                                            <excludes>
+                                                <exclude>META-INF/*.SF</exclude>
+                                                <exclude>META-INF/*.DSA</exclude>
+                                                <exclude>META-INF/*.RSA</exclude>
+                                                <exclude>**/*-javadoc.jar</exclude>
+                                                <exclude>**/*-sources.jar</exclude>
+                                            </excludes>
+                                        </filter>
+                                    </filters>
+                                    <transformers>
+                                        <!-- Add Manifest Transformer for Main Class -->
+                                        <transformer
+                                                implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                            <mainClass>me.ingiumdev.gobi.runners.AlternativeSplicingRunner</mainClass>
+                                        </transformer>
+
+                                    </transformers>
+
+                                    <finalName>AlternativeSplicingRunner</finalName>
+                                    <!-- Include .java source files -->
+
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
 

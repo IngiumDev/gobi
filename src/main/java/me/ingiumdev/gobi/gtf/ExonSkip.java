@@ -60,22 +60,25 @@ public class ExonSkip {
     }
 
     public static List<ExonSkip> findExonSkippingEvents(GTFAnnotation gtfAnnotation) {
-        // TODO use .collect() to avoid synchronization
-        List<ExonSkip> exonSkips = Collections.synchronizedList(new ArrayList<>());
-        gtfAnnotation.getGenes().values().parallelStream().forEach(gene -> {
-            for (Interval intronCandidate : gene.getIntrons()) {
-                Set<String> spliceVariantTranscripts = new HashSet<>();
-                Set<String> wildTypeTranscripts = new HashSet<>();
-                Set<Interval> wildTypeIntrons = new TreeSet<>();
-                checkIntronCandidate(gene, intronCandidate, spliceVariantTranscripts, wildTypeTranscripts, wildTypeIntrons);
+        return gtfAnnotation.getGenes().values().parallelStream()
+                .flatMap(gene -> gene.getIntrons().stream()
+                        .map(intronCandidate -> {
+                            return processIntronCandidate(gene, intronCandidate);
+                        })
+                        .filter(Objects::nonNull))
+                .collect(Collectors.toList());
+    }
 
-                if (!spliceVariantTranscripts.isEmpty() && !wildTypeTranscripts.isEmpty()) {
-                    ExonSkip exonSkip = createExonSkipEvent(gene, intronCandidate, spliceVariantTranscripts, wildTypeTranscripts, wildTypeIntrons);
-                    exonSkips.add(exonSkip);
-                }
-            }
-        });
-        return exonSkips;
+    private static ExonSkip processIntronCandidate(Gene gene, Interval intronCandidate) {
+        Set<String> spliceVariantTranscripts = new HashSet<>();
+        Set<String> wildTypeTranscripts = new HashSet<>();
+        Set<Interval> wildTypeIntrons = new TreeSet<>();
+        checkIntronCandidate(gene, intronCandidate, spliceVariantTranscripts, wildTypeTranscripts, wildTypeIntrons);
+
+        if (!spliceVariantTranscripts.isEmpty() && !wildTypeTranscripts.isEmpty()) {
+            return createExonSkipEvent(gene, intronCandidate, spliceVariantTranscripts, wildTypeTranscripts, wildTypeIntrons);
+        }
+        return null;
     }
 
     private static void checkIntronCandidate(Gene gene, Interval intronCandidate, Set<String> spliceVariantTranscripts, Set<String> wildTypeTranscripts, Set<Interval> wildTypeIntrons) {
