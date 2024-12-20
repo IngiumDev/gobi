@@ -14,7 +14,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,40 +38,6 @@ public class FeatureCountAnnotator extends ReadAnnotator {
         init();
         annotateReads();
         return allReadAnnotations;
-    }
-
-    @Override
-    public void annotateReads() {
-        long startTime = System.currentTimeMillis();
-        Iterator<SAMRecord> it = samReader.iterator();
-        String referenceName;
-        String readName;
-        SAMRecord record;
-        // TODO: remove from lookup once it's processed
-        boolean isFirstOfPair;
-        while (it.hasNext()) {
-            record = it.next();
-            referenceName = record.getReferenceName();
-            if (!currentChromosome.equals(referenceName)) {
-                processNewChromosome(referenceName);
-            }
-            if (isValidRead(record)) {
-                readName = record.getReadName();
-                if (lookup.containsKey(readName)) {
-                    // Check if the read is the first or second of the pair
-                    if (record.getFirstOfPairFlag()) {
-                        readsToAnnotate.add(new SAMReadPair(record, lookup.get(readName)));
-                    } else {
-                        readsToAnnotate.add(new SAMReadPair(lookup.get(readName), record));
-                    }
-                } else {
-                    lookup.put(readName, record);
-                }
-            }
-        }
-        processLastChromosome();
-        System.out.println("Annotation Time taken: " + (System.currentTimeMillis() - startTime) + "ms");
-
     }
 
     @Override
@@ -108,9 +73,7 @@ public class FeatureCountAnnotator extends ReadAnnotator {
         lookup = new HashMap<>();
         currentChromosome = referenceName;
         forestManager.nextTree(referenceName);
-
         pcrIndex.nextChromosome();
-
     }
 
     private void outputReads(List<ReadAnnotation> readAnnotations, File outputFile) {

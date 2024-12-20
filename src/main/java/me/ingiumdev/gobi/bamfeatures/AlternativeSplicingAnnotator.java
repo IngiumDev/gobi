@@ -1,8 +1,19 @@
 package me.ingiumdev.gobi.bamfeatures;
 
 import htsjdk.samtools.SamReader;
+import me.ingiumdev.gobi.gtf.ExonSkip;
+import me.ingiumdev.gobi.gtf.GTFAnnotation;
+import me.ingiumdev.gobi.gtf.structs.Gene;
+import me.ingiumdev.gobi.gtf.treecollections.StrandUnspecificForest;
+import me.ingiumdev.gobi.parsers.GTFParser;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class AlternativeSplicingAnnotator extends ReadAnnotator {
     private AlternativeSplicingAnnotator(Builder builder) {
@@ -13,19 +24,33 @@ public class AlternativeSplicingAnnotator extends ReadAnnotator {
 
 //     TODO struct for the new exon skipping events
 
-    @Override
-    public void annotateReads() {
 
-    }
 
     @Override
     public void init() {
-
+        forestManager = new StrandUnspecificForest();
+        if (outputFile != null) {
+            try {
+                writer = new BufferedWriter(new FileWriter(outputFile));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        GTFAnnotation gtfAnnotation = GTFParser.parseGTF(String.valueOf(gtfFile));
+        gtfAnnotation.getGenes().values().parallelStream().forEach(Gene::processIntrons);
+        List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(gtfAnnotation);
+        forestManager.init(gtfAnnotation);
     }
 
     @Override
     protected void processNewChromosome(String referenceName) {
-
+        if (readsToAnnotate != null) {
+            // processing
+        }
+        readsToAnnotate = new ArrayList<>();
+        lookup = new HashMap<>();
+        currentChromosome = referenceName;
+        forestManager.nextTree(referenceName);
     }
 
     @Override

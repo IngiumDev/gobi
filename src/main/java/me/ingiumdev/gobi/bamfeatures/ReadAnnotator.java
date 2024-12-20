@@ -7,6 +7,7 @@ import me.ingiumdev.gobi.gtf.treecollections.IntervalTreeForestManager;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 public abstract class ReadAnnotator {
@@ -34,7 +35,34 @@ public abstract class ReadAnnotator {
         return record.getReferenceName().equals(record.getMateReferenceName());
     }
 
-    public abstract void annotateReads();
+    public void annotateReads() {
+        long startTime = System.currentTimeMillis();
+        Iterator<SAMRecord> it = samReader.iterator();
+        String referenceName;
+        String readName;
+        SAMRecord record;
+        // TODO: remove from lookup once it's processed
+        while (it.hasNext()) {
+            record = it.next();
+            referenceName = record.getReferenceName();
+            if (!currentChromosome.equals(referenceName)) {
+                processNewChromosome(referenceName);
+            }
+            readName = record.getReadName();
+            if (lookup.containsKey(readName)) {
+                // Check if the read is the first or second of the pair
+                if (record.getFirstOfPairFlag()) {
+                    readsToAnnotate.add(new SAMReadPair(record, lookup.get(readName)));
+                } else {
+                    readsToAnnotate.add(new SAMReadPair(lookup.get(readName), record));
+                }
+            } else if (isValidRead(record)) {
+                lookup.put(readName, record);
+            }
+        }
+        processLastChromosome();
+        System.out.println("Annotation Time taken: " + (System.currentTimeMillis() - startTime) + "ms");
+    }
 
     public abstract void init();
 
