@@ -41,7 +41,34 @@ public class ExonSkip {
     private final int min_skipped_bases;
     // the maximum number of skipped bases (joint length of skipped exons) in any WT/SV pair
     private final int max_skipped_bases;
+    private final Set<String> SV_trans;
+    private final Set<String> WT_trans;
 
+    private int inclusionCount = 0;
+    private int exclusionCount = 0;
+    private int totalCount;
+    private int psi;
+    private final Interval exonSkipped;
+
+    public ExonSkip(ExonSkip exonSkip) {
+        this.id = exonSkip.id;
+        this.symbol = exonSkip.symbol;
+        this.chr = exonSkip.chr;
+        this.strand = exonSkip.strand;
+        this.nprots = exonSkip.nprots;
+        this.ntrans = exonSkip.ntrans;
+        this.SV = exonSkip.SV;
+        this.WT = exonSkip.WT;
+        this.SV_prots = exonSkip.SV_prots;
+        this.WT_prots = exonSkip.WT_prots;
+        this.min_skipped_exon = exonSkip.min_skipped_exon;
+        this.max_skipped_exon = exonSkip.max_skipped_exon;
+        this.min_skipped_bases = exonSkip.min_skipped_bases;
+        this.max_skipped_bases = exonSkip.max_skipped_bases;
+        this.exonSkipped = exonSkip.exonSkipped;
+        this.WT_trans = exonSkip.WT_trans;
+        this.SV_trans = exonSkip.SV_trans;
+    }
     private ExonSkip(Builder builder) {
         this.id = builder.id;
         this.symbol = builder.symbol;
@@ -57,16 +84,80 @@ public class ExonSkip {
         this.max_skipped_exon = builder.max_skipped_exon;
         this.min_skipped_bases = builder.min_skipped_bases;
         this.max_skipped_bases = builder.max_skipped_bases;
+        this.exonSkipped = builder.exonSkipped;
+        this.WT_trans = builder.WT_trans;
+        this.SV_trans = builder.SV_trans;
     }
 
     public static List<ExonSkip> findExonSkippingEvents(GTFAnnotation gtfAnnotation) {
         return gtfAnnotation.getGenes().values().parallelStream()
-                .flatMap(gene -> gene.getIntrons().stream()
-                        .map(intronCandidate -> {
-                            return processIntronCandidate(gene, intronCandidate);
-                        })
-                        .filter(Objects::nonNull))
+                .flatMap(gene -> processGeneIntrons(gene).stream())
                 .collect(Collectors.toList());
+    }
+
+    public static Map<String, List<ExonSkip>> findExonSkippingEventsByGene(GTFAnnotation gtfAnnotation) {
+        return gtfAnnotation.getGenes().values().parallelStream()
+                .collect(Collectors.toMap(Gene::getGeneID, ExonSkip::processGeneIntrons));
+    }
+
+    public static List<ExonSkip> processGeneIntrons(Gene gene) {
+        return gene.getIntrons().stream()
+                .map(intronCandidate -> processIntronCandidate(gene, intronCandidate))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private static ExonSkip createExonSkipEvent(Gene gene, Interval intronCandidate, Set<String> spliceVariantTranscripts, Set<String> wildTypeTranscripts, Set<Interval> wildTypeIntrons) {
+        SkippedExonsBases skippedExonsBases = calculateSkippedExonsAndBases(gene, intronCandidate, wildTypeTranscripts);
+        Set<String> spliceVariantProteins = convertTranscriptToProteinID(gene, spliceVariantTranscripts);
+        Set<String> wildTypeProteins = convertTranscriptToProteinID(gene, wildTypeTranscripts);
+        return new Builder()
+                .setId(gene.getGeneID())
+                .setSymbol(gene.getGeneName())
+                .setChr(gene.getSeqname())
+                .setStrand(gene.getStrand())
+                .setNprots((int) gene.getTranscripts().values().stream().map(Transcript::getCds).filter(cds -> cds != null && !cds.isEmpty()).count())
+                .setNtrans(gene.getTranscripts().size())
+                .setSV(new Interval(intronCandidate))
+                .setWT(new TreeSet<>(wildTypeIntrons))
+                .setSV_prots(spliceVariantProteins)
+                .setWT_prots(wildTypeProteins)
+                .setMax_skipped_exon(skippedExonsBases.maxSkippedExons())
+                .setMin_skipped_exon(skippedExonsBases.minSkippedExons())
+                .setMax_skipped_bases(skippedExonsBases.maxSkippedBases())
+                .setMin_skipped_bases(skippedExonsBases.minSkippedBases())
+                .setExonSkipped(skippedExonsBases.exonSkipped())
+                .setSVtrans(spliceVariantTranscripts)
+                .setWTtrans(wildTypeTranscripts)
+                .build();
+    }
+
+    private static SkippedExonsBases calculateSkippedExonsAndBases(Gene gene, Interval intron, Set<String> wildTypeTranscripts) {
+        int minSkippedExons = Integer.MAX_VALUE;
+        int maxSkippedExons = Integer.MIN_VALUE;
+        int minSkippedBases = Integer.MAX_VALUE;
+        int maxSkippedBases = Integer.MIN_VALUE;
+        Interval exonSkipped = null;
+        for (String transcript_id : wildTypeTranscripts) {
+            // Get the transcript
+            Transcript t = gene.getTranscript(transcript_id);
+            int skippedExons = 0;
+            int skippedBases = 0;
+            // Find the number of exons that lie within the intron
+            for (CodingSequence cds : t.getCds()) {
+                if (intron.getStart() <= cds.getInterval().getStart() && intron.getEnd() >= cds.getInterval().getEnd()) {
+                    skippedExons++;
+                    skippedBases += cds.getInterval().getLength();
+                    exonSkipped = cds.getInterval();
+                }
+            }
+            minSkippedExons = Math.min(minSkippedExons, skippedExons);
+            maxSkippedExons = Math.max(maxSkippedExons, skippedExons);
+            minSkippedBases = Math.min(minSkippedBases, skippedBases);
+            maxSkippedBases = Math.max(maxSkippedBases, skippedBases);
+
+        }
+        return new SkippedExonsBases(minSkippedExons, maxSkippedExons, minSkippedBases, maxSkippedBases, exonSkipped);
     }
 
     private static ExonSkip processIntronCandidate(Gene gene, Interval intronCandidate) {
@@ -119,26 +210,28 @@ public class ExonSkip {
 
     }
 
-    private static ExonSkip createExonSkipEvent(Gene gene, Interval intronCandidate, Set<String> spliceVariantTranscripts, Set<String> wildTypeTranscripts, Set<Interval> wildTypeIntrons) {
-        SkippedExonsBases skippedExonsBases = calculateSkippedExonsAndBases(gene, intronCandidate, wildTypeTranscripts);
-        Set<String> spliceVariantProteins = convertTranscriptToProteinID(gene, spliceVariantTranscripts);
-        Set<String> wildTypeProteins = convertTranscriptToProteinID(gene, wildTypeTranscripts);
-        return new Builder()
-                .setId(gene.getGeneID())
-                .setSymbol(gene.getGeneName())
-                .setChr(gene.getSeqname())
-                .setStrand(gene.getStrand())
-                .setNprots((int) gene.getTranscripts().values().stream().map(Transcript::getCds).filter(cds -> cds != null && !cds.isEmpty()).count())
-                .setNtrans(gene.getTranscripts().size())
-                .setSV(new Interval(intronCandidate))
-                .setWT(new TreeSet<>(wildTypeIntrons))
-                .setSV_prots(spliceVariantProteins)
-                .setWT_prots(wildTypeProteins)
-                .setMax_skipped_exon(skippedExonsBases.maxSkippedExons())
-                .setMin_skipped_exon(skippedExonsBases.minSkippedExons())
-                .setMax_skipped_bases(skippedExonsBases.maxSkippedBases())
-                .setMin_skipped_bases(skippedExonsBases.minSkippedBases())
-                .build();
+    public int getExclusionCount() {
+        return exclusionCount;
+    }
+
+    public int getInclusionCount() {
+        return inclusionCount;
+    }
+
+    public int getTotalCount() {
+        return totalCount;
+    }
+
+    public int getPsi() {
+        return psi;
+    }
+
+    public Interval getExonSkipped() {
+        return exonSkipped;
+    }
+
+    public Set<String> getSV_trans() {
+        return SV_trans;
     }
 
     private static Set<String> convertTranscriptToProteinID(Gene gene, Set<String> transcriptIDs) {
@@ -154,30 +247,8 @@ public class ExonSkip {
                 }).collect(Collectors.toSet());
     }
 
-    private static SkippedExonsBases calculateSkippedExonsAndBases(Gene gene, Interval intron, Set<String> wildTypeTranscripts) {
-        int minSkippedExons = Integer.MAX_VALUE;
-        int maxSkippedExons = Integer.MIN_VALUE;
-        int minSkippedBases = Integer.MAX_VALUE;
-        int maxSkippedBases = Integer.MIN_VALUE;
-        for (String transcript_id : wildTypeTranscripts) {
-            // Get the transcript
-            Transcript t = gene.getTranscript(transcript_id);
-            int skippedExons = 0;
-            int skippedBases = 0;
-            // Find the number of exons that lie within the intron
-            for (CodingSequence cds : t.getCds()) {
-                if (intron.getStart() <= cds.getInterval().getStart() && intron.getEnd() >= cds.getInterval().getEnd()) {
-                    skippedExons++;
-                    skippedBases += cds.getInterval().getLength();
-                }
-            }
-            minSkippedExons = Math.min(minSkippedExons, skippedExons);
-            maxSkippedExons = Math.max(maxSkippedExons, skippedExons);
-            minSkippedBases = Math.min(minSkippedBases, skippedBases);
-            maxSkippedBases = Math.max(maxSkippedBases, skippedBases);
-
-        }
-        return new SkippedExonsBases(minSkippedExons, maxSkippedExons, minSkippedBases, maxSkippedBases);
+    public Set<String> getWT_trans() {
+        return WT_trans;
     }
 
     public static void writeExonSkipToFile(String o, List<ExonSkip> exonSkips) {
@@ -418,8 +489,16 @@ public class ExonSkip {
         return Objects.hash(id, symbol, chr, strand, nprots, ntrans, SV, WT, SV_prots, WT_prots, min_skipped_exon, max_skipped_exon, min_skipped_bases, max_skipped_bases);
     }
 
+    public void incrementInclusionCount() {
+        inclusionCount++;
+    }
+
+    public void incrementExclusionCount() {
+        exclusionCount++;
+    }
+
     private record SkippedExonsBases(int minSkippedExons, int maxSkippedExons, int minSkippedBases,
-                                     int maxSkippedBases) {
+                                     int maxSkippedBases, Interval exonSkipped) {
     }
 
     public static class Builder {
@@ -437,9 +516,28 @@ public class ExonSkip {
         private int max_skipped_exon;
         private int min_skipped_bases;
         private int max_skipped_bases;
+        private Interval exonSkipped;
 
         public Builder setId(String id) {
             this.id = id;
+            return this;
+        }
+
+        private Set<String> SV_trans;
+        private Set<String> WT_trans;
+
+        public Builder setExonSkipped(Interval exonSkipped) {
+            this.exonSkipped = exonSkipped;
+            return this;
+        }
+
+        public Builder setSVtrans(Set<String> sv) {
+            this.SV_trans = sv;
+            return this;
+        }
+
+        public Builder setWTtrans(Set<String> sv) {
+            this.WT_trans = sv;
             return this;
         }
 

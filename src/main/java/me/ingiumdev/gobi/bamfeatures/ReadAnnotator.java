@@ -7,13 +7,15 @@ import me.ingiumdev.gobi.gtf.structs.Gene;
 import me.ingiumdev.gobi.gtf.treecollections.*;
 import me.ingiumdev.gobi.gtf.types.StrandDirection;
 import me.ingiumdev.gobi.parsers.GTFParser;
-import me.ingiumdev.gobi.readsimulator.IdenticalPair;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -31,18 +33,13 @@ public class ReadAnnotator {
     private PCRIndexManager pcrIndex;
     private BufferedWriter writer;
     private boolean returnAll = false;
-    private final String analysisFilePath;
-    private Map<String, IdenticalPair<Integer>> rpkmMap;
+
 
     private ReadAnnotator(Builder builder) {
         samReader = builder.samReader;
         gtfFile = builder.gtfFile;
         outputFile = builder.outputFile;
         strandSpecificity = builder.strandSpecificity;
-        analysisFilePath = builder.analysisFilePath;
-        if (analysisFilePath != null) {
-            rpkmMap = new HashMap<>();
-        }
     }
 
     public List<ReadAnnotation> annotateAndReturnReads() {
@@ -106,15 +103,15 @@ public class ReadAnnotator {
 
     }
 
-    public boolean areReadsSameStrand(SAMRecord record) {
+    public static boolean areReadsSameStrand(SAMRecord record) {
         return record.getReadNegativeStrandFlag() == record.getMateNegativeStrandFlag();
     }
 
-    public boolean isValidRead(SAMRecord record) {
+    public static boolean isValidRead(SAMRecord record) {
         return !record.getReadUnmappedFlag() && record.getReadPairedFlag() && !record.getMateUnmappedFlag() && !areReadsSameStrand(record) && areReadsSameChromosome(record) && !record.getSupplementaryAlignmentFlag();
     }
 
-    public boolean areReadsSameChromosome(SAMRecord record) {
+    public static boolean areReadsSameChromosome(SAMRecord record) {
         return record.getReferenceName().equals(record.getMateReferenceName());
     }
 
@@ -160,10 +157,6 @@ public class ReadAnnotator {
                         if (returnAll) {
                             allReadAnnotations.add(readAnnotation);
                         }
-                        if (analysisFilePath != null) {
-                            analyzeRead(readAnnotation);
-
-                        }
                     }
                 }
                 producerDone.set(true);
@@ -200,31 +193,6 @@ public class ReadAnnotator {
         }
     }
 
-    private void analyzeRead(ReadAnnotation readAnnotation) {
-        // rpkmMap.get by Genename if not there add it. +1 to the getFirst() of the pair and +1 to the getSecond() of the pair only if readAnnotation.getPCR is 0
-        if (!readAnnotation.getGenesThatInclude().isEmpty()) {
-            totalReadsMapped++;
-            for (Gene gene : readAnnotation.getGenesThatInclude()) {
-                IdenticalPair<Integer> pair = rpkmMap.get(gene.getGeneID());
-                if (pair == null) {
-                    pair = new IdenticalPair<>(0, 0);
-                    rpkmMap.put(gene.getGeneID(), pair);
-                }
-                if (readAnnotation.getPcrIndex() == 0) {
-                    pair.setSecond(pair.getSecond() + 1);
-                }
-                pair.setFirst(pair.getFirst() + 1);
-            }
-        }
-    }
-
-    private double calculateRPKM(int numReadsMappedToGene, int totalReadsMapped, int geneLength) {
-        return (numReadsMappedToGene * 1_000 * 1_000_000.0) / (totalReadsMapped * geneLength);
-    }
-
-    public Map<String, IdenticalPair<Integer>> getRpkmMap() {
-        return rpkmMap;
-    }
 
     private ReadAnnotation processRead(SAMReadPair samReadPair) {
         SAMRecord first = samReadPair.getFirst();
@@ -262,6 +230,7 @@ public class ReadAnnotator {
         return null; // if contained a gene and was not included
     }
 
+
     private void calculateBasicReadInfo(ReadAnnotation readAnnotation, SAMRecord first, SAMRecord second) {
         readAnnotation.calculateClipping(first, second);
         readAnnotation.calculateMismatches(first, second);
@@ -287,15 +256,10 @@ public class ReadAnnotator {
         private File gtfFile;
         private File outputFile;
         private StrandDirection strandSpecificity;
-        private String analysisFilePath;
 
         public Builder() {
         }
 
-        public Builder setAnalysisFilePath(String analysisFilePath) {
-            this.analysisFilePath = analysisFilePath;
-            return this;
-        }
 
         public Builder setSamReader(SamReader val) {
             samReader = val;

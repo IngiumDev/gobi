@@ -34,15 +34,15 @@ public class ExonSkipRunner {
 
     public static void start(Namespace res) {
         long totalStartTime = System.currentTimeMillis();
-        GTFAnnotation GTFAnnotation = GTFParser.parseGTF(res.getString("gtf"));
+        GTFAnnotation gtfAnnotation = GTFParser.parseGTF(res.getString("gtf"));
 
         long startTime = System.currentTimeMillis();
-        GTFAnnotation.getGenes().values().parallelStream().forEach(Gene::processIntrons);
+        gtfAnnotation.getGenes().values().parallelStream().forEach(Gene::processIntrons);
 
         GTFTimer.setIntronProcessTime(System.currentTimeMillis() - startTime);
         System.out.println("LOG: Total time to process introns: " + GTFTimer.getIntronProcessTime() + " ms");
 
-        List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(GTFAnnotation);
+        List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(gtfAnnotation);
         GTFTimer.setExonProcessTime((System.currentTimeMillis() - startTime));
         System.out.println("LOG: Total time to find exon skipping events: " + GTFTimer.getExonProcessTime() + " ms");
 
@@ -57,7 +57,7 @@ public class ExonSkipRunner {
         // Analysis (optional)
         if (res.getString("analysis") != null) {
             startTime = System.currentTimeMillis();
-            ExonSkip.analyzeExonSkippingEvents(GTFAnnotation, exonSkips, res.getString("analysis"), res.getString("gtf"));
+            ExonSkip.analyzeExonSkippingEvents(gtfAnnotation, exonSkips, res.getString("analysis"), res.getString("gtf"));
             System.out.println("LOG: Total time to analyze exon skipping events: " + (System.currentTimeMillis() - startTime) + " ms");
         }
     }

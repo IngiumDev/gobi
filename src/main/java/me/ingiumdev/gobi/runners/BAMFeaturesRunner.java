@@ -44,7 +44,6 @@ public class BAMFeaturesRunner {
                 .setGtfFile(new File(res.getString("gtf")))
                 .setOutputFile(new File(res.getString("o")))
                 .setStrandSpecificity(strandSpecific)
-                .setAnalysisFilePath(res.getString("analysis"))
                 .build();
         long start = System.currentTimeMillis();
         readAnnotator.annotateReads();
