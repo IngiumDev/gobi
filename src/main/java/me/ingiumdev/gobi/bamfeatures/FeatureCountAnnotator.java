@@ -35,37 +35,16 @@ public class FeatureCountAnnotator extends ReadAnnotator {
     }
 
     public List<ReadAnnotation> annotateAndReturnReads() {
-
         returnAll = true;
+        init();
         annotateReads();
         return allReadAnnotations;
     }
 
     @Override
     public void annotateReads() {
-        Iterator<SAMRecord> it = samReader.iterator();
-        if (strandSpecificity == StrandDirection.UNSPECIFIED) {
-            forestManager = new StrandUnspecificForest();
-            pcrIndex = new StrandUnSpecificPCRIndex();
-        } else {
-            //TODO: Possible migrate to tree pair instead of hashmap of strands
-            forestManager = new StrandSpecificForest(strandSpecificity);
-            pcrIndex = new StrandSpecificPCRIndex();
-        }
-        if (outputFile != null) {
-            try {
-                writer = new BufferedWriter(new FileWriter(outputFile));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-        }
-
-        // TODO: better GTF file handling
-        GTFAnnotation gtfAnnotation = GTFParser.parseGTF(String.valueOf(gtfFile));
         long startTime = System.currentTimeMillis();
-        forestManager.init(gtfAnnotation);
-        pcrIndex.initializePCRIndex();
+        Iterator<SAMRecord> it = samReader.iterator();
         String referenceName;
         String readName;
         SAMRecord record;
@@ -94,6 +73,29 @@ public class FeatureCountAnnotator extends ReadAnnotator {
         processLastChromosome();
         System.out.println("Annotation Time taken: " + (System.currentTimeMillis() - startTime) + "ms");
 
+    }
+
+    @Override
+    public void init() {
+        if (strandSpecificity == StrandDirection.UNSPECIFIED) {
+            forestManager = new StrandUnspecificForest();
+            pcrIndex = new StrandUnSpecificPCRIndex();
+        } else {
+            //TODO: Possible migrate to tree pair instead of hashmap of strands
+            forestManager = new StrandSpecificForest(strandSpecificity);
+            pcrIndex = new StrandSpecificPCRIndex();
+        }
+        if (outputFile != null) {
+            try {
+                writer = new BufferedWriter(new FileWriter(outputFile));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        // TODO: better GTF file handling
+        GTFAnnotation gtfAnnotation = GTFParser.parseGTF(String.valueOf(gtfFile));
+        forestManager.init(gtfAnnotation);
+        pcrIndex.initializePCRIndex();
     }
 
     @Override

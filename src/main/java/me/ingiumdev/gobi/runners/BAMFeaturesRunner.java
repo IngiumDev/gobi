@@ -46,6 +46,7 @@ public class BAMFeaturesRunner {
                 .setStrandSpecificity(strandSpecific)
                 .build();
         long start = System.currentTimeMillis();
+        featureCountAnnotator.init();
         featureCountAnnotator.annotateReads();
 
         System.out.println("Time annotate: " + (System.currentTimeMillis() - start) + "ms");

@@ -19,6 +19,11 @@ public class AlternativeSplicingAnnotator extends ReadAnnotator {
     }
 
     @Override
+    public void init() {
+
+    }
+
+    @Override
     protected void processNewChromosome(String referenceName) {
 
     }

@@ -36,6 +36,8 @@ public abstract class ReadAnnotator {
 
     public abstract void annotateReads();
 
+    public abstract void init();
+
     protected abstract void processNewChromosome(String referenceName);
 
     protected abstract ReadAnnotation processRead(SAMReadPair samReadPair);
