@@ -105,23 +105,20 @@ public class AlternativeSplicingRunner {
                                 // If WT subset of match.getsecond transcript IDS AND sv is not a subet of that it's an inclusion
                                 // Get the transcript IDs from the current match
 
-                                if (gene.getGeneID().equals("ENSG00000158109.10")) {
 
-                                }
                                 Set<String> WT = exonSkip.getWT_trans();
                                 Set<String> SV = exonSkip.getSV_trans();
                                 boolean containsWT = matchTranscriptIds.equals(WT);
                                 boolean containsSV = matchTranscriptIds.equals(SV);
                                 if (containsWT) {
+                                    if (gene.getGeneID().equals("ENSG00000270149.1")) {
+                                        System.out.println();
+                                    }
                                     exonSkip.incrementInclusionCount();
                                 } else if (containsSV) {
                                     exonSkip.incrementExclusionCount();
                                 }
-//                                if (containsWT && !containsSV) {
-//                                    exonSkip.incrementInclusionCount();
-//                                } else if (containsWT && containsSV) {
-//                                    exonSkip.incrementExclusionCount();
-//                                }
+
                             } else {
                                 Interval exonSkipInterval = exonSkip.getSV();
                                 Interval exonSkipExon = exonSkip.getExonSkipped();

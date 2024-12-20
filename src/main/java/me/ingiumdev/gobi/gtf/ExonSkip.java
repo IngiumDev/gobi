@@ -43,12 +43,11 @@ public class ExonSkip {
     private final int max_skipped_bases;
     private final Set<String> SV_trans;
     private final Set<String> WT_trans;
-
+    private final Set<Interval> exonSkipped;
     private int inclusionCount = 0;
     private int exclusionCount = 0;
     private int totalCount;
     private int psi;
-    private final Interval exonSkipped;
 
     public ExonSkip(ExonSkip exonSkip) {
         this.id = exonSkip.id;
@@ -69,6 +68,7 @@ public class ExonSkip {
         this.WT_trans = exonSkip.WT_trans;
         this.SV_trans = exonSkip.SV_trans;
     }
+
     private ExonSkip(Builder builder) {
         this.id = builder.id;
         this.symbol = builder.symbol;
@@ -137,7 +137,7 @@ public class ExonSkip {
         int maxSkippedExons = Integer.MIN_VALUE;
         int minSkippedBases = Integer.MAX_VALUE;
         int maxSkippedBases = Integer.MIN_VALUE;
-        Interval exonSkipped = null;
+        Set<Interval> exonSkipped = new TreeSet<>();
         for (String transcript_id : wildTypeTranscripts) {
             // Get the transcript
             Transcript t = gene.getTranscript(transcript_id);
@@ -148,7 +148,7 @@ public class ExonSkip {
                 if (intron.getStart() <= cds.getInterval().getStart() && intron.getEnd() >= cds.getInterval().getEnd()) {
                     skippedExons++;
                     skippedBases += cds.getInterval().getLength();
-                    exonSkipped = cds.getInterval();
+                    exonSkipped.add(cds.getInterval());
                 }
             }
             minSkippedExons = Math.min(minSkippedExons, skippedExons);
@@ -210,30 +210,6 @@ public class ExonSkip {
 
     }
 
-    public int getExclusionCount() {
-        return exclusionCount;
-    }
-
-    public int getInclusionCount() {
-        return inclusionCount;
-    }
-
-    public int getTotalCount() {
-        return totalCount;
-    }
-
-    public int getPsi() {
-        return psi;
-    }
-
-    public Interval getExonSkipped() {
-        return exonSkipped;
-    }
-
-    public Set<String> getSV_trans() {
-        return SV_trans;
-    }
-
     private static Set<String> convertTranscriptToProteinID(Gene gene, Set<String> transcriptIDs) {
         return transcriptIDs.stream()
                 .map(gene::getTranscript)
@@ -245,10 +221,6 @@ public class ExonSkip {
                     String ccdsID = transcript.getCds().getFirst().getCcdsID();
                     return Objects.requireNonNullElse(ccdsID, "NONE");
                 }).collect(Collectors.toSet());
-    }
-
-    public Set<String> getWT_trans() {
-        return WT_trans;
     }
 
     public static void writeExonSkipToFile(String o, List<ExonSkip> exonSkips) {
@@ -419,6 +391,33 @@ public class ExonSkip {
         }
     }
 
+    public int getExclusionCount() {
+        return exclusionCount;
+    }
+
+    public int getInclusionCount() {
+        return inclusionCount;
+    }
+
+    public int getTotalCount() {
+        return totalCount;
+    }
+
+    public int getPsi() {
+        return psi;
+    }
+
+    public Set<Interval> getExonSkipped() {
+        return exonSkipped;
+    }
+
+    public Set<String> getSV_trans() {
+        return SV_trans;
+    }
+
+    public Set<String> getWT_trans() {
+        return WT_trans;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -498,7 +497,7 @@ public class ExonSkip {
     }
 
     private record SkippedExonsBases(int minSkippedExons, int maxSkippedExons, int minSkippedBases,
-                                     int maxSkippedBases, Interval exonSkipped) {
+                                     int maxSkippedBases, Set<Interval> exonSkipped) {
     }
 
     public static class Builder {
@@ -516,17 +515,16 @@ public class ExonSkip {
         private int max_skipped_exon;
         private int min_skipped_bases;
         private int max_skipped_bases;
-        private Interval exonSkipped;
+        private Set<Interval> exonSkipped;
+        private Set<String> SV_trans;
+        private Set<String> WT_trans;
 
         public Builder setId(String id) {
             this.id = id;
             return this;
         }
 
-        private Set<String> SV_trans;
-        private Set<String> WT_trans;
-
-        public Builder setExonSkipped(Interval exonSkipped) {
+        public Builder setExonSkipped(Set<Interval> exonSkipped) {
             this.exonSkipped = exonSkipped;
             return this;
         }
