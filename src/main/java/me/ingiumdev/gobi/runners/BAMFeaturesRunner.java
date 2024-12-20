@@ -3,7 +3,7 @@ package me.ingiumdev.gobi.runners;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
-import me.ingiumdev.gobi.bamfeatures.ReadAnnotator;
+import me.ingiumdev.gobi.bamfeatures.FeatureCountAnnotator;
 import me.ingiumdev.gobi.gtf.types.StrandDirection;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.type.FileArgumentType;
@@ -39,14 +39,14 @@ public class BAMFeaturesRunner {
     private static void start(Namespace res) {
         SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(res.getString("bam")));
         StrandDirection strandSpecific = (res.getString("frstrand") == null) ? StrandDirection.UNSPECIFIED : (res.getString("frstrand").equals("true") ? StrandDirection.FORWARD : StrandDirection.REVERSE);
-        ReadAnnotator readAnnotator = new ReadAnnotator.Builder()
+        FeatureCountAnnotator featureCountAnnotator = new FeatureCountAnnotator.Builder()
                 .setSamReader(reader)
                 .setGtfFile(new File(res.getString("gtf")))
                 .setOutputFile(new File(res.getString("o")))
                 .setStrandSpecificity(strandSpecific)
                 .build();
         long start = System.currentTimeMillis();
-        readAnnotator.annotateReads();
+        featureCountAnnotator.annotateReads();
 
         System.out.println("Time annotate: " + (System.currentTimeMillis() - start) + "ms");
         // todo close samreader

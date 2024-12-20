@@ -3,8 +3,8 @@ package me.ingiumdev.gobi.tests;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
+import me.ingiumdev.gobi.bamfeatures.FeatureCountAnnotator;
 import me.ingiumdev.gobi.bamfeatures.ReadAnnotation;
-import me.ingiumdev.gobi.bamfeatures.ReadAnnotator;
 import me.ingiumdev.gobi.gtf.structs.Gene;
 import me.ingiumdev.gobi.gtf.structs.Transcript;
 import me.ingiumdev.gobi.gtf.types.StrandDirection;
@@ -23,7 +23,7 @@ import static me.ingiumdev.gobi.bamfeatures.ReadAnnotation.INTRONIC;
 import static me.ingiumdev.gobi.bamfeatures.ReadAnnotation.MERGED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ReadAnnotatorTest {
+public class FeatureCountAnnotatorTest {
 
     public static final String LINE_SEPARATOR = "\n----------------------------------";
 
@@ -141,12 +141,12 @@ public class ReadAnnotatorTest {
     private void checkCorrectness(ReferenceEntry x, Path bamPath, Path gtfPath) {
         SamReader samReader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(bamPath.toString(), x.bam));
         StrandDirection strandSpecificity = x.strandness == null ? StrandDirection.UNSPECIFIED : x.strandness ? StrandDirection.FORWARD : StrandDirection.REVERSE;
-        ReadAnnotator readAnnotator = new ReadAnnotator.Builder()
+        FeatureCountAnnotator featureCountAnnotator = new FeatureCountAnnotator.Builder()
                 .setSamReader(samReader)
                 .setGtfFile(new File(gtfPath.toString(), x.gtf))
                 .setStrandSpecificity(strandSpecificity)
                 .build();
-        List<ReadAnnotation> results = readAnnotator.annotateAndReturnReads();
+        List<ReadAnnotation> results = featureCountAnnotator.annotateAndReturnReads();
         // CAUTION: there are null results (if it was skipped)
         // Add the non null to a Map by the read name, if there are multiple results for the same read name, error
         Map<String, ReadAnnotation> readAnnotationMap = new HashMap<>();

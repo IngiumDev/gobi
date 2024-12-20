@@ -9,7 +9,6 @@ import me.ingiumdev.gobi.bamfeatures.SAMReadPair;
 import me.ingiumdev.gobi.gtf.ExonSkip;
 import me.ingiumdev.gobi.gtf.GTFAnnotation;
 import me.ingiumdev.gobi.gtf.structs.Gene;
-import me.ingiumdev.gobi.gtf.structs.Interval;
 import me.ingiumdev.gobi.gtf.structs.Transcript;
 import me.ingiumdev.gobi.gtf.treecollections.IntervalTreeForestManager;
 import me.ingiumdev.gobi.gtf.treecollections.StrandUnspecificForest;
@@ -25,7 +24,7 @@ import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static me.ingiumdev.gobi.bamfeatures.ReadAnnotator.isValidRead;
+import static me.ingiumdev.gobi.bamfeatures.FeatureCountAnnotator.isValidRead;
 
 public class AlternativeSplicingRunner {
     public static void main(String[] args) {
@@ -97,61 +96,7 @@ public class AlternativeSplicingRunner {
                         Set<String> matchTranscriptIds = match.getSecond().stream()
                                 .map(Transcript::getTranscriptID)
                                 .collect(Collectors.toSet());
-                        for (ExonSkip exonSkip : exonSkips.get(gene.getGeneID())) {
-                            // Get the SV interval of the skipped exon (exonSkip region)
-                            if (true) {
 
-                                // If WT + SV trans subset of match.getSecond() the Ids of that --> it's an inclusion
-                                // If WT subset of match.getsecond transcript IDS AND sv is not a subet of that it's an inclusion
-                                // Get the transcript IDs from the current match
-
-
-                                Set<String> WT = exonSkip.getWT_trans();
-                                Set<String> SV = exonSkip.getSV_trans();
-                                boolean containsWT = matchTranscriptIds.equals(WT);
-                                boolean containsSV = matchTranscriptIds.equals(SV);
-                                if (containsWT) {
-                                    if (gene.getGeneID().equals("ENSG00000270149.1")) {
-                                        System.out.println();
-                                    }
-                                    exonSkip.incrementInclusionCount();
-                                } else if (containsSV) {
-                                    exonSkip.incrementExclusionCount();
-                                }
-
-                            } else {
-                                Interval exonSkipInterval = exonSkip.getSV();
-                                Interval exonSkipExon = exonSkip.getExonSkipped();
-                                TreeSet<Interval> combinedReadIntervals = read.getCombinedRead();
-                                boolean leftSideFound = false;
-                                boolean tempitstheone = exonSkip.getSV().equals(new Interval(160991278, 161008669));
-
-                                for (Interval readInterval : combinedReadIntervals) {
-
-                                    // Check if the read interval overlaps with the SV interval
-                                    if ((readInterval.getStart() >= exonSkipExon.getStart() && readInterval.getStart() <= exonSkipExon.getEnd()) || (readInterval.getEnd() >= exonSkipExon.getStart() && readInterval.getEnd() <= exonSkipExon.getEnd())) {
-
-                                        // Including
-                                        exonSkip.incrementInclusionCount();
-                                        if (tempitstheone) {
-                                            System.out.println("Including");
-                                        }
-                                        break;
-                                    } else if (!leftSideFound && readInterval.getEnd() < exonSkipInterval.getStart()) {
-                                        leftSideFound = true;
-                                    } else if (readInterval.getStart() > exonSkipInterval.getEnd()) {
-                                        // Excluding
-                                        if (leftSideFound && readInterval.getStart() > exonSkipInterval.getEnd()) {
-                                            exonSkip.incrementExclusionCount();
-                                            if (tempitstheone) {
-//                                            System.out.println("Excluding");
-                                            }
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
                 exonSkips.values().stream().flatMap(Collection::stream).forEach(exonSkip -> System.out.println(exonSkip.getId() + " " + exonSkip.getSV() + " " + exonSkip.getInclusionCount() + " " + exonSkip.getExclusionCount()));
