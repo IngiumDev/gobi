@@ -5,7 +5,6 @@ import htsjdk.samtools.SamReader;
 import me.ingiumdev.gobi.gtf.ExonSkip;
 import me.ingiumdev.gobi.gtf.GTFAnnotation;
 import me.ingiumdev.gobi.gtf.structs.Gene;
-import me.ingiumdev.gobi.gtf.structs.Interval;
 import me.ingiumdev.gobi.gtf.structs.Transcript;
 import me.ingiumdev.gobi.gtf.treecollections.StrandUnspecificForest;
 import me.ingiumdev.gobi.parsers.GTFParser;
@@ -99,36 +98,15 @@ public class AlternativeSplicingAnnotator extends ReadAnnotator {
                         if (isWTmatched) {
                             if (!isSVmatched) {
                                 // Inclusion
-                                //check if there is an AB in the exon
-                                int exonstart = exonReadCount.getSkippedExon().getStart();
-                                int exonend = exonReadCount.getSkippedExon().getEnd();
-                                if (false) {
-                                    if (readAnnotation.getAlignmentStart() <= exonReadCount.getSkippedExon().getEnd() && readAnnotation.getAlignmentEnd() >= exonReadCount.getSkippedExon().getStart()) {
-                                        exonReadCount.incrementExclusionCount();
-                                    }
-                                } else {
-                                    for (Interval readBlock : readAnnotation.getCombinedRead()) {
-                                        if (exonstart == 30702432 && exonend == 30702470 && readAnnotation.getReadID().equals("66592")) {
-                                            System.out.println("Inclusion: " + readAnnotation.getReadID() + " " + readBlock.getStart() + " " + readBlock.getEnd());
-                                            //   found.add(Integer.valueOf(readAnnotation.getReadID()));
-                                        }
-                                        if (readBlock.getStart() >= exonstart && readBlock.getEnd() <= exonend) {
-
-                                            exonReadCount.incrementInclusionCount();
-                                            if (exonstart == 30702432 && exonend == 30702470) {
-//                                        System.out.println("Inclusion: " + readAnnotation.getReadID() + " " + readBlock.getStart() + " " + readBlock.getEnd());
-                                                found.add(Integer.valueOf(readAnnotation.getReadID()));
-                                            }
-                                            break;
-                                        }
-                                    }
+                                if (readAnnotation.getAlignmentStart() <= exonReadCount.getSkippedExon().getEnd() && readAnnotation.getAlignmentEnd() >= exonReadCount.getSkippedExon().getStart()) {
+                                    exonReadCount.incrementInclusionCount();
                                 }
                             }
                         } else if (isSVmatched) {
+                            // exclusion
                             if (readAnnotation.getAlignmentStart() < exonReadCount.getSkippedExon().getStart() && readAnnotation.getAlignmentEnd() > exonReadCount.getSkippedExon().getEnd()) {
                                 exonReadCount.incrementExclusionCount();
                             }
-
                         }
                     }
                 }
@@ -139,7 +117,6 @@ public class AlternativeSplicingAnnotator extends ReadAnnotator {
             System.out.println("Found: " + found);
             System.out.println("Not found: " + numbers);
         }
-
 
 
     }
