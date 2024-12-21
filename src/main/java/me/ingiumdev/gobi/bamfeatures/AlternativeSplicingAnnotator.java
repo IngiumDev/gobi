@@ -1,5 +1,6 @@
 package me.ingiumdev.gobi.bamfeatures;
 
+import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SamReader;
 import me.ingiumdev.gobi.gtf.ExonSkip;
 import me.ingiumdev.gobi.gtf.GTFAnnotation;
@@ -16,14 +17,16 @@ import java.util.HashMap;
 import java.util.List;
 
 public class AlternativeSplicingAnnotator extends ReadAnnotator {
+    List<ReadAnnotation> reads;
+
     private AlternativeSplicingAnnotator(Builder builder) {
         samReader = builder.samReader;
         gtfFile = builder.gtfFile;
         outputFile = builder.outputFile;
+        reads = new ArrayList<>();
     }
 
 //     TODO struct for the new exon skipping events
-
 
 
     @Override
@@ -55,6 +58,20 @@ public class AlternativeSplicingAnnotator extends ReadAnnotator {
 
     @Override
     protected ReadAnnotation processRead(SAMReadPair samReadPair) {
+        SAMRecord first = samReadPair.getFirst();
+        SAMRecord second = samReadPair.getSecond();
+        ReadAnnotation readAnnotation = new ReadAnnotation(first.getReadName());
+        readAnnotation.extractReadAlignmentStartEnd(first, second);
+        List<Gene> resultGenes = forestManager.getGenesThatInclude(readAnnotation);
+        readAnnotation.extractReadIntervals(first, second);
+        readAnnotation.calculateSplit();
+        if (!resultGenes.isEmpty() && readAnnotation.areReadsConsistent()) {
+            readAnnotation.setGenesThatInclude(resultGenes);
+// remove split inconsistent check if not needed
+            if (readAnnotation.findTranscriptomicMatches()) {
+                return readAnnotation;
+            }
+        }
         return null;
     }
 
