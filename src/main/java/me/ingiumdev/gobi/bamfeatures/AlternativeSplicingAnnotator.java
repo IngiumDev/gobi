@@ -5,19 +5,24 @@ import htsjdk.samtools.SamReader;
 import me.ingiumdev.gobi.gtf.ExonSkip;
 import me.ingiumdev.gobi.gtf.GTFAnnotation;
 import me.ingiumdev.gobi.gtf.structs.Gene;
+import me.ingiumdev.gobi.gtf.structs.Transcript;
 import me.ingiumdev.gobi.gtf.treecollections.StrandUnspecificForest;
 import me.ingiumdev.gobi.parsers.GTFParser;
+import me.ingiumdev.gobi.readsimulator.Pair;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static me.ingiumdev.gobi.bamfeatures.ExonReadCount.createReadCounts;
 
 public class AlternativeSplicingAnnotator extends ReadAnnotator {
     List<ReadAnnotation> reads;
+    Map<String, List<ExonReadCount>> readCounts;
+
 
     private AlternativeSplicingAnnotator(Builder builder) {
         samReader = builder.samReader;
@@ -26,7 +31,6 @@ public class AlternativeSplicingAnnotator extends ReadAnnotator {
         reads = new ArrayList<>();
     }
 
-//     TODO struct for the new exon skipping events
 
 
     @Override
@@ -42,18 +46,34 @@ public class AlternativeSplicingAnnotator extends ReadAnnotator {
         GTFAnnotation gtfAnnotation = GTFParser.parseGTF(String.valueOf(gtfFile));
         gtfAnnotation.getGenes().values().parallelStream().forEach(Gene::processIntrons);
         List<ExonSkip> exonSkips = ExonSkip.findExonSkippingEvents(gtfAnnotation);
+        readCounts = createReadCounts(exonSkips);
         forestManager.init(gtfAnnotation);
     }
 
     @Override
     protected void processNewChromosome(String referenceName) {
         if (readsToAnnotate != null) {
-            // processing
+            processReads();
         }
         readsToAnnotate = new ArrayList<>();
         lookup = new HashMap<>();
         currentChromosome = referenceName;
         forestManager.nextTree(referenceName);
+    }
+
+    private void processReads() {
+        readsToAnnotate.stream().forEach(readPair -> {
+            ReadAnnotation readAnnotation = processRead(readPair);
+            if (readAnnotation != null) {
+                // go through the gene matches etc
+                for (Pair<Gene, List<Transcript>> match : readAnnotation.getTranscriptomicMatches()) {
+                    String geneID = match.getFirst().getGeneID();
+                    Set<String> matchTranscriptIds = match.getSecond().stream()
+                            .map(Transcript::getTranscriptID)
+                            .collect(Collectors.toSet());
+                }
+            }
+        });
     }
 
     @Override

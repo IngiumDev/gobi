@@ -1,19 +1,20 @@
 package me.ingiumdev.gobi.bamfeatures;
 
+import me.ingiumdev.gobi.gtf.ExonSkip;
 import me.ingiumdev.gobi.gtf.structs.Interval;
 
-import java.util.Set;
+import java.util.*;
 
 public class ExonReadCount {
     private final String geneID;
     private final Interval skippedExon;
     private final Interval intron;
-    private final int inclusionCount;
-    private final int exclusionCount;
-    private int totalCount;
-    private double psi;
+    private int inclusionCount;
+    private int exclusionCount;
     private final Set<String> SV_trans;
     private final Set<String> WT_trans;
+    private int totalCount;
+    private double psi;
 
     private ExonReadCount(Builder builder) {
         geneID = builder.geneID;
@@ -25,11 +26,48 @@ public class ExonReadCount {
         exclusionCount = 0;
     }
 
+    public static Map<String, List<ExonReadCount>> createReadCounts(List<ExonSkip> exonSkips) {
+        Map<String, List<ExonReadCount>> readCounts = new HashMap<>();
+
+        for (ExonSkip exonSkip : exonSkips) {
+            String geneID = exonSkip.getId();
+            if (!readCounts.containsKey(geneID)) {
+                readCounts.put(geneID, new ArrayList<>());
+            }
+            List<ExonReadCount> exonReadCounts = readCounts.get(geneID);
+            Interval intron = exonSkip.getSV();
+            Set<String> SV_trans = exonSkip.getSV_trans();
+            Set<String> WT_trans = exonSkip.getWT_trans();
+            for (Interval exon : exonSkip.getExonSkipped()) {
+                ExonReadCount exonReadCount = new ExonReadCount.Builder()
+                        .setGeneID(geneID)
+                        .setSkippedExon(exon)
+                        .setIntron(intron)
+                        .setSV_trans(SV_trans)
+                        .setWT_trans(WT_trans)
+                        .build();
+                exonReadCounts.add(exonReadCount);
+            }
+        }
+        return readCounts;
+    }
+
     public void processPSI() {
         totalCount = inclusionCount + exclusionCount;
         psi = (double) inclusionCount / totalCount;
     }
 
+    public synchronized void incrementInclusionCount() {
+        inclusionCount++;
+    }
+
+    public synchronized void incrementExclusionCount() {
+        exclusionCount++;
+    }
+
+    public String output() {
+        return geneID + "\t" + skippedExon + "\t" + inclusionCount + "\t" + exclusionCount + "\t" + totalCount + "\t" + psi;
+    }
 
     public static final class Builder {
         private String geneID;

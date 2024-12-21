@@ -43,7 +43,7 @@ public class ExonSkip {
     private final int max_skipped_bases;
     private final Set<String> SV_trans;
     private final Set<String> WT_trans;
-    private final Set<Interval> exonSkipped;
+    private final List<Interval> exonSkipped;
     private int inclusionCount = 0;
     private int exclusionCount = 0;
     private int totalCount;
@@ -137,7 +137,7 @@ public class ExonSkip {
         int maxSkippedExons = Integer.MIN_VALUE;
         int minSkippedBases = Integer.MAX_VALUE;
         int maxSkippedBases = Integer.MIN_VALUE;
-        Set<Interval> exonSkipped = new TreeSet<>();
+        List<Interval> exonSkipped = new ArrayList<>();
         for (String transcript_id : wildTypeTranscripts) {
             // Get the transcript
             Transcript t = gene.getTranscript(transcript_id);
@@ -407,7 +407,7 @@ public class ExonSkip {
         return psi;
     }
 
-    public Set<Interval> getExonSkipped() {
+    public List<Interval> getExonSkipped() {
         return exonSkipped;
     }
 
@@ -497,7 +497,7 @@ public class ExonSkip {
     }
 
     private record SkippedExonsBases(int minSkippedExons, int maxSkippedExons, int minSkippedBases,
-                                     int maxSkippedBases, Set<Interval> exonSkipped) {
+                                     int maxSkippedBases, List<Interval> exonSkipped) {
     }
 
     public static class Builder {
@@ -515,7 +515,7 @@ public class ExonSkip {
         private int max_skipped_exon;
         private int min_skipped_bases;
         private int max_skipped_bases;
-        private Set<Interval> exonSkipped;
+        private List<Interval> exonSkipped;
         private Set<String> SV_trans;
         private Set<String> WT_trans;
 
@@ -524,7 +524,7 @@ public class ExonSkip {
             return this;
         }
 
-        public Builder setExonSkipped(Set<Interval> exonSkipped) {
+        public Builder setExonSkipped(List<Interval> exonSkipped) {
             this.exonSkipped = exonSkipped;
             return this;
         }
