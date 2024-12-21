@@ -33,7 +33,11 @@ public class AlternativeSplicingRunner {
 
     public static void start(Namespace res) {
         // TODO BAI
-        SamReader reader = SamReaderFactory.makeDefault().validationStringency(ValidationStringency.SILENT).open(new File(res.getString("bam")));
+        SamReader reader = SamReaderFactory.makeDefault()
+                .validationStringency(ValidationStringency.SILENT)
+                .setOption(SamReaderFactory.Option.EAGERLY_DECODE, false)
+                .open(new File(res.getString("bam")));
+
         AlternativeSplicingAnnotator alternativeSplicingAnnotator = new AlternativeSplicingAnnotator.Builder()
                 .setSamReader(reader)
                 .setGtfFile(new File(res.getString("gtf")))

@@ -13,6 +13,7 @@ public class StrandUnspecificForest implements IntervalTreeForestManager {
     HashMap<String, IntervalTree<Gene>> chromosomeToGeneTree = new HashMap<>();
     IntervalTree<Gene> currentTree;
     List<Gene> resultGenes;
+    String currentChromosome;
 
     /**
      * @param chromosome the chromosome to be selected
@@ -21,6 +22,7 @@ public class StrandUnspecificForest implements IntervalTreeForestManager {
     @Override
     public void nextTree(String chromosome) {
         currentTree = chromosomeToGeneTree.get(chromosome);
+        currentChromosome = chromosome;
         // TODO: delete the current tree
     }
 

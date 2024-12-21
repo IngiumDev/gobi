@@ -66,7 +66,43 @@ public class ExonReadCount {
     }
 
     public String output() {
-        return geneID + "\t" + skippedExon + "\t" + inclusionCount + "\t" + exclusionCount + "\t" + totalCount + "\t" + psi;
+        return geneID + "\t" + skippedExon.toStringDash() + "\t" + inclusionCount + "\t" + exclusionCount + "\t" + totalCount + "\t" + psi;
+    }
+
+    public String getGeneID() {
+        return geneID;
+    }
+
+    public Interval getSkippedExon() {
+        return skippedExon;
+    }
+
+    public Interval getIntron() {
+        return intron;
+    }
+
+    public int getInclusionCount() {
+        return inclusionCount;
+    }
+
+    public int getExclusionCount() {
+        return exclusionCount;
+    }
+
+    public Set<String> getSV_trans() {
+        return SV_trans;
+    }
+
+    public Set<String> getWT_trans() {
+        return WT_trans;
+    }
+
+    public int getTotalCount() {
+        return totalCount;
+    }
+
+    public double getPsi() {
+        return psi;
     }
 
     public static final class Builder {

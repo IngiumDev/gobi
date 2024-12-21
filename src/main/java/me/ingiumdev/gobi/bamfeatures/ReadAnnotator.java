@@ -6,9 +6,7 @@ import me.ingiumdev.gobi.gtf.treecollections.IntervalTreeForestManager;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 public abstract class ReadAnnotator {
     protected SamReader samReader;
@@ -28,7 +26,7 @@ public abstract class ReadAnnotator {
     }
 
     public static boolean isValidRead(SAMRecord record) {
-        return !record.getReadUnmappedFlag() && record.getReadPairedFlag() && !record.getMateUnmappedFlag() && !ReadAnnotator.areReadsSameStrand(record) && ReadAnnotator.areReadsSameChromosome(record) && !record.getSupplementaryAlignmentFlag();
+        return !record.getReadUnmappedFlag() && record.getReadPairedFlag() && !record.getMateUnmappedFlag() && !ReadAnnotator.areReadsSameStrand(record) && !record.getNotPrimaryAlignmentFlag() && ReadAnnotator.areReadsSameChromosome(record) && !record.getSupplementaryAlignmentFlag();
     }
 
     public static boolean areReadsSameChromosome(SAMRecord record) {
@@ -42,6 +40,7 @@ public abstract class ReadAnnotator {
         String readName;
         SAMRecord record;
         // TODO: remove from lookup once it's processed
+        Set<String> seennames = new HashSet<>();
         while (it.hasNext()) {
             record = it.next();
             referenceName = record.getReferenceName();
@@ -49,12 +48,19 @@ public abstract class ReadAnnotator {
                 processNewChromosome(referenceName);
             }
             readName = record.getReadName();
-            if (lookup.containsKey(readName)) {
+            if (lookup.containsKey(readName) && isValidRead(record)) {
                 // Check if the read is the first or second of the pair
-                if (record.getFirstOfPairFlag()) {
-                    readsToAnnotate.add(new SAMReadPair(record, lookup.get(readName)));
+                boolean seen = seennames.add(readName);
+                if (true) {
+                    if (record.getFirstOfPairFlag()) {
+                        readsToAnnotate.add(new SAMReadPair(record, lookup.get(readName)));
+                    } else {
+                        readsToAnnotate.add(new SAMReadPair(lookup.get(readName), record));
+                    }
                 } else {
-                    readsToAnnotate.add(new SAMReadPair(lookup.get(readName), record));
+                    if (readName.equals("77779")) {
+                        System.out.println("Duplicate read found");
+                    }
                 }
             } else if (isValidRead(record)) {
                 lookup.put(readName, record);
