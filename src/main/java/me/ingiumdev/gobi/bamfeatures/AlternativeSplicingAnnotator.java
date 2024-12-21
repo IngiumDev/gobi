@@ -63,46 +63,28 @@ public class AlternativeSplicingAnnotator extends ReadAnnotator {
     }
 
     private void processReads() {
-        Set<String> seennames = new HashSet<>();
-
-        Set<Integer> numbers = new HashSet<>(Set.of(66546, 66532, 66452, 66440, 66547, 66586, 66549, 66422, 66408, 66437, 66419, 66474, 66592, 66406, 66469, 66568, 66424, 66429, 66473, 66525, 66520));
-        Set<Integer> found = new HashSet<>();
         readsToAnnotate.stream().forEach(readPair -> {
             ReadAnnotation readAnnotation = processRead(readPair);
-            boolean seen = seennames.add(readPair.getFirst().getReadName());
-            if (!seen) {
-                System.out.println("Duplicate read name: " + readPair.getFirst().getReadName());
-            }
             if (readAnnotation != null) {
                 // go through the gene matches etc
-
                 for (Pair<Gene, List<Transcript>> match : readAnnotation.getTranscriptomicMatches()) {
                     String geneID = match.getFirst().getGeneID();
-                    Set<String> matchTranscriptIds = match.getSecond().stream()
-                            .map(Transcript::getTranscriptID)
-                            .collect(Collectors.toSet());
+                    Set<String> matchTranscriptIds = match.getSecond().stream().map(Transcript::getTranscriptID).collect(Collectors.toSet());
                     List<ExonReadCount> exonReadCounts = readCounts.get(geneID);
                     if (exonReadCounts == null) {
                         continue;
                     }
-// TODO only print >= total above 0
                     for (ExonReadCount exonReadCount : exonReadCounts) {
-
-                        boolean isWTmatched = exonReadCount.getWT_trans().equals(matchTranscriptIds);
-                        boolean isSVmatched = exonReadCount.getSV_trans().equals(matchTranscriptIds);
-                        if (exonReadCount.getSkippedExon().getStart() == 30702432 && exonReadCount.getSkippedExon().getEnd() == 30702470 && readAnnotation.getReadID().equals("77779")) {
-//                            System.out.println("Inclusion: " + readAnnotation.getReadID() + " " + readBlock.getStart() + " " + readBlock.getEnd());
-//                               found.add(Integer.valueOf(readAnnotation.getReadID()));
-//                                                        System.out.println();
-                        }
-                        if (isWTmatched) {
-                            if (!isSVmatched) {
+                        boolean isWtMatched = exonReadCount.getWtTranscripts().equals(matchTranscriptIds);
+                        boolean isSvMatched = exonReadCount.getSvTranscripts().equals(matchTranscriptIds);
+                        if (isWtMatched) {
+                            if (!isSvMatched) {
                                 // Inclusion
                                 if (readAnnotation.getAlignmentStart() <= exonReadCount.getSkippedExon().getEnd() && readAnnotation.getAlignmentEnd() >= exonReadCount.getSkippedExon().getStart()) {
                                     exonReadCount.incrementInclusionCount();
                                 }
                             }
-                        } else if (isSVmatched) {
+                        } else if (isSvMatched) {
                             // exclusion
                             if (readAnnotation.getAlignmentStart() < exonReadCount.getSkippedExon().getStart() && readAnnotation.getAlignmentEnd() > exonReadCount.getSkippedExon().getEnd()) {
                                 exonReadCount.incrementExclusionCount();
@@ -112,35 +94,25 @@ public class AlternativeSplicingAnnotator extends ReadAnnotator {
                 }
             }
         });
-
-        if (numbers.removeAll(found)) {
-            System.out.println("Found: " + found);
-            System.out.println("Not found: " + numbers);
-        }
-
-
     }
 
     @Override
     protected ReadAnnotation processRead(SAMReadPair samReadPair) {
-        if (samReadPair.getFirst().getReadName().equals("77779")) {
-            System.out.println();
-        }
-        var sr = samReadPair.getFirst();
         SAMRecord first = samReadPair.getFirst();
         SAMRecord second = samReadPair.getSecond();
         ReadAnnotation readAnnotation = new ReadAnnotation(first.getReadName());
-        readAnnotation.extractReadIntervals(first, second);
+
         readAnnotation.extractReadAlignmentStartEnd(first, second);
 
         List<Gene> resultGenes = forestManager.getGenesThatInclude(readAnnotation);
-
-        readAnnotation.calculateSplit();
-        if (!resultGenes.isEmpty() && readAnnotation.areReadsConsistent()) {
-            readAnnotation.setGenesThatInclude(resultGenes);
-// remove split inconsistent check if not needed
-            if (readAnnotation.findTranscriptomicMatches()) {
-                return readAnnotation;
+        if (!resultGenes.isEmpty()) {
+            readAnnotation.extractReadIntervals(first, second);
+            readAnnotation.calculateSplit();
+            if (readAnnotation.areReadsConsistent()) {
+                readAnnotation.setGenesThatInclude(resultGenes);
+                if (readAnnotation.findTranscriptomicMatches()) {
+                    return readAnnotation;
+                }
             }
         }
         return null;

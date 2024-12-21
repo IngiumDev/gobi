@@ -11,8 +11,8 @@ public class ExonReadCount {
     private final Interval intron;
     private int inclusionCount;
     private int exclusionCount;
-    private final Set<String> SV_trans;
-    private final Set<String> WT_trans;
+    private final Set<String> svTranscripts;
+    private final Set<String> wtTranscripts;
     private int totalCount;
     private double psi;
 
@@ -20,8 +20,8 @@ public class ExonReadCount {
         geneID = builder.geneID;
         skippedExon = builder.skippedExon;
         intron = builder.intron;
-        SV_trans = builder.SV_trans;
-        WT_trans = builder.WT_trans;
+        svTranscripts = builder.svTranscripts;
+        wtTranscripts = builder.wtTranscripts;
         inclusionCount = 0;
         exclusionCount = 0;
     }
@@ -43,8 +43,8 @@ public class ExonReadCount {
                         .setGeneID(geneID)
                         .setSkippedExon(exon)
                         .setIntron(intron)
-                        .setSV_trans(SV_trans)
-                        .setWT_trans(WT_trans)
+                        .setSvTranscripts(SV_trans)
+                        .setWtTranscripts(WT_trans)
                         .build();
                 exonReadCounts.add(exonReadCount);
             }
@@ -89,12 +89,12 @@ public class ExonReadCount {
         return exclusionCount;
     }
 
-    public Set<String> getSV_trans() {
-        return SV_trans;
+    public Set<String> getSvTranscripts() {
+        return svTranscripts;
     }
 
-    public Set<String> getWT_trans() {
-        return WT_trans;
+    public Set<String> getWtTranscripts() {
+        return wtTranscripts;
     }
 
     public int getTotalCount() {
@@ -109,8 +109,8 @@ public class ExonReadCount {
         private String geneID;
         private Interval skippedExon;
         private Interval intron;
-        private Set<String> SV_trans;
-        private Set<String> WT_trans;
+        private Set<String> svTranscripts;
+        private Set<String> wtTranscripts;
 
         public Builder() {
         }
@@ -131,13 +131,13 @@ public class ExonReadCount {
             return this;
         }
 
-        public Builder setSV_trans(Set<String> SV_trans) {
-            this.SV_trans = SV_trans;
+        public Builder setSvTranscripts(Set<String> svTranscripts) {
+            this.svTranscripts = svTranscripts;
             return this;
         }
 
-        public Builder setWT_trans(Set<String> WT_trans) {
-            this.WT_trans = WT_trans;
+        public Builder setWtTranscripts(Set<String> wtTranscripts) {
+            this.wtTranscripts = wtTranscripts;
             return this;
         }
 
