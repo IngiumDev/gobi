@@ -26,7 +26,6 @@ public class FeatureCountAnnotator extends ReadAnnotator {
 
 
     private FeatureCountAnnotator(Builder builder) {
-        super();
         strandSpecificity = builder.strandSpecificity;
         samReader = builder.samReader;
         gtfFile = builder.gtfFile;

@@ -27,13 +27,13 @@ public class SimulatedRead {
         if (direction == StrandDirection.FORWARD) {
             this.seq = transcriptSeq.substring(fragmentStart, fragmentStart + readLength);
             this.transcriptCoordinates = new Interval(fragmentStart, fragmentStart + readLength - 1);
-            this.strandDirection = direction;
+            this.strandDirection = StrandDirection.FORWARD;
             this.transcriptSeqLength = transcriptSeq.length();
         } else if (direction == StrandDirection.REVERSE) {
             this.transcriptSeqLength = transcriptSeq.length();
             this.seq = transcriptSeq.substring(transcriptSeqLength - (fragmentStart + fragmentLength), transcriptSeqLength - (fragmentStart + fragmentLength - readLength));
             this.transcriptCoordinates = new Interval(fragmentStart + fragmentLength - readLength, fragmentStart + fragmentLength - 1);
-            this.strandDirection = direction;
+            this.strandDirection = StrandDirection.REVERSE;
 
         } else {
             throw new IllegalArgumentException("StrandDirection not given");
