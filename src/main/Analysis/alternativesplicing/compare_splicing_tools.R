@@ -57,7 +57,7 @@ auc_lrs_value <- auc_lrs@y.values[[1]]
 
 # Plot ROC curve for pd_dseq
 par(pty = "s")  # Force square plotting region
-png("roc.png", width = 6, height = 6, units = "in", res = 300)
+png("src/main/Analysis/alternativesplicing/roc-comparison.png", width = 6, height = 6, units = "in", res = 300)
 
 roc_dseq <- performance(pred_dseq, measure = "tpr", x.measure = "fpr")
 plot(roc_dseq, col = "blue", main = "ROC Curves", lwd = 2,
