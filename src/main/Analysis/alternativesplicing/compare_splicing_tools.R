@@ -81,3 +81,22 @@ legend("bottomright",
                   paste("p_lrs (AUC =", round(auc_lrs_value, 3), ")")),
        col = c("blue", "red"), lwd = 2)
 dev.off()
+# Filter for adjusted p-value < 0.05 for pd_dseq
+filtered_dseq <- merged_dt[pd_dseq < 0.05]
+
+# Calculate sensitivity and FDR for pd_dseq
+sensitivity_dseq <- sum(filtered_dseq$ground_truth) / nrow(filtered_dseq)
+fdr_dseq <- sum(!filtered_dseq$ground_truth) / nrow(filtered_dseq)
+
+# Filter for adjusted p-value < 0.05 for p_lrs
+filtered_lrs <- merged_dt[p_lrs < 0.05]
+
+# Calculate sensitivity and FDR for p_lrs
+sensitivity_lrs <- sum(filtered_lrs$ground_truth) / nrow(filtered_lrs)
+fdr_lrs <- sum(!filtered_lrs$ground_truth) / nrow(filtered_lrs)
+
+# Print sensitivity and FDR for both
+cat("Sensitivity for pd_dseq:", sensitivity_dseq, "\n")
+cat("FDR for pd_dseq:", fdr_dseq, "\n")
+cat("Sensitivity for p_lrs:", sensitivity_lrs, "\n")
+cat("FDR for p_lrs:", fdr_lrs, "\n")
