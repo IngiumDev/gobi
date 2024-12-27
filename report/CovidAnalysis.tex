@@ -19,7 +19,7 @@
     columns=fullflexible
 }
 
-\usepackage[sorting=none,backend=biber]{biblatex}
+\usepackage[backend=biber,  sorting=none]{biblatex}
 \usepackage[
     a4paper,
     left=0.75in,
@@ -28,7 +28,7 @@
     bottom=0.75in
 ]{geometry}
 \usepackage{mathtools}
-\addbibresource{BamFeatures.bib}
+\addbibresource{CovidAnalysis.bib}
 
 
 \hypersetup{
@@ -64,10 +64,114 @@
 
     \section{Materials and Methods}\label{sec:materials-and-methods}
 
-
+    slognsiogoisen \cite{holmes_huber_2018}
     \section{Results}\label{sec:results}
+    \begin{figure}[!htbp]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/pvalue_histogram_star}
+            \label{fig:pvalue_histogram_star}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/pvalue_histogram_hisat}
+            \label{fig:pvalue_histogram_hisat}
+        \end{minipage}
+        \caption{}
+        \label{fig:pvalue_histogram}
+    \end{figure}
+
+    \begin{figure}[!htbp]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/MA_plot_star}
+            \label{fig:MA_plot_star}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/MA_plot_hisat}
+            \label{fig:MA_plot_hisat}
+        \end{minipage}
+        \caption{}
+        \label{fig:MA_plot}
+    \end{figure}
+
+    \begin{figure}[!htbp]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/PCA_plot_star}
+            \label{fig:PCA_plot_star}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/PCA_plot_hisat}
+            \label{fig:PCA_plot_hisat}
+        \end{minipage}
+        \caption{}
+        \label{fig:PCA_plot}
+    \end{figure}
+
+
+
+    \begin{figure}[!htbp]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/Heatmap_star}
+            \label{fig:Heatmap_star}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/Heatmap_hisat}
+            \label{fig:Heatmap_hisat}
+        \end{minipage}
+        \caption{}
+        \label{fig:Heatmap}
+    \end{figure}
+
+    \begin{figure}[!htbp]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/Comparison_Plot_star}
+            \label{fig:Comparison_Plot_star}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/Comparison_Plot_hisat}
+            \label{fig:Comparison_Plot_hisat}
+        \end{minipage}
+        \caption{}
+        \label{fig:Comparison_plot}
+    \end{figure}
+    \begin{figure}[!htbp]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/VST_Comparison_star}
+            \label{fig:VST_Comparison_star}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/VST_Comparison_hisat}
+            \label{fig:VST_Comparison_hisat}
+        \end{minipage}
+        \caption{}
+        \label{fig:VST_Comparison}
+    \end{figure}
+
 
 
     \section{Discussion}\label{sec:discussion}
-    \pagebreak
+    \AtNextBibliography{\small}
+    \printbibliography
 \end{document}

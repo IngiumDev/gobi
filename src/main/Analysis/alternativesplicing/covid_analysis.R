@@ -51,18 +51,19 @@ covid.analysis <- function(counts_file, dataset_name, output_path) {
   select = order(rowMeans(assay(star_rlog)), decreasing = TRUE)[1:30]
 
   # Open a PDF device for saving the plot
-  pdf(file = paste0(output_path, "Heatmap_", dataset_name, ".pdf"), width = 8, height = 6)
 
   # Create the heatmap with a title
   annotation_col <- as.data.frame(colData(star_rlog)[, c("condition", "hours")])
 
-  pheatmap(
+  heatmap <- pheatmap(
     assay(star_rlog)[select,],
     scale = "row",
     annotation_col = annotation_col,
     main = paste0("Top 30 Genes Heatmap for ", dataset_name, " Analysis")
   )
-
+  pdf(file = paste0(output_path, "Heatmap_", dataset_name, ".pdf"), width = 8, height = 6)
+  grid::grid.newpage()
+  grid::grid.draw(heatmap$gtable)
   dev.off()
 
   twoFactor <- star_deseq_m
