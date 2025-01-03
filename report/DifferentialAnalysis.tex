@@ -62,19 +62,47 @@
 
     \section{Introduction}\label{sec:introduction}
 
+    \begin{figure}[!htpb]
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/alternativesplicing/example_exon_skipping_event}
+        \caption
+        {Diagram showing an example exon skipping event and which reads are considered as included, excluded, or ambiguous for the PSI calculation. Transcript 1 would be the wild type, while Transcript 2 would be the splicing variant. Exon 2 is skipped in Transcript 2.}
+        \label{fig:example-exon-skipping-event}
+    \end{figure}
+
+    \begin{figure}[h]
+        \centering
+        \begin{equation}
+            \Psi (E) = \frac{I}{I+E}
+            \label{eq:psi}
+        \end{equation}
+        \caption{$\Psi$ value for a given exon $E$ is calculated by dividing the number of included reads $I$ by the sum of included and excluded reads $I+E$.}
+    \end{figure}
+
 
     \section{Materials and Methods}\label{sec:materials-and-methods}
 
     \subsection{Compute Percent-Spliced-In (PSI) values}\label{subsec:compute-percent-spliced-in-(psi)-values}
+    Figure \ref{fig:alternative-splicing-process} shows the general process for solving the BamFeatures assignment. Due to the complexity of this assignment and the numerous cases, a flowchart is optimal for understanding the task. This allows optimal structuring of an implementation, as one can see which checks can be performed first, in order to possibly rule out other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementations processes the reads in batches (by chromosome), instead of one by one.
+
+    \subsubsection{Program Usage}
+    \begin{verbatim}
+usage: java -jar differentialanalysis.jar [-h] -gtf <gtf_file> -bam <bamfile> -o <output_tsv>
+named arguments:
+  -h, --help             show this help message and exit
+  -gtf <gtf_file>        GTF file
+  -bam <bamfile>         BAM file
+  -o <output_tsv>        Output file
+    \end{verbatim}
+
     \begin{figure}[!htpb]
         \centering
         \includegraphics[width=0.7\textwidth]{figures/alternativesplicing/AlternativeSplicingProcess-crop}
         \caption
-        {Flowchart illustrating the logical program flow for solving the Alternative Splicing Assignment. Rectangles represent
-        procedures, diamonds represent decisions,
+        {Flowchart illustrating the logical program flow for solving the Alternative Splicing Assignment. Rectangles represent procedures, diamonds represent decisions,
             and rounded blocks represent start and endpoints. The process involves parsing the GTF, calculating the exon skipping events and iterating through the BAMFile. Once both forward and reverse reads have been found,
             the processing is performed.}
-        \label{fig:program-procedure}
+        \label{fig:alternative-splicing-process}
     \end{figure}
 
     \subsection{Simple differential test of PSI-values}\label{subsec:simple-differential-test-of-psi-values}
