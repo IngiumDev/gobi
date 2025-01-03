@@ -43,7 +43,7 @@
 \pagestyle{fancy}
 \title{Differential Gene Expression on SARS-CoV-2 Data\\\large Lab Course Genome-Oriented Bioinformatics}
 \author{}
-\date{January 2025}
+\date{20.01.2025}
 
 
 \begin{document}
@@ -64,7 +64,21 @@
 
     \section{Materials and Methods}\label{sec:materials-and-methods}
 
-    slognsiogoisen \cite{holmes_huber_2018}
+    \subsection{Datasets} \label{subsec:datasets}
+
+    Two separate gene count files from an RNAseq experiment of COVID-19 data were used for analysis. These files were generated using two different RNA-seq read alignment tools, STAR\cite{dobin_davis_schlesinger_drenkow_zaleski_jha_batut_chaisson_gingeras_2012} and HISAT2\cite{kim_paggi_park_bennett_salzberg_2019}. The gene count files produced by these aligners will be referred to as \textit{star} and \textit{hisat}, respectively, throughout the rest of this document.
+
+    The samples in the dataset are categorized into three main experimental conditions:
+    \begin{itemize}
+        \item \textbf{S2} - SARS-CoV-2 infected cells
+        \item \textbf{S1} - SARS-CoV infected cells
+        \item \textbf{mock} - Mock-infected cells
+    \end{itemize}
+
+    For both \textbf{S1} and \textbf{S2} infections, several time points post-infection were measured: 4 hours (4h), 12 hours (12h), and 24 hours (24h). For the \textbf{mock} condition, two time points were measured: 4 hours (4h) and 24 hours (24h).
+
+    \subsection{Differential Gene Expression Analysis} \label{subsec:differential-gene-expression-analysis}
+    Differential gene expression analysis was performed using the R package DESeq2\cite{love_huber_anders_2014}. The analysis was performed separately for the \textit{star} and \textit{hisat} datasets. The analysis was performed for each time point separately, comparing the gene expression levels between the infected and mock-infected cells. The analysis was performed accoding the steps described in Modern Statistics for Modern Biology, Chapter 8\cite{holmes_huber_2018}.
     \section{Results}\label{sec:results}
     \begin{figure}[!htbp]
         \centering
@@ -152,6 +166,7 @@
         \caption{}
         \label{fig:Comparison_plot}
     \end{figure}
+
     \begin{figure}[!htbp]
         \centering
         \begin{minipage}{0.48\textwidth}
@@ -168,6 +183,23 @@
         \caption{}
         \label{fig:VST_Comparison}
     \end{figure}
+    \begin{figure}[!htbp]
+        \centering
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/All_MA_plots_star}
+            \label{fig:All_MA_plots_star}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/CovidAnalysis/All_MA_plots_hisat}
+            \label{fig:All_MA_plots_hisat}
+        \end{minipage}
+        \caption{}
+        \label{fig:All_MA_plots}
+    \end{figure}
+
 
 
 

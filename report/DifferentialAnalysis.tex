@@ -28,6 +28,7 @@
     bottom=0.75in
 ]{geometry}
 \usepackage{mathtools}
+\usepackage{blindtext}
 \addbibresource{BamFeatures.bib}
 
 
@@ -43,7 +44,7 @@
 \pagestyle{fancy}
 \title{Topic 4: Differential Analysis\\\large Lab Course Genome-Oriented Bioinformatics}
 \author{}
-\date{January 2025}
+\date{20.01.2025}
 
 
 \begin{document}
@@ -59,16 +60,32 @@
     \hrule
 
 
-    \section{Introduction}
+    \section{Introduction}\label{sec:introduction}
 
 
-    \section{Program Structure}
+    \section{Materials and Methods}\label{sec:materials-and-methods}
+
+    \subsection{Compute Percent-Spliced-In (PSI) values}\label{subsec:compute-percent-spliced-in-(psi)-values}
+    \begin{figure}[!htpb]
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/alternativesplicing/AlternativeSplicingProcess-crop}
+        \caption
+        {Flowchart illustrating the logical program flow for solving the Alternative Splicing Assignment. Rectangles represent
+        procedures, diamonds represent decisions,
+            and rounded blocks represent start and endpoints. The process involves parsing the GTF, calculating the exon skipping events and iterating through the BAMFile. Once both forward and reverse reads have been found,
+            the processing is performed.}
+        \label{fig:program-procedure}
+    \end{figure}
+
+    \subsection{Simple differential test of PSI-values}\label{subsec:simple-differential-test-of-psi-values}
+    Comparison with other alternative splicing tools (DEXSeq)
+    \subsection[Alternative Splicing Comparison]{Comparison With Other Alternative Splicing Tools}\label{subsec:comparison-with-other-alternative-splicing-tools}
 
 
-    \section{Analysis}
+    \section{Analysis}\label{sec:analysis}
 
 
-    \section{Supplement}
+    \section{Supplement}\label{sec:supplement}
 
     \pagebreak
 \end{document}
