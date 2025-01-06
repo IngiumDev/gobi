@@ -85,7 +85,7 @@
     \subsection{Compute Percent-Spliced-In (PSI) values}\label{subsec:compute-percent-spliced-in-(psi)-values}
     Figure \ref{fig:alternative-splicing-process} shows the general process for solving the BamFeatures assignment. Due to the complexity of this assignment and the numerous cases, a flowchart is optimal for understanding the task. This allows optimal structuring of an implementation, as one can see which checks can be performed first, in order to possibly rule out other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementation processes the reads in batches (by chromosome), instead of one by one. The general structure of the program is described below:
     \begin{enumerate}
-        \item \textbf{Initialization and Setup}: Creation of the \texttt{AlternativeSplicingAnnotator} object which initializes the \texttt{GTFAnnotation}, calculates the exon skipping events (as per the first report), as well as initializing the \texttt{SamReader}, and \texttt{IntervalTreeForestManager}.
+        \item \textbf{Initialization and Setup}: Creation of the \texttt{AlternativeSplicingAnnotator} object which initializes the \texttt{GTFAnnotation}, calculates the exon skipping events (as per the first report), as well as initializing the \texttt{SamReader}, and \texttt{IntervalTreeForestManager}. The exon skipping events are stored so that each individual exon that is skipped as a part of an exon skipping event has its own inclusion and exclusion count.
         \item \textbf{Iteration Process}:
         \begin{enumerate}
             \item \textbf{Iterate through the SamReader}: Iterate to the next record, unless the end of the file is reached in which case go to step \ref{sec:last-chromosome-processing} \label{sec:iterate-samreader}
@@ -102,18 +102,34 @@
         \begin{enumerate}
             \item \textbf{Read Processing}: \label{sec:read-processing}
             \begin{enumerate}
-                \item Calculate the Read's attributes such as the combined read intervals, extracting alignmen start and end, etc.
-                \item If there are any \texttt{cgenes}, check for a transcriptomic match.
-                \item For each matched gene with a transcriptomic match, iterate through the
+                \item Calculate the Read's attributes such as the combined read intervals, extracting alignment start and end, etc.
+                \item If there are any \texttt{cgenes}, check for a transcriptomic match. Otherwise, skip the the next read.
+                \item For each matched gene with a transcriptomic match, iterate through the exon skipping events for that gene (by skipped exon).
+                \item If the matched transcripts equal the Wild Type transcripts of the exon skipping event \& the read alignment overlaps the skipped exon, the inclusion count is incremented. Specifically, the start of the read alignment is before or at the end of the skipped exon, and the end of the read alignment is after or at the start of the skipped exon. This ensures that the read covers at least part of the skipped exon.
+                \item If the matched transcripts equal the Splice Variant transcripts of the exon skipping event \& the read alignment fully contains the skipped exon, the exclusion count is incremented. Specifically, the start of the read alignment is before the start of the skipped exon, and the end of the read alignment is after the end of the skipped exon. This ensures that the read fully contains the skipped exon and is not an ambiguous read.
+                \item Repeat this process for all exons in each exon skipping event for each matched gene.
             \end{enumerate}
             \item Reset the data structures and return to step \ref{sec:chromosome-check}.
         \end{enumerate}
         \item \textbf{Last Chromosome Processing} \label{sec:last-chromosome-processing}:
         \begin{enumerate}
-            \item Process the reads like in Step \ref{sec:read-processing}. Close the writer.
+            \item Process the reads like in Step \ref{sec:read-processing}.
+            \item Calculate the PSI score for each exon for each exon skipping event.
+            \item If either the inclusion or exclusion count is greater than 0, the result is printed to the output file in the format shown in Table \ref{tab:psi-output-format}.
         \end{enumerate}
     \end{enumerate}
-
+% Please add the following required packages to your document preamble:
+% \usepackage{graphicx}
+    \begin{table}[]
+        \centering
+        \caption{Output format for the .psi files (tab separated)}
+        \label{tab:psi-output-format}
+        \resizebox{\textwidth}{!}{%
+            \begin{tabular}{l|l|l|l|l|l}
+                gene & exon & num\_incl\_reads & num\_excl\_reads & num\_total\_reads & psi
+            \end{tabular}%
+        }
+    \end{table}
     \subsubsection{Program Usage}
     \begin{verbatim}
 usage: java -jar differentialanalysis.jar [-h] -gtf <gtf_file> -bam <bamfile> -o <output_tsv>
@@ -134,7 +150,161 @@ named arguments:
         \label{fig:alternative-splicing-process}
     \end{figure}
 
-    \subsection{Simple differential test of PSI-values}\label{subsec:simple-differential-test-of-psi-values}
+    \subsection{Simple Differential Test of PSI-Values}\label{subsec:simple-differential-test-of-psi-values}
+
+    To evaluate whether the Percent Spliced In (PSI) values differ between two groups, we assume a simple statistical model based on the binomial distribution. This test compares two probability models: a reduced model and a full model.
+
+    \subsubsection{The Binomial Model for PSI-Values}
+    The probability of observing $i$ inclusion reads out of $N$ total reads, given the inclusion probability $p$, is described by the binomial distribution:
+    \begin{equation}
+        P(i|p,N) = \binom{N}{i} \cdot p^i \cdot (1-p)^{N-i}
+        \label{eq:binomial-distribution}
+    \end{equation}
+    where \( \binom{N}{i} \) is the binomial coefficient, \( p \) is the inclusion probability, and \( N \) is the total number of reads (inclusion + exclusion reads). The inclusion probability \( p \) corresponds to the PSI ratio. This formula provides the foundation for both models. With the assumption of independence between reads, the likelihood of the observed data is calculated as the product of the binomial probabilities for all samples.
+    To find the MLE of the inclusion probability \( p \) for the binomial distribution, we maximize the likelihood function:
+    \begin{equation}
+        L(p) = \prod_{j=1}^{n} \binom{N_j}{i_j} p^{i_j} (1-p)^{N_j - i_j},
+    \end{equation}
+    where \( n \) is the number of samples, \( i_j \) is the inclusion count, and \( N_j \) is the total read count for sample \( j \).
+
+    Taking the natural logarithm of the likelihood simplifies the product to a sum:
+    \begin{equation}
+        \log L(p) = \sum_{j=1}^{n} \left[ \log \binom{N_j}{i_j} + i_j \log(p) + (N_j - i_j) \log(1-p) \right].
+    \end{equation}
+
+    The binomial coefficient \( \binom{N_j}{i_j} \) does not depend on \( p \) and can be ignored during differentiation. The relevant terms are:
+    \begin{equation}
+        \log L(p) = \sum_{j=1}^{n} \left[ i_j \log(p) + (N_j - i_j) \log(1-p) \right].
+    \end{equation}
+
+    To maximize \( \log L(p) \), take the derivative with respect to \( p \) and set it to zero:
+    \begin{align}
+        \frac{\partial \log L(p)}{\partial p} &= \sum_{j=1}^{n} \left[ \frac{i_j}{p} - \frac{N_j - i_j}{1-p} \right] = 0.
+    \end{align}
+
+    Simplifying and solving for \( p \):
+    \begin{align}
+        \sum_{j=1}^{n} \frac{i_j}{p} &= \sum_{j=1}^{n} \frac{N_j - i_j}{1-p}, \\
+        \frac{\sum_{j=1}^{n} i_j}{p} &= \frac{\sum_{j=1}^{n} (N_j - i_j)}{1-p}, \\
+        \frac{\sum_{j=1}^{n} i_j}{p} &= \frac{\sum_{j=1}^{n} N_j - \sum_{j=1}^{n} i_j}{1-p}.
+    \end{align}
+
+    Let \( I = \sum_{j=1}^{n} i_j \) (total inclusion reads) and \( N = \sum_{j=1}^{n} N_j \) (total reads). Substitute these terms:
+    \begin{align}
+        \frac{I}{p} &= \frac{N - I}{1-p}.
+    \end{align}
+
+    Cross-multiply and simplify:
+    \begin{align}
+        I (1-p) &= (N - I) p, \\
+        I - I p &= Np - I p, \\
+        I &= Np, \\
+        p &= \frac{I}{N}.
+    \end{align}
+
+    Thus, the MLE for \( p \) is:
+    \begin{equation}
+        \hat{p} = \frac{\sum_{j=1}^{n} i_j}{\sum_{j=1}^{n} N_j}.
+        \label{eq:binomial-mle}
+    \end{equation}
+
+    \subsubsection{The Reduced Model}
+    The reduced model assumes that all samples share a common inclusion probability \( p_0 \). Under this model, the likelihood of the observed data for all samples is:
+    \begin{equation}
+        L_{reduced}(p_0) = \prod_{j=1}^{10} P(i_j, N_j|p_0)
+        \label{eq:reduced-likelihood}
+    \end{equation}
+    where \( i_j \) and \( N_j \) are the inclusion and total reads for sample \( j \). Using the log-likelihood simplifies computation:
+    \begin{equation}
+        \log L_{reduced}(p_0) = \sum_{j=1}^{10} \left[ \log \binom{N_j}{i_j} + i_j \log(p_0) + (N_j - i_j) \log(1-p_0) \right]
+        \label{eq:log-reduced-likelihood}
+    \end{equation}
+
+    The maximum likelihood estimate (MLE) for \( p_0 \) is calculated by maximizing this log-likelihood:
+    \begin{equation}
+        p_0 = \frac{\sum_{j=1}^{10} i_j}{\sum_{j=1}^{10} N_j}
+        \label{eq:p0-mle}
+    \end{equation}
+
+    \subsubsection{The Full Model}
+    The full model allows for separate inclusion probabilities \( p_1 \) and \( p_2 \) for the two groups. As an example, consider two groups of five samples each:
+    \[
+        \text{Group 1: } \{p_1, p_1, p_1, p_1, p_1\}, \quad \text{Group 2: } \{p_2, p_2, p_2, p_2, p_2\}
+    \]
+    The likelihood of the data under the full model is:
+    \begin{equation}
+        L_{full}(p_1, p_2) = \prod_{j=1}^{5} P(i_j, N_j|p_1) \cdot \prod_{j=6}^{10} P(i_j, N_j|p_2)
+        \label{eq:full-likelihood}
+    \end{equation}
+    The corresponding log-likelihood is:
+    \begin{equation}
+        \log L_{full}(p_1, p_2) = \sum_{j=1}^{5} \left[ \log \binom{N_j}{i_j} + i_j \log(p_1) + (N_j - i_j) \log(1-p_1) \right]
+        + \sum_{j=6}^{10} \left[ \log \binom{N_j}{i_j} + i_j \log(p_2) + (N_j - i_j) \log(1-p_2) \right]
+        \label{eq:log-full-likelihood}
+    \end{equation}
+
+    The MLEs for \( p_1 \) and \( p_2 \) are:
+    \begin{align}
+        p_1 &= \frac{\sum_{j=1}^{5} i_j}{\sum_{j=1}^{5} N_j} \label{eq:p1-mle} \\
+        p_2 &= \frac{\sum_{j=6}^{10} i_j}{\sum_{j=6}^{10} N_j} \label{eq:p2-mle}
+    \end{align}
+
+    \subsubsection{Likelihood Ratio Statistic and Hypothesis Testing}
+    To test whether the PSI values differ between the two groups, we compute the likelihood ratio statistic (LRS):
+    \begin{equation}
+        LRS = -2 \cdot \log\left(\frac{L_{reduced}}{L_{full}}\right)
+        \label{eq:lrs}
+    \end{equation}
+    which simplifies to:
+    \begin{equation}
+        LRS = -2 \cdot \left(\log L_{reduced} - \log L_{full}\right)
+        \label{eq:lrs-log}
+    \end{equation}
+
+    Under the null hypothesis (\( H_0: p_1 = p_2 \)), the LRS follows a Chi-square distribution with one degree of freedom (\( df = 1 \)). The p-value is calculated as:
+    \begin{equation}
+        P(\text{LRS} > x) = 1 - F_{\chi^2}(x, df=1)
+        \label{eq:p-value}
+    \end{equation}
+    where \( F_{\chi^2} \) is the cumulative distribution function of the Chi-square distribution.
+
+    \subsubsection{Implemented R Functions in \texttt{LRS.R}}
+    The analysis pipeline is built using two main functions:
+
+    \paragraph{\texttt{LRS}}
+    The \texttt{LRS} function performs the likelihood ratio test for a single exon. It takes three inputs:
+    \begin{itemize}
+        \item \texttt{incl}: A vector of inclusion read counts (IRC) for each sample.
+        \item \texttt{total}: A vector of total read counts (IRC + ERC) for each sample.
+        \item \texttt{group}: A vector indicating the group assignment (1 or 2) of each sample.
+    \end{itemize}
+    Using these inputs, the function:
+    \begin{enumerate}
+        \item Computes \( p_0, p_1, \) and \( p_2 \) as maximum likelihood estimates.
+        \item Calculates the log-likelihoods for the reduced and full models.
+        \item Derives the likelihood ratio statistic (LRS) and the corresponding p-value using the Chi-square distribution.
+    \end{enumerate}
+    The function returns a list containing \( p_0, p_1, p_2, \log L_{reduced}, \log L_{full}, \text{LRS}, \) and the p-value.
+
+    \paragraph{\texttt{diff.splicing}}
+    The \texttt{diff.splicing} function extends the \texttt{LRS} method for a dataset of multiple PSI files generated using the program described in Section \ref{subsec:compute-percent-spliced-in-(psi)-values}. It:
+    \begin{enumerate}
+        \item Aggregates data from all input files (\texttt{psi.files}), merging metrics for each exon across samples.
+        \item Processes each exon using \texttt{LRS}, storing results in a structured table.
+        \item Adjusts p-values for multiple testing (Benjamini-Hochberg) and returns a final result with all columns listed below.
+    \end{enumerate}
+
+    The final output is a comprehensive data table containing:
+    \begin{itemize}
+        \item \textbf{gene, exon:} Identifiers for each exon being analyzed.
+        \item \textbf{\( p_0, p_1, p_2 \):} Maximum likelihood estimates of the inclusion probabilities under the reduced and full models.
+        \item \textbf{\( \log L_{reduced}, \log L_{full} \):} Log-likelihoods for the reduced and full models.
+        \item \textbf{lrs:} Likelihood ratio statistic, quantifying the improvement of the full model over the reduced model.
+        \item \textbf{pvalue:} Statistical significance of the observed LRS.
+        \item \textbf{padj:} Adjusted p-values for controlling the false discovery rate (FDR).
+    \end{itemize}
+
+
     Comparison with other alternative splicing tools (DEXSeq)
     \subsection[Alternative Splicing Comparison]{Comparison With Other Alternative Splicing Tools}\label{subsec:comparison-with-other-alternative-splicing-tools}
 
