@@ -83,7 +83,36 @@
     \section{Materials and Methods}\label{sec:materials-and-methods}
 
     \subsection{Compute Percent-Spliced-In (PSI) values}\label{subsec:compute-percent-spliced-in-(psi)-values}
-    Figure \ref{fig:alternative-splicing-process} shows the general process for solving the BamFeatures assignment. Due to the complexity of this assignment and the numerous cases, a flowchart is optimal for understanding the task. This allows optimal structuring of an implementation, as one can see which checks can be performed first, in order to possibly rule out other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementations processes the reads in batches (by chromosome), instead of one by one.
+    Figure \ref{fig:alternative-splicing-process} shows the general process for solving the BamFeatures assignment. Due to the complexity of this assignment and the numerous cases, a flowchart is optimal for understanding the task. This allows optimal structuring of an implementation, as one can see which checks can be performed first, in order to possibly rule out other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementation processes the reads in batches (by chromosome), instead of one by one. The general structure of the program is described below:
+    \begin{enumerate}
+        \item \textbf{Initialization and Setup}: Creation of the \texttt{AlternativeSplicingAnnotator} object which initializes the \texttt{GTFAnnotation}, calculates the exon skipping events (as per the first report), as well as initializing the \texttt{SamReader}, and \texttt{IntervalTreeForestManager}.
+        \item \textbf{Iteration Process}:
+        \begin{enumerate}
+            \item \textbf{Iterate through the SamReader}: Iterate to the next record, unless the end of the file is reached in which case go to step \ref{sec:last-chromosome-processing} \label{sec:iterate-samreader}
+            \item \textbf{Chromosome Check}: Check if the current record is on the same chromosome as the previous record. If not, process the reads in step \ref{sec:new-chromosome-processing}. \label{sec:chromosome-check}
+            \item \textbf{Valid Read Check}: Check conditions if the read is valid. If not, continue to step \ref{sec:iterate-samreader}.
+            \item \textbf{Read Pair Check}: Check if we have seen the record's mate before:
+            \begin{itemize}
+                \item If yes, add the records in the correct order (first of pair) to the readsToAnnotate List
+                \item If no, add the record to the lookup table and continue to the next record.
+            \end{itemize}
+            \item Go to step \ref{sec:iterate-samreader}.
+        \end{enumerate}
+        \item \textbf{New Chromosome Processing} \label{sec:new-chromosome-processing}:
+        \begin{enumerate}
+            \item \textbf{Read Processing}: \label{sec:read-processing}
+            \begin{enumerate}
+                \item Calculate the Read's attributes such as the combined read intervals, extracting alignmen start and end, etc.
+                \item If there are any \texttt{cgenes}, check for a transcriptomic match.
+                \item For each matched gene with a transcriptomic match, iterate through the
+            \end{enumerate}
+            \item Reset the data structures and return to step \ref{sec:chromosome-check}.
+        \end{enumerate}
+        \item \textbf{Last Chromosome Processing} \label{sec:last-chromosome-processing}:
+        \begin{enumerate}
+            \item Process the reads like in Step \ref{sec:read-processing}. Close the writer.
+        \end{enumerate}
+    \end{enumerate}
 
     \subsubsection{Program Usage}
     \begin{verbatim}
