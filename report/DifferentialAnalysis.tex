@@ -151,7 +151,7 @@
         \centering
         \caption{Output format for the .psi files (tab separated)}
         \label{tab:psi-output-format}
-        \resizebox{\textwidth}{!}{%
+        \resizebox{0.7\textwidth}{!}{%
             \begin{tabular}{l|l|l|l|l|l}
                 gene & exon & num\_incl\_reads & num\_excl\_reads & num\_total\_reads & psi
             \end{tabular}%
@@ -366,6 +366,60 @@ named arguments:
     \section{Results}\label{sec:results}
 
     \subsection{Compute Percent-Spliced-In (PSI) values}\label{subsec:compute-percent-spliced-in-(psi)-values-results}
+
+    \subsubsection{Runtime}
+    \begin{table}[]
+        \centering
+        \caption{Runtime for the annotation on the provided samples 1-10. with the number of records The BAM file were processed on the bioclient grid (write/read to/from HDD).}
+        \label{tab:sample-runtime}
+        \resizebox{\textwidth}{!}{%
+            \begin{tabular}{c|c|c|c|c|c|c|c|c|c|c}
+                Sample Number &
+                1 &
+                2 &
+                3 &
+                4 &
+                5 &
+                6 &
+                7 &
+                8 &
+                9 &
+                10 \\ \hline
+                Annotation Time (ms) &
+                647 &
+                644 &
+                685 &
+                462 &
+                465 &
+                513 &
+                520 &
+                537 &
+                519 &
+                735 \\ \hline
+                \multicolumn{1}{l|}{Total Records} &
+                \multicolumn{1}{l|}{188,242} &
+                \multicolumn{1}{l|}{220,274} &
+                \multicolumn{1}{l|}{190,272} &
+                \multicolumn{1}{l|}{188,538} &
+                \multicolumn{1}{l|}{189,678} &
+                \multicolumn{1}{l|}{187,512} &
+                \multicolumn{1}{l|}{220,924} &
+                \multicolumn{1}{l|}{220,800} &
+                \multicolumn{1}{l|}{221,470} &
+                \multicolumn{1}{l}{219,662}
+            \end{tabular}%
+        }
+    \end{table}
+    Table~\ref{tab:sample-runtime} shows the runtime for annotating samples 1-10. The annotation time is consistent across samples, with an average runtime of 572.7 ms. The total number of records processed for each sample is also provided.
+
+    \subsubsection{Correctness}
+
+    Wild Type (WT) transcripts are defined as those that include all exons within the exon skipping event, while Splice Variant (SV) transcripts are those that omit one or more of these exons. If the matching transcripts of a read equal WT transcripts of an exon skipping event, it implies that it doesn't match the SV transcripts. If the read were to exclude one of the exons in the exon skipping event, it should match the SV transcripts. If it matches part of WT and SV, we can naturally conclude it is an ambiguous read. To ensure that the read provides evidence of inclusion of a specific exon(s) in an event, we have to check whether the read alignment overlaps with the skipped exon. The process for an exclusion is analogous, but this time it is checked whether the read alignment fully contains the skipped exon. This WT/SV approach provides a computationally efficient way to determine the inclusion/exclusion status of a read while also ensuring correctness.
+    %
+
+    %
+
+
     \subsection[Alternative Splicing Comparison]{Comparison With Other Alternative Splicing Tools}\label{subsec:comparison-with-other-alternative-splicing-tools-results}
 
     \subsubsection{ROC Curve Analysis}
