@@ -29,7 +29,7 @@
 ]{geometry}
 \usepackage{mathtools}
 \usepackage{blindtext}
-\addbibresource{BamFeatures.bib}
+\addbibresource{DifferentialAnalysis.bib}
 
 
 \hypersetup{
@@ -294,7 +294,7 @@ named arguments:
         \item Adjusts p-values for multiple testing (Benjamini-Hochberg) and returns a final result with all columns listed below.
     \end{enumerate}
 
-    The final output is a comprehensive data table containing:
+    The final output is a table containing:
     \begin{itemize}
         \item \textbf{gene, exon:} Identifiers for each exon being analyzed.
         \item \textbf{\( p_0, p_1, p_2 \):} Maximum likelihood estimates of the inclusion probabilities under the reduced and full models.
@@ -305,14 +305,43 @@ named arguments:
     \end{itemize}
 
 
-    Comparison with other alternative splicing tools (DEXSeq)
-    \subsection[Alternative Splicing Comparison]{Comparison With Other Alternative Splicing Tools}\label{subsec:comparison-with-other-alternative-splicing-tools}
+    \subsection[Alternative Splicing Comparison]{Comparison With Other Alternative Splicing Tools}\label{subsec:comparison-with-other-alternative-splicing-tools-materials-and-methods}
+    To evaluate the performance of our likelihood ratio statistic (LRS) method, we compared it with the DEXSeq tool using simulated BAM files provided in the assignment. The analysis was conducted as follows:
+
+    \subsubsection{DEXSeq Analysis}
+    The DEXSeq\cite{love_huber_anders_2014} tool was used to perform differential splicing analysis on the same BAM files processed in the LRS pipeline. Adjusted p-values (\texttt{padj}) were obtained for each exon. Genomic ranges were extracted to align DEXSeq results with the exons analyzed by our LRS method.
+
+    \subsubsection{Ground Truth and Matching Results}
+    Ground truth labels indicating truly differentially skipped exons were provided in \texttt{differential\_exons.RData}. To compare the two methods:
+    \begin{itemize}
+        \item LRS and DEXSeq results were merged using gene identifiers and exon ranges.
+        \item A ground truth flag was added to indicate whether an exon was part of the true differentially skipped set.
+    \end{itemize}
+
+    \subsubsection{Evaluation Metrics}
+    We computed the following metrics:
+    \begin{itemize}
+        \item \textbf{Sensitivity}: The proportion of true positives (correctly identified differentially skipped exons) among all actual positives.
+        \item \textbf{False Discovery Rate (FDR)}: The proportion of false positives among all predicted positives.
+        \item \textbf{ROC Curves and AUC}: ROC curves were generated to visualize the trade-off between true positive rate (TPR) and false positive rate (FPR). The area under the curve (AUC) was calculated to quantify overall performance.
+    \end{itemize}
+
+    \subsubsection{Statistical Analysis and Visualization}
+    The R \texttt{ROCR}\cite{10.1093/bioinformatics/bti623} library was used to compute performance metrics and generate ROC curves. The comparison process involved:
+    \begin{enumerate}
+        \item Generating ROC curves for both methods using \texttt{padj} values as predictors.
+        \item Plotting the curves on the same graph for visual comparison, with AUC values included in the legend.
+        \item Calculating sensitivity and FDR for predictions with \texttt{padj < 0.05}.
+    \end{enumerate}
 
 
-    \section{Analysis}\label{sec:analysis}
+    \section{Results}\label{sec:results}
+
+    \subsection[Alternative Splicing Comparison]{Comparison With Other Alternative Splicing Tools}\label{subsec:comparison-with-other-alternative-splicing-tools-results}
 
 
     \section{Supplement}\label{sec:supplement}
 
-    \pagebreak
+    \AtNextBibliography{\small}
+    \printbibliography
 \end{document}
