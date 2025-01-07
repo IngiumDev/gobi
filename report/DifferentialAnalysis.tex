@@ -65,7 +65,7 @@
     \section{Introduction}\label{sec:introduction}
 
     \subsection{Evidence of Alternative Splicing}\label{subsec:evidence-of-alternative-splicing}
-    Since reads can map to specific transcripts of a gene, it is possible that a read might indicate the inclusion or exclusion of a specific exon. An example of a evidence for alternative splicing is shown in Figure~\ref{fig:example-exon-skipping-event}. Some reads provide evidence for the inclusion of an exon (inclusion reads), while others provide evidence for the exclusion of an exon (exclusion reads). Additionally, even though some reads might map to a gene, they do not provide evidence for the inclusion or exclusion of a specific exon. These reads are considered ambiguous.
+    Since reads can map to specific transcripts of a gene, it is possible that a read might indicate the inclusion or exclusion of a specific exon. An example of a evidence for an exon skipping event is shown in Figure~\ref{fig:example-exon-skipping-event}. Some reads provide evidence for the inclusion of an exon (inclusion reads), while others provide evidence for the exclusion of an exon (exclusion reads). Additionally, even though some reads might map to a gene, they do not provide evidence for the inclusion or exclusion of a specific exon. These reads are considered ambiguous.
 
     The Percent Spliced In (PSI) value is a metric used to quantify the inclusion of an exon in a transcript. It is calculated using the formula shown in Equation \ref{eq:psi}. The PSI value ranges from 0 to 1, where 0 indicates that the exon is always excluded, and 1 indicates that the exon is always included. The PSI value is calculated by dividing the number of inclusion reads by the sum of inclusion and exclusion reads. The PSI value is calculated for each exon in an exon skipping event.
     \begin{figure}[!htpb]
@@ -88,7 +88,7 @@
 
     \section{Materials and Methods}\label{sec:materials-and-methods}
 
-    \subsection{Compute Percent-Spliced-In (PSI) values}\label{subsec:compute-percent-spliced-in-(psi)-values}
+    \subsection{Compute Percent-Spliced-In (PSI) values}\label{subsec:compute-percent-spliced-in-(psi)-values-materials-and-methods}
     Figure \ref{fig:alternative-splicing-process} shows the general process for solving the BamFeatures assignment. Due to the complexity of this assignment and the numerous cases, a flowchart is optimal for understanding the task. This allows optimal structuring of an implementation, as one can see which checks can be performed first, in order to possibly rule out other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementation processes the reads in batches (by chromosome), instead of one by one. The general structure of the program is described below:
     \begin{enumerate}
         \item \textbf{Initialization and Setup}: Creation of the \texttt{AlternativeSplicingAnnotator} object which initializes the \texttt{GTFAnnotation}, calculates the exon skipping events (as per the first report), as well as initializing the \texttt{SamReader}, and \texttt{IntervalTreeForestManager}. The exon skipping events are stored so that each individual exon that is skipped as a part of an exon skipping event has its own inclusion and exclusion count.
@@ -124,9 +124,29 @@
             \item If either the inclusion or exclusion count is greater than 0, the result is printed to the output file in the format shown in Table \ref{tab:psi-output-format}.
         \end{enumerate}
     \end{enumerate}
-    Since the iteration process through the BAM file and caching (by chromosome) process is the same as the BamFeatures task, an abstract class, \texttt{ReadAnnotator}, was created. The abstract class implements the iterating, read validation checking (see previous report) and stores the required data structures (lookup table, forest manager). While iterating through the BAM file, the abstract class calls up the \texttt{processNewChromosome} and \texttt{processLastChromosome} methods, which are implemented in the respective annotator (\texttt{AlternativeSplicingAnnotator} \& \texttt{FeatureCountAnnotator}).
-% Please add the following required packages to your document preamble:
-% \usepackage{graphicx}
+    Since the iteration process through the BAM file and caching (by chromosome) process is the same as the BamFeatures task, an abstract class, \texttt{ReadAnnotator}, was created. The abstract class implements the iterating, read validation checking (see previous report) and stores the required data structures (lookup table, forest manager). While iterating through the BAM file, the abstract class calls up the \texttt{processNewChromosome} and \texttt{processLastChromosome} methods, which are implemented in the respective annotator (\texttt{AlternativeSplicingAnnotator} \& \texttt{FeatureCountAnnotator}). The exon skipping events are processed in an identical fashion to the first report, with the only difference being that the inclusion and exclusion counts are stored for each exon in the exon skipping event. These events are then stored in a map, where the key is the gene id.
+
+    In this task, we consider strand unspecific experiments, meaning that we always check both strands for a gene match. When iterating through the \texttt{SAMRecords}, if the read is from a new chromosome, all reads from the previous chromosome are processed. Since the file is organized by chromosome and position, the lookup data structures can be reset. Before adding a read to the lookup table, it is checked for validity:
+    \begin{enumerate}
+        \item The read is mapped
+        \item The read is part of a pair
+        \item The mate read is mapped
+        \item The reads are on different strands
+        \item The reads are on the same chromosome
+        \item The read is not a supplementary alignment
+    \end{enumerate}
+    This check ensures that only valid reads are processed, guaranteeing the correctness of the annotation. Since both records of the first and second read in a pair are needed, processing cannot begin until both reads are found. A lookup table is used to match reads with their mates. If the mate has not been found yet, the read is added to the table using the read name, which is the same for paired reads but unique across the experiment. Once the mate is found, both reads are added to the \texttt{readsToAnnotate} list in the correct order. After processing the entire chromosome, all pairs in \texttt{readsToAnnotate} are annotated, and any remaining entries in the lookup table are ignored.
+
+    The annotation of a read pair begins with extracting the alignment's start and end positions. These coordinates are then used to find the genes on the current chromosome that fully include the read pair in their intervals. If there are any containing genes, we check if there is a transcriptomic match. To classify a read as transcriptomic, both reads' region vectors must be sub-region vectors of at least one transcript. A read region vector \(r\) is considered a sub-region vector of a transcript \(t\) if \(\text{cut}(t, r_{\text{start}}, r_{\text{end}}) = r\), as shown in Figure~\ref{fig:transcriptomic-cut}.
+    \begin{figure}[!htpb]
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/transcriptomic-cut}
+        \caption
+        {Diagram showing how the cut method works for checking if a read matches a transcript. The transcript is cut starting from the first base of the read and ending at the last base of the read. If the cut transcript is the same as the read, the read matches the transcript.}
+        \label{fig:transcriptomic-cut}
+    \end{figure}
+    For all the matching genes (in case there are multiple), we iterate through the exon skipping events. If the matching transcripts (from the transcriptomic match) equal the Wild Type transcripts of the exon skipping event and the read alignment overlaps the skipped exon, the inclusion count is incremented. If the matching transcripts equal the Splice Variant transcripts of the exon skipping event and the read alignment fully contains the skipped exon, the exclusion count is incremented. This process is repeated for all exons in each exon skipping event for each matched gene. After processing all reads, the PSI score is calculated for each exon in each exon skipping event. If either the inclusion or exclusion count is greater than 0, the result is printed to the output file in the format shown in Table~\ref{tab:psi-output-format}.
+
     \begin{table}[]
         \centering
         \caption{Output format for the .psi files (tab separated)}
@@ -345,6 +365,7 @@ named arguments:
 
     \section{Results}\label{sec:results}
 
+    \subsection{Compute Percent-Spliced-In (PSI) values}\label{subsec:compute-percent-spliced-in-(psi)-values-results}
     \subsection[Alternative Splicing Comparison]{Comparison With Other Alternative Splicing Tools}\label{subsec:comparison-with-other-alternative-splicing-tools-results}
 
     \subsubsection{ROC Curve Analysis}
