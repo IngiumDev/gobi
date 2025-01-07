@@ -88,6 +88,20 @@
 
     \section{Materials and Methods}\label{sec:materials-and-methods}
 
+    \subsection{Provided Files}\label{subsec:provided-files}
+
+    The following files were provided for the analysis of alternative splicing events and served as key resources for the various analyses:
+
+    \begin{itemize}
+        \item \texttt{bam/}: This directory contains BAM files, which represent the aligned sequencing reads.
+        \item \texttt{annotation\_b37.gtf}: This file contains the transcript annotation in GTF format. It provides structural information about transcripts, including exon and intron boundaries, which are critical for mapping reads to specific genomic features.
+
+        \item \texttt{differential\_exons.RData}: This RData file includes the ground truth for the exons identified in the annotation file. It serves as a reference for validating the results of exon-level differential expression analyses.
+
+        \item \texttt{diff\_psi\_test.RData}: This file contains data for testing the method for likelihood ratio testing (LRS) in the context of differential splicing.
+        \item \texttt{AlternativeSplicing/}: Contains partial reference solutions for testing.
+    \end{itemize}
+
     \subsection{Compute Percent-Spliced-In (PSI) values}\label{subsec:compute-percent-spliced-in-(psi)-values-materials-and-methods}
     Figure \ref{fig:alternative-splicing-process} shows the general process for solving the BamFeatures assignment. Due to the complexity of this assignment and the numerous cases, a flowchart is optimal for understanding the task. This allows optimal structuring of an implementation, as one can see which checks can be performed first, in order to possibly rule out other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementation processes the reads in batches (by chromosome), instead of one by one. The general structure of the program is described below:
     \begin{enumerate}
@@ -415,9 +429,7 @@ named arguments:
     \subsubsection{Correctness}
 
     Wild Type (WT) transcripts are defined as those that include all exons within the exon skipping event, while Splice Variant (SV) transcripts are those that omit one or more of these exons. If the matching transcripts of a read equal WT transcripts of an exon skipping event, it implies that it doesn't match the SV transcripts. If the read were to exclude one of the exons in the exon skipping event, it should match the SV transcripts. If it matches part of WT and SV, we can naturally conclude it is an ambiguous read. To ensure that the read provides evidence of inclusion of a specific exon(s) in an event, we have to check whether the read alignment overlaps with the skipped exon. The process for an exclusion is analogous, but this time it is checked whether the read alignment fully contains the skipped exon. This WT/SV approach provides a computationally efficient way to determine the inclusion/exclusion status of a read while also ensuring correctness.
-    %
 
-    %
 
 
     \subsection[Alternative Splicing Comparison]{Comparison With Other Alternative Splicing Tools}\label{subsec:comparison-with-other-alternative-splicing-tools-results}
