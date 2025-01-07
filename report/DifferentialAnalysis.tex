@@ -59,14 +59,20 @@
     \vspace{10pt} % Optional: Add space after the TOC as well
     \hrule
 
+    \pagebreak
+
 
     \section{Introduction}\label{sec:introduction}
 
+    \subsection{Evidence of Alternative Splicing}\label{subsec:evidence-of-alternative-splicing}
+    Since reads can map to specific transcripts of a gene, it is possible that a read might indicate the inclusion or exclusion of a specific exon. An example of a evidence for alternative splicing is shown in Figure~\ref{fig:example-exon-skipping-event}. Some reads provide evidence for the inclusion of an exon (inclusion reads), while others provide evidence for the exclusion of an exon (exclusion reads). Additionally, even though some reads might map to a gene, they do not provide evidence for the inclusion or exclusion of a specific exon. These reads are considered ambiguous.
+
+    The Percent Spliced In (PSI) value is a metric used to quantify the inclusion of an exon in a transcript. It is calculated using the formula shown in Equation \ref{eq:psi}. The PSI value ranges from 0 to 1, where 0 indicates that the exon is always excluded, and 1 indicates that the exon is always included. The PSI value is calculated by dividing the number of inclusion reads by the sum of inclusion and exclusion reads. The PSI value is calculated for each exon in an exon skipping event.
     \begin{figure}[!htpb]
         \centering
         \includegraphics[width=0.7\textwidth]{figures/alternativesplicing/example_exon_skipping_event}
         \caption
-        {Diagram showing an example exon skipping event and which reads are considered as included, excluded, or ambiguous for the PSI calculation. Transcript 1 would be the wild type, while Transcript 2 would be the splicing variant. Exon 2 is skipped in Transcript 2.}
+        {Diagram showing an example exon skipping event and which reads are considered as included, excluded, or ambiguous for the PSI calculation. Transcript 1 would be the wild type, while Transcript 2 would be the splicing variant. Exon 2 is skipped in Transcript 2. The last read is considered ambiguos, as it matches to both Transcript 1 and 2.}
         \label{fig:example-exon-skipping-event}
     \end{figure}
 
@@ -118,6 +124,7 @@
             \item If either the inclusion or exclusion count is greater than 0, the result is printed to the output file in the format shown in Table \ref{tab:psi-output-format}.
         \end{enumerate}
     \end{enumerate}
+    Since the iteration process through the BAM file and caching (by chromosome) process is the same as the BamFeatures task, an abstract class, \texttt{ReadAnnotator}, was created. The abstract class implements the iterating, read validation checking (see previous report) and stores the required data structures (lookup table, forest manager). While iterating through the BAM file, the abstract class calls up the \texttt{processNewChromosome} and \texttt{processLastChromosome} methods, which are implemented in the respective annotator (\texttt{AlternativeSplicingAnnotator} \& \texttt{FeatureCountAnnotator}).
 % Please add the following required packages to your document preamble:
 % \usepackage{graphicx}
     \begin{table}[]
@@ -130,6 +137,7 @@
             \end{tabular}%
         }
     \end{table}
+
     \subsubsection{Program Usage}
     \begin{verbatim}
 usage: java -jar differentialanalysis.jar [-h] -gtf <gtf_file> -bam <bamfile> -o <output_tsv>
@@ -329,7 +337,7 @@ named arguments:
     \subsubsection{Statistical Analysis and Visualization}
     The R \texttt{ROCR}\cite{10.1093/bioinformatics/bti623} library was used to compute performance metrics and generate ROC curves. The comparison process involved:
     \begin{enumerate}
-        \item Generating ROC curves for both methods using \texttt{padj} values as predictors.
+        \item Generating ROC curves for both methods using \texttt{padj} values as classifiers.
         \item Plotting the curves on the same graph for visual comparison, with AUC values included in the legend.
         \item Calculating sensitivity and FDR for predictions with \texttt{padj < 0.05}.
     \end{enumerate}
@@ -338,6 +346,39 @@ named arguments:
     \section{Results}\label{sec:results}
 
     \subsection[Alternative Splicing Comparison]{Comparison With Other Alternative Splicing Tools}\label{subsec:comparison-with-other-alternative-splicing-tools-results}
+
+    \subsubsection{ROC Curve Analysis}
+    The ROC curves for the LRS-based method (\textit{p\_lrs}, red) and DEXSeq (\textit{pd\_dseq}, blue) are presented in Figure~\ref{fig:roc-comparison}. The diagonal gray line represents the performance of a random classifier.
+
+    \begin{itemize}
+        \item The LRS method demonstrates a consistently better ability to distinguish true positives from false positives, with an area under the curve (AUC) of 0.866.
+        \item The DEXSeq method achieves an AUC of 0.736, which indicates lower discriminatory power overall.
+    \end{itemize}
+
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=0.6\textwidth]{figures/alternativesplicing/roc-comparison}
+        \caption{ROC Curves Comparing LRS Method and DEXSeq. The LRS method (red) achieves a higher AUC (0.866) compared to DEXSeq (blue, AUC = 0.736). The diagonal gray line represents a random classifier (\( y = x \)).}
+        \label{fig:roc-comparison}
+    \end{figure}
+
+    \subsubsection{Sensitivity and False Discovery Rate}
+    Using an adjusted p-value threshold of \( \texttt{padj} < 0.05 \), the sensitivity and false discovery rate (FDR) for each method were computed:
+    \begin{itemize}
+        \item \textbf{DEXSeq Method:}
+        \begin{itemize}
+            \item Sensitivity: 1.0 (all true positives detected).
+            \item FDR: 0 (no false positives).
+        \end{itemize}
+        \item \textbf{LRS Method:}
+        \begin{itemize}
+            \item Sensitivity: 0.9677 (~96.8\% true positives detected).
+            \item FDR: 0.0323 (~3.2\% false positives).
+        \end{itemize}
+    \end{itemize}
+
+
+    The results indicate that both methods effectively identify differentially spliced exons. While the overall AUC was higher for the LRS method, the DEXSeq method performed better given a p-value threshold of 0.05. In the case, the DEXSeq method achieved perfect sensitivity and no false positives, while the LRS method had a slightly lower sensitivity and a small FDR. This comparison establishes the LRS-based approach as a viable alternative to DEXSeq for differential alternative splicing analysis, highlighting the fact that preexisting tools don't always outperform a purpose-built self-developed method.
 
 
     \section{Supplement}\label{sec:supplement}
