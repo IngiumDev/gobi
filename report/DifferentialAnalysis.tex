@@ -329,7 +329,7 @@ named arguments:
     The function returns a list containing \( p_0, p_1, p_2, \log L_{reduced}, \log L_{full}, \text{LRS}, \) and the p-value.
 
     \paragraph{\texttt{diff.splicing}}
-    The \texttt{diff.splicing} function extends the \texttt{LRS} method for a dataset of multiple PSI files generated using the program described in Section \ref{subsec:compute-percent-spliced-in-(psi)-values}. It:
+    The \texttt{diff.splicing} function extends the \texttt{LRS} method for a dataset of multiple PSI files generated using the program described in Section~\ref{subsec:compute-percent-spliced-in-(psi)-values-materials-and-methods}. It:
     \begin{enumerate}
         \item Aggregates data from all input files (\texttt{psi.files}), merging metrics for each exon across samples.
         \item Processes each exon using \texttt{LRS}, storing results in a structured table.
@@ -430,7 +430,8 @@ named arguments:
 
     Wild Type (WT) transcripts are defined as those that include all exons within the exon skipping event, while Splice Variant (SV) transcripts are those that omit one or more of these exons. If the matching transcripts of a read equal WT transcripts of an exon skipping event, it implies that it doesn't match the SV transcripts. If the read were to exclude one of the exons in the exon skipping event, it should match the SV transcripts. If it matches part of WT and SV, we can naturally conclude it is an ambiguous read. To ensure that the read provides evidence of inclusion of a specific exon(s) in an event, we have to check whether the read alignment overlaps with the skipped exon. The process for an exclusion is analogous, but this time it is checked whether the read alignment fully contains the skipped exon. This WT/SV approach provides a computationally efficient way to determine the inclusion/exclusion status of a read while also ensuring correctness.
 
-
+    \subsection{Simple Differential Test of PSI-Values}\label{subsec:simple-differential-test-of-psi-values-results}
+    The LRS statistic was calculated for the provided example files (\texttt{psi_data.csv}) in the required format. Appl
 
     \subsection[Alternative Splicing Comparison]{Comparison With Other Alternative Splicing Tools}\label{subsec:comparison-with-other-alternative-splicing-tools-results}
 
