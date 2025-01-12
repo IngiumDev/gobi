@@ -72,5 +72,5 @@ diff.splicing <- function(psi.files, group) { counts_dt <- fread(psi.files[1], s
 # load("data/alternativesplicing/diff_psi_test.RData")
 # test<-diff.splicing(psi.files, group)
 # fwrite(test, "data/alternativesplicing/psi_data.csv")
-test[pvalue < 0.05, .N]
-test[padj < 0.05, .N]
+# test[pvalue < 0.05, .N]
+# test[padj < 0.05, .N]

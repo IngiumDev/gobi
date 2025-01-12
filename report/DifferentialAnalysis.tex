@@ -63,6 +63,61 @@
 
 
     \section{Introduction}\label{sec:introduction}
+    RNA sequencing (RNAseq) is a powerful and widely used method for analyzing the transcriptome, providing insights into gene expression patterns, alternative splicing, and the discovery of novel transcripts. By converting RNA into complementary DNA (cDNA) and sequencing it using high-throughput platforms, researchers can quantify and characterize the complete set of RNA transcripts (those that are sequencable) present in a sample. The results of an RNAseq experiment are a set of sequenced reads in the FASTQ format, either single-end or paired-end. These reads are then mapped back onto the reference genome using a mapper such as \texttt{STAR}~\cite{star}.
+
+    A typical RNAseq workflow includes sample extraction, sequencing, mapping, annotation, and downstream analyses such as differential expression analysis. In a perfect scenario, each read originates from exactly one transcript. However, sometimes it is unclear from which transcript or even gene a read originates. Additionally, annotations can be incomplete, sequencing or mapping errors can occur, and genes or transcripts can overlap, complicating the mapping process. The annotation steps attempt to quantify and correct these errors, sort out improbable or incorrect reads, and assign reads to genes.
+
+    Strand specificity in RNA sequencing refers to the ability to determine the strand of DNA from which an RNA transcript originates. This property is important because transcription is inherently directional, with RNA synthesized from only one DNA template strand. Strand-specific sequencing protocols preserve this directionality, allowing researchers to distinguish between overlapping genes transcribed on opposite strands or sense and antisense transcription. The need for strand specificity arises from the complexity of eukaryotic genomes, where overlapping genes, antisense transcription, and non-coding RNAs are common. It can be challenging to accurately assign reads to their source transcripts without strand-specific information, leading to ambiguous or erroneous interpretations. By maintaining strand specificity, RNAseq enables a more precise understanding of transcriptional regulation, splicing, and gene expression patterns. Importantly, all experiments used in this project are unstranded.
+
+
+    \subsection[SAM Format]{Sequence Alignment Map Format}
+    The Sequence Alignment Map (SAM) format is a widely used text-based format for storing biological sequences that are aligned to a reference genome. Each entry in a SAM file contains detailed information about a read and its alignment, such as the alignment positions and possible mismatches. While SAM files are human-readable, they are relatively large in size, as each field is stored as plain text.
+
+    BAM files are the binary equivalent of SAM files, designed to store the same alignment information in a compressed and efficient manner. Unlike the plain-text SAM format, BAM files use binary encoding to represent data, significantly reducing their storage requirements. For example, when storing numbers in plaintext encoded in UTF-8, the number '64' would be encoded as the characters '6' and '4', each requiring 8 bits. In contrast, the binary representation of 64 would be \texttt{01000000}, which is 8 bits in total. This is an oversimplified example but it illustrates some of the advantages of the binary format. BAM files can be indexed and sorted by name or position, enabling fast access to specific regions of interest. However, this means that a single forward/reverse read pair might not appear consecutively, as the reads are sorted by their position on the reference genome. Several read inconsistencies occur in BAM files that should be excluded from analysis:
+    \begin{itemize}
+        \item Reads in a pair mapping to different chromosomes.
+        \item Both reads in a pair mapping to the same strand.
+        \item Overlapping reads in a pair that imply different introns (see Figure \ref{fig:overlapping-inconsistent-blocks}).
+    \end{itemize}
+
+    When annotating, the goal is to identify the most plausible explanation for each read based on its alignment and features. A read may originate from a transcript, reflecting active transcription within an annotated gene, or from a gene's transcribed region but not its exons, such as an intronic region or a novel isoform—especially if splicing events are observed. Alternatively, reads may align antisense to known transcripts, potentially indicating by-products or genuine antisense transcription. Some reads may be classified as intergenic, often aligning near gene boundaries. This could signal novel isoforms or unannotated untranslated regions (UTRs).
+
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.5\textwidth]{figures/BamFeatures/overlapping-inconsistent-blocks}
+        \caption{Diagram showing an example of an inconsistent read where the reads in a pair overlap but imply different introns (marked in red).}
+        \label{fig:overlapping-inconsistent-blocks}
+    \end{figure}
+
+    \subsection{Read Mapping Types}
+
+    To accurately classify read pairs, it is essential to define the different types of mappings. A consistent read pair can be classified as \texttt{genic}, \texttt{intergenic}, or \texttt{intergenic containing}. A genic read pair is one where both reads in a pair are contained within a gene. Formally, this means all mapped bases of the read are greater than or equal to the gene start position and less than or equal to the gene end position (inclusive). A read pair is \texttt{intergenic} if it is not \texttt{genic} and does not completely contain one or more genes. A read contains a gene if the first mapped base of the read is less than or equal to the start of the gene and the last mapped base is greater than or equal to the end of the gene. All other read pairs are \texttt{intergenic-contained}.
+
+    A \texttt{genic} read pair can be further classified as \texttt{transcriptomic}, \texttt{merged-transcriptomic}, or \texttt{intronic}. A read pair is considered \texttt{transcriptomic} if it is fully contained within at least one annotated transcript and aligns contiguously to a specific transcript sequence section (see Figure~\ref{fig:transcriptomic-read}). This means that the intron boundaries observed in the read pair are consistent with those defined in the transcript annotation. Formally, a read pair matches a transcript if both read Region Vectors (RVs) are sub-RVs (defined later) of at least one transcript.
+
+    A read pair is classified as \texttt{merged-transcriptomic} if it aligns to the merged transcript of a gene but does not necessarily match contiguously (Figure \ref{fig:merged-transcriptomic-read}). The merged transcript represents the union of all exonic regions of a gene, disregarding specific intron boundaries. This classification accounts for reads that may span novel isoforms or unannotated transcripts. Formally, a read pair matches the merged transcript if each base of the read pair aligns with some exon in the merged transcript. This broader definition enables the identification of potential new transcript variants while maintaining consistency with the gene's exon structure.
+
+    A read pair is classified as \texttt{intronic} if it is fully contained within the gene body but does not align to any annotated transcript or merged transcript (Figure \ref{fig:intronic-read}). Intronic reads may represent unprocessed RNA, novel isoforms with unannotated intron retention, or other transcriptional events within the gene body.
+
+    Since we are only looking for the most biologically plausible explanation, we only want to consider the most plausible case (\texttt{transcriptomic} $>$ \texttt{merged-transcriptomic} $>$\texttt{intronic}). For example, if a read pair matches a specific transcript of one gene but also the merged transcript of another gene, we would only consider the transcriptomic match as it is more plausible. If a read pair matches multiple transcripts of multiple genes, we would want to know all the matched transcripts.
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/transcriptomic-read}
+        \caption{Diagram showing an example of a transcriptomic read pair. The read pair is fully contained within a gene and matches contiguously to a specific transcript section. The color indicates the strand.}
+        \label{fig:transcriptomic-read}
+    \end{figure}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/merged-transcriptomic-read}
+        \caption{Diagram showing an example of a merged transcriptomic read pair. The read pair aligns to the merged transcript of a gene but does not necessarily match contiguously. The color indicates the strand.}
+        \label{fig:merged-transcriptomic-read}
+    \end{figure}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{figures/BamFeatures/intronic-read}
+        \caption{Diagram showing an example of an intronic read pair. The read pair is fully contained within the gene body but does not align with any annotated transcript or merged transcript. The color indicates the strand.}
+        \label{fig:intronic-read}
+    \end{figure}
 
     \subsection{Evidence of Alternative Splicing}\label{subsec:evidence-of-alternative-splicing}
     Since reads can map to specific transcripts of a gene, it is possible that a read might indicate the inclusion or exclusion of a specific exon. An example of a evidence for an exon skipping event is shown in Figure~\ref{fig:example-exon-skipping-event}. Some reads provide evidence for the inclusion of an exon (inclusion reads), while others provide evidence for the exclusion of an exon (exclusion reads). Additionally, even though some reads might map to a gene, they do not provide evidence for the inclusion or exclusion of a specific exon. These reads are considered ambiguous.
@@ -431,8 +486,7 @@ named arguments:
     Wild Type (WT) transcripts are defined as those that include all exons within the exon skipping event, while Splice Variant (SV) transcripts are those that omit one or more of these exons. If the matching transcripts of a read equal WT transcripts of an exon skipping event, it implies that it doesn't match the SV transcripts. If the read were to exclude one of the exons in the exon skipping event, it should match the SV transcripts. If it matches part of WT and SV, we can naturally conclude it is an ambiguous read. To ensure that the read provides evidence of inclusion of a specific exon(s) in an event, we have to check whether the read alignment overlaps with the skipped exon. The process for an exclusion is analogous, but this time it is checked whether the read alignment fully contains the skipped exon. This WT/SV approach provides a computationally efficient way to determine the inclusion/exclusion status of a read while also ensuring correctness.
 
     \subsection{Simple Differential Test of PSI-Values}\label{subsec:simple-differential-test-of-psi-values-results}
-    The LRS statistic was calculated for the provided example files (\texttt{psi_data.csv}) in the required format. Appl
-
+    The LRS statistic was calculated for the provided example files (\texttt{psi\_data.csv}) in the required format. Applying the Benjamini-Hochberg correction to the p-values yielded adjusted p-values (\texttt{padj}). Given an $\alpha$ of 0.05, the number of significant exons decreased from 72 to 42.
     \subsection[Alternative Splicing Comparison]{Comparison With Other Alternative Splicing Tools}\label{subsec:comparison-with-other-alternative-splicing-tools-results}
 
     \subsubsection{ROC Curve Analysis}
