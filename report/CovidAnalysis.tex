@@ -82,23 +82,20 @@
     \subsection{Differential Gene Expression Analysis} \label{subsec:differential-gene-expression-analysis}
     Differential gene expression analysis was performed using the R package DESeq2\cite{love_huber_anders_2014}. The analysis was performed separately for the \textit{star} and \textit{hisat} datasets. The analysis was performed for each time point separately, comparing the gene expression levels between the infected and mock-infected cells. The analysis was performed accoding the steps described in Modern Statistics for Modern Biology, Chapter 8\cite{holmes_huber_2018}.
     \section{Results}\label{sec:results}
-    \begin{figure}[!htbp]
+
+    \begin{figure}[H]
         \centering
         \begin{minipage}{0.48\textwidth}
             \centering
             \includegraphics[width=\textwidth]{figures/CovidAnalysis/pvalue_histogram_star}
-            \label{fig:pvalue_histogram_star}
         \end{minipage}
         \hfill
         \begin{minipage}{0.48\textwidth}
             \centering
             \includegraphics[width=\textwidth]{figures/CovidAnalysis/pvalue_histogram_hisat}
-            \label{fig:pvalue_histogram_hisat}
         \end{minipage}
-        \caption{}
         \label{fig:pvalue_histogram}
     \end{figure}
-    \todo{Change it so that's not -2,2}
     \begin{figure}[!htbp]
         \centering
         \begin{minipage}{0.48\textwidth}
@@ -115,7 +112,6 @@
         \caption{}
         \label{fig:MA_plot}
     \end{figure}
-    \todo{Change so that the shapes and such are skeqed by mock and so}
     \begin{figure}[!htbp]
         \centering
         \begin{minipage}{0.48\textwidth}
@@ -134,7 +130,7 @@
     \end{figure}
 
 
-    \todo{Do rlog from paper}
+
     \begin{figure}[!htbp]
         \centering
         \begin{minipage}{0.48\textwidth}
