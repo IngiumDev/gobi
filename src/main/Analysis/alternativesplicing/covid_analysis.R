@@ -32,7 +32,8 @@ covid.analysis <- function(counts_file, dataset_name, output_path) {
   # MA plot: fold change versus mean of size-factor normalized counts. Logarithmic scaling is used for both axes. By default, points are colored red if the adjusted p-value is less than 0.1. Points which fall out of the
   # -axis range are plotted as triangles.
   png(filename = paste0(output_path, "MA_plot_", dataset_name, ".png"), width = 8, height = 6, units = "in", res = 300)
-  plotMA(star_deseq, ylim = c(-2, 2), main = paste0("MA Plot for ", dataset_name, " DESeq Analysis"))
+  ylim_range <- range(assay(star_deseq))
+  plotMA(star_deseq, ylim = ylim_range, main = paste0("MA Plot for ", dataset_name, " DESeq Analysis"))
   dev.off()
   # Figure 8.6: PCA plot. The  samples are shown in the 2D plane spanned by their first two principal components.
   star_rlog <- rlogTransformation(star_deseq)
@@ -40,8 +41,8 @@ covid.analysis <- function(counts_file, dataset_name, output_path) {
 
   pca_plot <- plotPCA(star_rlog, intgroup = c("condition", "hours")) +
     coord_fixed() +
+    aes(color = hours, shape = condition) +
     ggtitle(paste0("PCA Plot for ", dataset_name, " Analysis"))
-
   # Save the PCA plot as a PDF
   ggsave(filename = paste0(output_path, "PCA_plot_", dataset_name, ".pdf"),
          plot = pca_plot,
@@ -50,13 +51,14 @@ covid.analysis <- function(counts_file, dataset_name, output_path) {
 
   select = order(rowMeans(assay(star_rlog)), decreasing = TRUE)[1:30]
 
-  # Open a PDF device for saving the plot
+  mat <- assay(star_rlog)[select, ]
 
-  # Create the heatmap with a title
+  mat <- mat - rowMeans(mat)
+
   annotation_col <- as.data.frame(colData(star_rlog)[, c("condition", "hours")])
 
   heatmap <- pheatmap(
-    assay(star_rlog)[select,],
+    mat,
     scale = "row",
     annotation_col = annotation_col,
     main = paste0("Top 30 Genes Heatmap for ", dataset_name, " Analysis")
