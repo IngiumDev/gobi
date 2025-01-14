@@ -28,13 +28,19 @@ covid.analysis <- function(counts_file, dataset_name, output_path) {
     geom_histogram(binwidth = 0.01, fill = "Royalblue", boundary = 0) +
     ggtitle(paste0("p-value distribution for ", dataset_name)) +
     theme(plot.title = element_text(hjust = 0.5))
-  ggsave(paste0(output_path, "pvalue_histogram_", dataset_name, ".pdf"))
+  ggsave(paste0(output_path, "pvalue_histogram_", dataset_name, ".pdf"), limitsize = FALSE)
   # MA plot: fold change versus mean of size-factor normalized counts. Logarithmic scaling is used for both axes. By default, points are colored red if the adjusted p-value is less than 0.1. Points which fall out of the
   # -axis range are plotted as triangles.
+  # Set scipen to a high value to avoid scientific notation
+  options(scipen = 999)
+
+  # Create the MA plot
   png(filename = paste0(output_path, "MA_plot_", dataset_name, ".png"), width = 8, height = 6, units = "in", res = 300)
-  ylim_range <- range(assay(star_deseq))
-  plotMA(star_deseq, ylim = ylim_range, main = paste0("MA Plot for ", dataset_name, " DESeq Analysis"))
+  plotMA(star_deseq, ylim = c(-10, 10), main = paste0("MA Plot for ", dataset_name, " DESeq Analysis"))
   dev.off()
+
+  # Reset scipen to default if needed
+  options(scipen = 0)
   # Figure 8.6: PCA plot. The  samples are shown in the 2D plane spanned by their first two principal components.
   star_rlog <- rlogTransformation(star_deseq)
   plotPCA(star_rlog, intgroup = c("condition", "hours")) + coord_fixed()
