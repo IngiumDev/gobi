@@ -11,6 +11,8 @@
 \usepackage[table,xcdraw]{xcolor}
 \usepackage{caption}
 \usepackage{listings}
+\usepackage{todonotes}
+
 
 \lstset{
     breaklines=true,
@@ -139,7 +141,7 @@
         \end{equation}
         \caption{$\Psi$ value for a given exon $E$ is calculated by dividing the number of included reads $I$ by the sum of included and excluded reads $I+E$.}
     \end{figure}
-
+    \todo{Finish explanation required}
 
     \section{Materials and Methods}\label{sec:materials-and-methods}
 
@@ -479,7 +481,8 @@ named arguments:
             \end{tabular}%
         }
     \end{table}
-    Table~\ref{tab:sample-runtime} shows the runtime for annotating samples 1-10. The annotation time is consistent across samples, with an average runtime of 572.7 ms. The total number of records processed for each sample is also provided.
+    Table~\ref{tab:sample-runtime} shows the runtime for annotating samples 1-10. The annotation time is consistent across samples, with an average runtime of 572.7 ms. The total number of records processed for each sample is also provided. Importantly, the runtime does not include the time to parse the GTF file, which is constant across samples since we are using the same GTF. As the experiment (BAM File) becomes larger, the annotation time will increase, while the time taken to parse the GTF, and calculate the exon skipping events will
+    \todo{Finish describing complexity}
 
     \subsubsection{Correctness}
 
