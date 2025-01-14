@@ -55,6 +55,7 @@
     \renewcommand{\abstractname}{}
     \begin{abstract}
         \large
+        This report presents a method to identify differential splicing events from RNA sequencing data by computing Percent Spliced In (PSI) values and applying a binomial-based likelihood ratio statistic (LRS). The approach determines whether reads provide evidence for or against a specific exon skipping event determined from a Gene Transfer Format (GTF) file. The LRS compares two conditions for differential splicing, yielding results that show strong performance relative to existing tools such as DEXSeq. Overall, this method offers a concise workflow for differential splicing analysis and a complementary alternative to widely used software.
     \end{abstract}
     \hrule
     \tableofcontents
@@ -124,7 +125,7 @@
     \subsection{Evidence of Alternative Splicing}\label{subsec:evidence-of-alternative-splicing}
     Since reads can map to specific transcripts of a gene, it is possible that a read might indicate the inclusion or exclusion of a specific exon. An example of a evidence for an exon skipping event is shown in Figure~\ref{fig:example-exon-skipping-event}. Some reads provide evidence for the inclusion of an exon (inclusion reads), while others provide evidence for the exclusion of an exon (exclusion reads). Additionally, even though some reads might map to a gene, they do not provide evidence for the inclusion or exclusion of a specific exon. These reads are considered ambiguous.
 
-    The Percent Spliced In (PSI) value is a metric used to quantify the inclusion of an exon in a transcript. It is calculated using the formula shown in Equation \ref{eq:psi}. The PSI value ranges from 0 to 1, where 0 indicates that the exon is always excluded, and 1 indicates that the exon is always included. The PSI value is calculated by dividing the number of inclusion reads by the sum of inclusion and exclusion reads. The PSI value is calculated for each exon in an exon skipping event.
+    The Percent Spliced In (PSI) value is a metric used to quantify the inclusion of an exon in a transcript. It is calculated using the formula shown in Figure \ref{eq:psi}. The PSI value ranges from 0 to 1, where 0 indicates that the exon is always excluded, and 1 indicates that the exon is always included. The PSI value is calculated by dividing the number of inclusion reads by the sum of inclusion and exclusion reads. The PSI value is calculated for each exon in an exon skipping event.
     \begin{figure}[!htpb]
         \centering
         \includegraphics[width=0.7\textwidth]{figures/alternativesplicing/example_exon_skipping_event}
@@ -133,15 +134,18 @@
         \label{fig:example-exon-skipping-event}
     \end{figure}
 
-    \begin{figure}[h]
+    \begin{figure}[!htpb]
         \centering
         \begin{equation}
             \Psi (E) = \frac{I}{I+E}
-            \label{eq:psi}
+
         \end{equation}
         \caption{$\Psi$ value for a given exon $E$ is calculated by dividing the number of included reads $I$ by the sum of included and excluded reads $I+E$.}
+        \label{eq:psi}
     \end{figure}
-    \todo{Finish explanation required}
+
+    The goal of this project is to analyze a RNAseq experiment, identifying whether a read provides evidence for the inclusion or exclusion of a specific exon in a gene, and compare this approach to previously established methods.
+
 
     \section{Materials and Methods}\label{sec:materials-and-methods}
 
@@ -160,7 +164,7 @@
     \end{itemize}
 
     \subsection{Compute Percent-Spliced-In (PSI) values}\label{subsec:compute-percent-spliced-in-(psi)-values-materials-and-methods}
-    Figure \ref{fig:alternative-splicing-process} shows the general process for solving the BamFeatures assignment. Due to the complexity of this assignment and the numerous cases, a flowchart is optimal for understanding the task. This allows optimal structuring of an implementation, as one can see which checks can be performed first, in order to possibly rule out other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementation processes the reads in batches (by chromosome), instead of one by one. The general structure of the program is described below:
+    Figure \ref{fig:alternative-splicing-process} shows the general process for solving the task. Due to the complexity of this assignment and the numerous cases, a flowchart is optimal for understanding the task. This allows optimal structuring of an implementation, as one can see which checks can be performed first, in order to possibly rule out other checks from needing to be made, saving computation time. The flowchart shows the process of processing a single read but differs from the actual implementation due to structural reasons. This is because the implementation processes the reads in batches (by chromosome), instead of one by one. The general structure of the program is described below:
     \begin{enumerate}
         \item \textbf{Initialization and Setup}: Creation of the \texttt{AlternativeSplicingAnnotator} object which initializes the \texttt{GTFAnnotation}, calculates the exon skipping events (as per the first report), as well as initializing the \texttt{SamReader}, and \texttt{IntervalTreeForestManager}. The exon skipping events are stored so that each individual exon that is skipped as a part of an exon skipping event has its own inclusion and exclusion count.
         \item \textbf{Iteration Process}:
@@ -481,9 +485,34 @@ named arguments:
             \end{tabular}%
         }
     \end{table}
-    Table~\ref{tab:sample-runtime} shows the runtime for annotating samples 1-10. The annotation time is consistent across samples, with an average runtime of 572.7 ms. The total number of records processed for each sample is also provided. Importantly, the runtime does not include the time to parse the GTF file, which is constant across samples since we are using the same GTF. As the experiment (BAM File) becomes larger, the annotation time will increase, while the time taken to parse the GTF, and calculate the exon skipping events will
-    \todo{Finish describing complexity}
+    Table~\ref{tab:sample-runtime} reports the runtime for annotating samples 1-10. The annotation time for each sample is relatively consistent, with an average runtime of 572.7 ms. Additionally, the total number of records processed for each sample is provided. It is important to note that the reported runtime excludes the time required to parse the GTF file. Since the same GTF file is used across all samples, the parsing time is constant and independent of the experiment size (BAM file). The slight differences in runtime do not always correlate with the experiments having the most records. This discrepancy might be due to some experiments containing more invalid records, which are easier to process. However, the minor variations in runtime can most likely be attributed to randomness and differences in the servers on the grid that executed the program.
 
+    The annotation process is primarily influenced by the size of the BAM file, as larger files contain more reads (records) to process. For each read in the BAM file, the annotation pipeline performs several operations:
+
+    \begin{enumerate}
+        \item \textbf{Validation of Read:} Ensures that the read meets format requirements. This step has a constant time complexity, \(O(1)\), per read.
+        \item \textbf{Tree Search for Matches:} Checks the read against the interval tree to identify matching transcript regions. This step has a time complexity of ($O(\log(M))$), where M is the amount of genes on the chromosome.
+        \item \textbf{Transcriptomic Match Check:} Verifies whether the matched regions are transcriptomic, which involves comparing the alignment blocks of the read against annotated transcripts. This step scales with the number of alignment blocks per read (\(B\)). If \(B\) is relatively small and consistent across reads, this step is effectively \(O(1)\).
+        \item \textbf{Exon Skipping Event Inclusion Check:} For each matched gene, the program determines whether the read supports or contradicts the exon-skipping events of that gene. This is a set comparison operation for each skipping event of the gene. If there are \(E\) exon-skipping events for a gene, this step has \(O(E)\) complexity per matched gene.
+    \end{enumerate}
+
+    Assuming the average number of genes matched per read is \(G\), the total runtime complexity for processing \(N\) reads can be expressed as:
+    \[
+        O(N \cdot (\log M + B + G \cdot E))
+    \]
+    where:
+    \begin{itemize}
+        \item \(M\): Average/Max number genes on a chromosome.
+        \item \(B\): Average/Max number of alignment blocks per read.
+        \item \(G\): Average/Max number of matched genes per read.
+        \item \(E\): Average/Max number of exon-skipping events per gene.
+    \end{itemize}
+
+    In practice, the values of \(B\), \(G\), and \(E\) are relatively small and constant for most datasets, which simplifies the runtime to being \textbf{linear with respect to the number of reads (\(N\))} for large \(N\).
+
+    The measured average runtime of 572.7 ms reflects the efficiency of the implementation for the dataset used in the study. Since parsing the GTF file is constant and excluded from the runtime, the reported time accurately reflects the time spent annotating reads.
+
+    As the BAM file size increases, the runtime will scale proportionally to the number of reads, assuming that \(M\), \(B\), \(G\), and \(E\) remain consistent. However, factors such as memory access patterns, cache usage, and the efficiency of the data structures used for the interval tree and set operations can introduce slight nonlinearities in practical scenarios.
     \subsubsection{Correctness}
 
     Wild Type (WT) transcripts are defined as those that include all exons within the exon skipping event, while Splice Variant (SV) transcripts are those that omit one or more of these exons. If the matching transcripts of a read equal WT transcripts of an exon skipping event, it implies that it doesn't match the SV transcripts. If the read were to exclude one of the exons in the exon skipping event, it should match the SV transcripts. If it matches part of WT and SV, we can naturally conclude it is an ambiguous read. To ensure that the read provides evidence of inclusion of a specific exon(s) in an event, we have to check whether the read alignment overlaps with the skipped exon. The process for an exclusion is analogous, but this time it is checked whether the read alignment fully contains the skipped exon. This WT/SV approach provides a computationally efficient way to determine the inclusion/exclusion status of a read while also ensuring correctness.
@@ -500,7 +529,7 @@ named arguments:
         \item The DEXSeq method achieves an AUC of 0.736, which indicates lower discriminatory power overall.
     \end{itemize}
 
-    \begin{figure}[h]
+    \begin{figure}[!hbtp]
         \centering
         \includegraphics[width=0.6\textwidth]{figures/alternativesplicing/roc-comparison}
         \caption{ROC Curves Comparing LRS Method and DEXSeq. The LRS method (red) achieves a higher AUC (0.866) compared to DEXSeq (blue, AUC = 0.736). The diagonal gray line represents a random classifier (\( y = x \)).}
@@ -524,9 +553,6 @@ named arguments:
 
 
     The results indicate that both methods effectively identify differentially spliced exons. While the overall AUC was higher for the LRS method, the DEXSeq method performed better given a p-value threshold of 0.05. In the case, the DEXSeq method achieved perfect sensitivity and no false positives, while the LRS method had a slightly lower sensitivity and a small FDR. This comparison establishes the LRS-based approach as a viable alternative to DEXSeq for differential alternative splicing analysis, highlighting the fact that preexisting tools don't always outperform a purpose-built self-developed method.
-
-
-    \section{Supplement}\label{sec:supplement}
 
     \AtNextBibliography{\small}
     \printbibliography
