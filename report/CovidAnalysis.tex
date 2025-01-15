@@ -62,6 +62,9 @@
 
 
     \section{Introduction}\label{sec:introduction}
+    Gene expression is the process by which the information encoded in a gene is synthesized in order to produce molecules such as proteins. Differential gene expression analysis seeks to identify genes whose expression levels differ significantly between experimental conditions. This helps in understanding the biological response to infections or other stimuli.
+
+    In this report, RNA sequencing (RNA-seq) data was analyzed to investigate host gene expression changes in response to infection by SARS-CoV and SARS-CoV-2. Using the \texttt{DESeq2}\cite{love_huber_anders_2014} framework, a performed DGE analysis was performed on datasets mapped with \texttt{STAR}\cite{dobin_davis_schlesinger_drenkow_zaleski_jha_batut_chaisson_gingeras_2012} and \texttt{HISAT} \cite{kim2015hisat} aligners to ensure methodological robustness. By identifying differentially expressed genes, this analysis provides insights into the molecular mechanisms underlying viral infections and host immune responses.
 
 
     \section{Materials and Methods}\label{sec:materials-and-methods}
@@ -187,6 +190,7 @@
         \label{fig:VST_Comparison}
     \end{figure}
     \section{Discussion}\label{sec:discussion}
+    Differential gene expression analysis allows us to uncover the expression changed that are induced by pathogens. In this case, RNA-seq data helps us understand the cellular responses to SARS-CoV and SARS-CoV-2 infections across time points. The results show a clear time difference, with gene expression patterns diverging significantly from mock-infected controls as time progresses. The different mappers used, \texttt{STAR} and \texttt{HISAT}, showed consistent results. The observed clustering patterns, particularly the temporal separation of S1 and S2 conditions, reflect shared and distinct host responses to these closely related coronaviruses. Notably, the heightened variability in S2 at 24 hours suggests a unique transcriptional response to SARS-CoV-2 infection that requires further investigation to explore how it differs from SARS-CoV infection.
     \AtNextBibliography{\small}
     \printbibliography
 \end{document}
