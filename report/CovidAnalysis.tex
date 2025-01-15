@@ -82,7 +82,7 @@
     \subsection{Differential Gene Expression Analysis} \label{subsec:differential-gene-expression-analysis}
     Differential gene expression analysis was performed using the R package DESeq2\cite{love_huber_anders_2014}. The analysis was performed separately for the \textit{star} and \textit{hisat} datasets. The analysis was performed for each time point separately, comparing the gene expression levels between the infected and mock-infected cells. The analysis was performed accoding the steps described in Modern Statistics for Modern Biology, Chapter 8\cite{holmes_huber_2018}.
     \section{Results}\label{sec:results}
-
+    The histogram displays the distribution of p-values for differentially expressed genes. A clear peak near zero indicates a significant number of differentially expressed genes, suggesting strong signals of gene expression changes. A smaller peak at high p-values represents genes likely not differentially expressed. Approximately 2,600 genes are in the lowest p-value bin (STAR and HISAT), with minimal differences in overall distributions.
     \begin{figure}[H]
         \centering
         \begin{minipage}{0.48\textwidth}
@@ -96,7 +96,8 @@
         \end{minipage}
         \label{fig:pvalue_histogram}
     \end{figure}
-    \begin{figure}[!htbp]
+    The MA plot visualizes the relationship between the mean expression levels (x-axis, log2-transformed) and the log2 fold change (y-axis). Points represent genes, with significant genes (adjusted p-value $<$ 0.1) highlighted in red. The majority of data points cluster around zero, indicating no significant change, while a subset shows large fold changes. No meaningful differences were observed between STAR and HISAT in terms of significant genes or patterns.
+    \begin{figure}[H]
         \centering
         \begin{minipage}{0.48\textwidth}
             \centering
@@ -109,10 +110,10 @@
             \includegraphics[width=\textwidth]{figures/CovidAnalysis/MA_plot_hisat}
             \label{fig:MA_plot_hisat}
         \end{minipage}
-        \caption{}
         \label{fig:MA_plot}
     \end{figure}
-    \begin{figure}[!htbp]
+    The PCA plot shows the variance in the dataset explained by the first two principal components (PC1 and PC2). PC1 accounts for approximately 86-87\% of the variance, while PC2 accounts for 4\%. Initially, all samples cluster together near the origin (early time points, indicated in blue). Over time, samples spread along PC1, reflecting time-dependent expression changes. The mock samples remain relatively unchanged, while S1 and S2 diverge along PC1.
+    \begin{figure}[H]
         \centering
         \begin{minipage}{0.48\textwidth}
             \centering
@@ -125,13 +126,18 @@
             \includegraphics[width=\textwidth]{figures/CovidAnalysis/PCA_plot_hisat}
             \label{fig:PCA_plot_hisat}
         \end{minipage}
-        \caption{}
         \label{fig:PCA_plot}
     \end{figure}
+    The heatmap visualizes the top 30 variable genes, identified based on the highest variance in expression across samples. Variance-stabilized counts were calculated using the rlog transformation, which stabilizes variance across genes and accounts for differences in sequencing depth.
+    The mean expression value for each gene was subtracted from its rlog-transformed counts to center the data. This normalization highlights deviations from the mean, with positive values indicating higher-than-average expression and negative values indicating lower-than-average expression.
+    Hierarchical clustering was applied to group genes and samples based on expression similarities. The clustering revealed:
+    \begin{itemize}
+        \item At 4 hours post-infection, mock, S1, and S2 samples cluster together, reflecting minimal transcriptional divergence.
+        \item At 12 and 24 hours, samples cluster by time point, with S1 and S2 grouping within each time cluster, indicating time-dependent transcriptional changes.
+        \item Notable anomalies include a uniquely variable gene in mock and S1 at 24 hours (STAR dataset) and heightened variability in S2 at 24 hours, suggesting a distinct response.
+    \end{itemize}
 
-
-
-    \begin{figure}[!htbp]
+    \begin{figure}[H]
         \centering
         \begin{minipage}{0.48\textwidth}
             \centering
@@ -144,11 +150,11 @@
             \includegraphics[width=\textwidth]{figures/CovidAnalysis/Heatmap_hisat}
             \label{fig:Heatmap_hisat}
         \end{minipage}
-        \caption{}
+
         \label{fig:Heatmap}
     \end{figure}
-
-    \begin{figure}[!htbp]
+    This plot compares p-values from single-factor models (condition) against those from two-factor models (condition and type). The axes represent a transformed p-value scale to compress the range for better visualization. The distribution exhibits an "eggplant-like" shape, indicating some differences in the models' sensitivity. A subset of genes is more significant in one model than the other, reflecting model-specific dynamics.
+    \begin{figure}[H]
         \centering
         \begin{minipage}{0.48\textwidth}
             \centering
@@ -161,11 +167,11 @@
             \includegraphics[width=\textwidth]{figures/CovidAnalysis/Comparison_Plot_hisat}
             \label{fig:Comparison_Plot_hisat}
         \end{minipage}
-        \caption{}
+
         \label{fig:Comparison_plot}
     \end{figure}
-
-    \begin{figure}[!htbp]
+    This graph compares the VST and log2 transformations for one sample. Both transformations converge for large counts, while VST stabilizes variance better for small counts, avoiding the steep slopes seen with log2 transformation. The curves intersect around a count of 100, highlighting differences in transformation behavior. The results are consistent across datasets.
+    \begin{figure}[H]
         \centering
         \begin{minipage}{0.48\textwidth}
             \centering
@@ -178,29 +184,8 @@
             \includegraphics[width=\textwidth]{figures/CovidAnalysis/VST_Comparison_hisat}
             \label{fig:VST_Comparison_hisat}
         \end{minipage}
-        \caption{}
         \label{fig:VST_Comparison}
     \end{figure}
-    \begin{figure}[!htbp]
-        \centering
-        \begin{minipage}{0.48\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{figures/CovidAnalysis/All_MA_plots_star}
-            \label{fig:All_MA_plots_star}
-        \end{minipage}
-        \hfill
-        \begin{minipage}{0.48\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{figures/CovidAnalysis/All_MA_plots_hisat}
-            \label{fig:All_MA_plots_hisat}
-        \end{minipage}
-        \caption{}
-        \label{fig:All_MA_plots}
-    \end{figure}
-
-
-
-
     \section{Discussion}\label{sec:discussion}
     \AtNextBibliography{\small}
     \printbibliography
