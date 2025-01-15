@@ -55,19 +55,19 @@ covid.analysis <- function(counts_file, dataset_name, output_path) {
          device = "pdf",
          width = 8, height = 6)
 
-  select = order(rowMeans(assay(star_rlog)), decreasing = TRUE)[1:30]
-
-  mat <- assay(star_rlog)[select, ]
+  star_lrd <- rlog(star_deseq, blind = FALSE)
+  select <- head(order(rowVars(assay(star_lrd), useNames = FALSE), decreasing = TRUE), 30)
+  mat <- assay(star_lrd)[select,]
 
   mat <- mat - rowMeans(mat)
 
-  annotation_col <- as.data.frame(colData(star_rlog)[, c("condition", "hours")])
+  annotation_col <- as.data.frame(colData(star_lrd)[, c("condition", "hours")])
 
   heatmap <- pheatmap(
     mat,
     scale = "row",
     annotation_col = annotation_col,
-    main = paste0("Top 30 Genes Heatmap for ", dataset_name, " Analysis")
+    main = paste0("Top 30 Variable Genes (rlog transformed) for ", dataset_name)
   )
   pdf(file = paste0(output_path, "Heatmap_", dataset_name, ".pdf"), width = 8, height = 6)
   grid::grid.newpage()
