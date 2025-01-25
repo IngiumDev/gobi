@@ -92,7 +92,6 @@ public class Mapping {
 
             String line;
             String currentGene = null;
-            List<String> currentGOTerms = null;
 
             while ((line = br.readLine()) != null) {
                 int i = 0;
@@ -126,14 +125,14 @@ public class Mapping {
                     continue;
                 }
 
-                // If we encounter a new gene, save the previous one
+                // If we encounter a new gene, retrieve or create its list of GO terms
                 if (currentGene == null || !currentGene.equals(geneName)) {
-                    if (currentGene != null && currentGOTerms != null) {
-                        map.put(currentGene, currentGOTerms);
-                    }
                     currentGene = geneName;
-                    currentGOTerms = new ArrayList<>();
+                    map.putIfAbsent(currentGene, new ArrayList<>()); // Ensure a list exists for the gene
                 }
+
+                // Retrieve the list for the current gene
+                List<String> currentGOTerms = map.get(currentGene);
 
                 // Extract GO term numbers from the GO column
                 if (goTermColumn != null && goTermColumn.startsWith("GO:")) {
@@ -153,11 +152,6 @@ public class Mapping {
                 }
             }
 
-            // Add the last gene processed
-            if (currentGene != null && currentGOTerms != null) {
-                map.put(currentGene, currentGOTerms);
-            }
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -165,8 +159,8 @@ public class Mapping {
     }
 
     public static void main(String[] args) {
-//        Mapping map = createEnsemblMapping("~/IdeaProjects/gobi/data/GOEnrich/goa_human_ensembl.tsv");
-        Mapping map = createGOMapping("~/IdeaProjects/gobi/data/GOEnrich/goa_human.gaf.gz");
+        Mapping map = createEnsemblMapping("~/IdeaProjects/gobi/data/GOEnrich/goa_human_ensembl.tsv");
+//        Mapping map = createGOMapping("~/IdeaProjects/gobi/data/GOEnrich/goa_human.gaf.gz");
         System.out.println();
     }
 
