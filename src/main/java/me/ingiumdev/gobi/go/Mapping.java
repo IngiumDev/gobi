@@ -8,18 +8,18 @@ import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 public class Mapping {
-    Map<String, List<String>> map;
+    Map<String, List<Integer>> map;
 
     public Mapping() {
         this.map = new HashMap<>();
     }
 
-    public Mapping(Map<String, List<String>> map) {
+    public Mapping(Map<String, List<Integer>> map) {
         this.map = map;
     }
 
     public static Mapping createEnsemblMapping(String path) {
-        Map<String, List<String>> map = new HashMap<>();
+        Map<String, List<Integer>> map = new HashMap<>();
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line = br.readLine(); // Read the header or first line if needed
             while ((line = br.readLine()) != null) {
@@ -47,7 +47,7 @@ public class Mapping {
                     String hgnc = line.substring(j, i++); // Move to first char of GO terms column
 
                     // Parse the GO terms
-                    List<String> goTerms = new ArrayList<>();
+                    List<Integer> goTerms = new ArrayList<>();
                     while (i < length) {
                         // Look for the GO prefix
                         if (line.startsWith("GO:", i)) {
@@ -60,7 +60,7 @@ public class Mapping {
                             }
 
                             // Add the GO term to the list
-                            String goTerm = line.substring(i, k);
+                            int goTerm = Integer.parseInt(line.substring(i, k));
                             goTerms.add(goTerm);
 
                             i = k; // Move index forward
@@ -85,7 +85,7 @@ public class Mapping {
     }
 
     public static Mapping createGOMapping(String path) {
-        Map<String, List<String>> map = new HashMap<>();
+        Map<String, List<Integer>> map = new HashMap<>();
         try (FileInputStream fileInputStream = new FileInputStream(path);
              GZIPInputStream gzipInputStream = new GZIPInputStream(fileInputStream);
              BufferedReader br = new BufferedReader(new InputStreamReader(gzipInputStream))) {
@@ -132,7 +132,7 @@ public class Mapping {
                 }
 
                 // Retrieve the list for the current gene
-                List<String> currentGOTerms = map.get(currentGene);
+                List<Integer> currentGOTerms = map.get(currentGene);
 
                 // Extract GO term numbers from the GO column
                 if (goTermColumn != null && goTermColumn.startsWith("GO:")) {
@@ -146,7 +146,7 @@ public class Mapping {
                         }
 
                         // Extract and add the GO number
-                        currentGOTerms.add(goTermColumn.substring(goStart, goEnd));
+                        currentGOTerms.add(Integer.parseInt(goTermColumn.substring(goStart, goEnd)));
                         goStart = goEnd + 1; // Move past the '|' delimiter
                     }
                 }
@@ -164,7 +164,7 @@ public class Mapping {
         System.out.println();
     }
 
-    List<String> getTerms(String hgnc) {
+    List<Integer> getTerms(String hgnc) {
         return map.get(hgnc);
     }
 }
