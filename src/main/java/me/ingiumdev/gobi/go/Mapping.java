@@ -47,7 +47,11 @@ public class Mapping {
                     String hgnc = line.substring(j, i++); // Move to first char of GO terms column
 
                     // Parse the GO terms
-                    List<Integer> goTerms = new ArrayList<>();
+                    List<Integer> goTerms = map.get(hgnc);
+                    if (goTerms == null) {
+                        goTerms = new ArrayList<>();
+                        map.put(hgnc, goTerms);
+                    }
                     while (i < length) {
                         // Look for the GO prefix
                         if (line.startsWith("GO:", i)) {
@@ -166,5 +170,9 @@ public class Mapping {
 
     List<Integer> getTerms(String hgnc) {
         return map.get(hgnc);
+    }
+
+    public Map<String, List<Integer>> getMap() {
+        return map;
     }
 }
