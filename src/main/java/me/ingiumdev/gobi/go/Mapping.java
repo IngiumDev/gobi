@@ -1,25 +1,25 @@
 package me.ingiumdev.gobi.go;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
 public class Mapping {
-    Map<String, List<Integer>> map;
+    Map<String, Set<Integer>> map;
 
     public Mapping() {
         this.map = new HashMap<>();
     }
 
-    public Mapping(Map<String, List<Integer>> map) {
+    public Mapping(Map<String, Set<Integer>> map) {
         this.map = map;
     }
 
     public static Mapping createEnsemblMapping(String path) {
-        Map<String, List<Integer>> map = new HashMap<>();
+        Map<String, Set<Integer>> map = new HashMap<>();
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line = br.readLine(); // Read the header or first line if needed
             while ((line = br.readLine()) != null) {
@@ -47,9 +47,9 @@ public class Mapping {
                     String hgnc = line.substring(j, i++); // Move to first char of GO terms column
 
                     // Parse the GO terms
-                    List<Integer> goTerms = map.get(hgnc);
+                    Set<Integer> goTerms = map.get(hgnc);
                     if (goTerms == null) {
-                        goTerms = new ArrayList<>();
+                        goTerms = new HashSet<>();
                         map.put(hgnc, goTerms);
                     }
                     while (i < length) {
@@ -89,7 +89,7 @@ public class Mapping {
     }
 
     public static Mapping createGOMapping(String path) {
-        Map<String, List<Integer>> map = new HashMap<>();
+        Map<String, Set<Integer>> map = new HashMap<>();
         try (FileInputStream fileInputStream = new FileInputStream(path);
              GZIPInputStream gzipInputStream = new GZIPInputStream(fileInputStream);
              BufferedReader br = new BufferedReader(new InputStreamReader(gzipInputStream))) {
@@ -132,11 +132,11 @@ public class Mapping {
                 // If we encounter a new gene, retrieve or create its list of GO terms
                 if (currentGene == null || !currentGene.equals(geneName)) {
                     currentGene = geneName;
-                    map.putIfAbsent(currentGene, new ArrayList<>()); // Ensure a list exists for the gene
+                    map.putIfAbsent(currentGene, new HashSet<>()); // Ensure a list exists for the gene
                 }
 
                 // Retrieve the list for the current gene
-                List<Integer> currentGOTerms = map.get(currentGene);
+                Set<Integer> currentGOTerms = map.get(currentGene);
 
                 // Extract GO term numbers from the GO column
                 if (goTermColumn != null && goTermColumn.startsWith("GO:")) {
@@ -162,17 +162,12 @@ public class Mapping {
         return new Mapping(map);
     }
 
-    public static void main(String[] args) {
-        Mapping map = createEnsemblMapping("~/IdeaProjects/gobi/data/GOEnrich/goa_human_ensembl.tsv");
-//        Mapping map = createGOMapping("~/IdeaProjects/gobi/data/GOEnrich/goa_human.gaf.gz");
-        System.out.println();
-    }
 
-    List<Integer> getTerms(String hgnc) {
+    Set<Integer> getTerms(String hgnc) {
         return map.get(hgnc);
     }
 
-    public Map<String, List<Integer>> getMap() {
+    public Map<String, Set<Integer>> getMap() {
         return map;
     }
 }
