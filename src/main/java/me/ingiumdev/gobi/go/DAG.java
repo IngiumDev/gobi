@@ -19,6 +19,10 @@ public class DAG {
         System.out.println();
     }
 
+    public HashMap<Integer, GOTerm> getEntries() {
+        return entries;
+    }
+
     public static void main(String[] args) {
         long start = System.currentTimeMillis();
         Mapping mapping = Mapping.createEnsemblMapping("~/IdeaProjects/gobi/data/GOEnrich/goa_human_ensembl.tsv");

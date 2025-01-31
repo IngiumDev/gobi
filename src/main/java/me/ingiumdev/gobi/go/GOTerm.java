@@ -15,6 +15,10 @@ public class GOTerm {
     private final List<GOTerm> children;
     private List<Integer> tempParentIDs;
 
+    public String getFullID() {
+        return fullID;
+    }
+
     private GOTerm(Builder builder) {
         name = builder.name;
         id = builder.id;

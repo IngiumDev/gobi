@@ -3,11 +3,7 @@ package me.ingiumdev.gobi.go;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
+import java.util.*;
 public class GeneSetEnrichmentAnalysis {
     private DAG graph;
     private Mapping mapping;
@@ -98,6 +94,20 @@ public class GeneSetEnrichmentAnalysis {
 
         // Assign the parsed data to the class variable
         this.differentialExpressionInput = diffExpRecords;
+    }
+
+    public List<GOAnalysisEntry> performEnrichment() {
+        List<GOAnalysisEntry> results = new ArrayList<>();
+        // Iterate over all GO terms
+        for (GOTerm goTerm : graph.getEntries().values()) {
+            // check if it is minsize and maxsize compliant
+            if (minSize <= goTerm.getAssociatedGenes().size() && goTerm.getAssociatedGenes().size() <= maxSize) {
+                System.out.println("GO:" + goTerm.getFullID());
+            }
+
+        }
+
+        return results;
     }
 
     public static final class Builder {
