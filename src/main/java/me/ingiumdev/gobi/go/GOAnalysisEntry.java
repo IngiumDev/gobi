@@ -1,8 +1,9 @@
 package me.ingiumdev.gobi.go;
 
 import org.apache.commons.math3.distribution.HypergeometricDistribution;
+import org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest;
 
-import java.util.Map;
+import java.util.*;
 
 public class GOAnalysisEntry {
 
@@ -12,6 +13,7 @@ public class GOAnalysisEntry {
     private int size;
     private final boolean isSOT;
     private int numOverlap;
+    private Set<String> sizeGenes;
     private double hg_pvalue;
     private double hg_fdr;
     private double fej_pvalue;
@@ -33,9 +35,11 @@ public class GOAnalysisEntry {
 number of gene ids both occurring in the file given by the enrich option and
 associated to the GO entry by the provided mapping (see option mapping).*/
         this.size = 0;
+        sizeGenes = new HashSet<>();
         for (String gene : differentialExpressionInput.keySet()) {
             if (graph.getTerm(id).getAssociatedGenes().contains(gene)) {
                 this.size++;
+                sizeGenes.add(gene);
                 if (differentialExpressionInput.get(gene).signif()) {
                     this.numOverlap++;
                 }
@@ -72,7 +76,7 @@ associated to the GO entry by the provided mapping (see option mapping).*/
 
     @Override
     public String toString() {
-        return "GO:" + rawID + "\t" + name + "\t" + size + "\t" + isSOT + "\t" + numOverlap + "\t" + roundToFiveDecimalPlaces(hg_pvalue) + "\t" + roundToFiveDecimalPlaces(hg_fdr) + "\t" + roundToFiveDecimalPlaces(fej_pvalue) //+ "\t" + fej_fdr + "\t" + ks_stat + "\t" + ks_pvalue + "\t" + ks_fdr + "\t" + shortest_path_to_a_true
+        return "GO:" + rawID + "\t" + name + "\t" + size + "\t" + isSOT + "\t" + numOverlap + "\t" + roundToFiveDecimalPlaces(hg_pvalue) + "\t" + roundToFiveDecimalPlaces(hg_fdr) + "\t" + roundToFiveDecimalPlaces(fej_pvalue) + "\t" + fej_fdr + "\t" + roundToFiveDecimalPlaces(ks_stat) + "\t" + roundToFiveDecimalPlaces(ks_pvalue)// + "\t" + ks_fdr + "\t" + shortest_path_to_a_true
                 ;
     }
 
@@ -89,5 +93,37 @@ associated to the GO entry by the provided mapping (see option mapping).*/
         HypergeometricDistribution hypergeometricDistribution = new HypergeometricDistribution(N, K, n);
         return hypergeometricDistribution.upperCumulativeProbability(k);
 
+    }
+
+    public void calculateKS(DAG graph, Map<String, GeneSetEnrichmentAnalysis.DifferentialExpressionRecord> differentialExpressionInput) {
+        KolmogorovSmirnovTest ks = new KolmogorovSmirnovTest();
+        List<Double> measuredGeneFC = new ArrayList<>();
+        List<Double> backgroundGeneFC = new ArrayList<>();
+        for (String t : graph.getRoot().getAssociatedGenes()) {
+            if (!sizeGenes.contains(t) && differentialExpressionInput.containsKey(t)) {
+                backgroundGeneFC.add(differentialExpressionInput.get(t).fc());
+            }
+        }
+
+//        for (var differentialExpression : differentialExpressionInput.entrySet() ) {
+//            if (graph.getRoot().getAssociatedGenes().contains(differentialExpression.getKey()) ) {
+//              //  measuredGeneFC.add(differentialExpression.getValue().fc());
+//            } else {
+//                backgroundGeneFC.add(differentialExpression.getValue().fc());
+//            }
+//        }
+        for (var gene : sizeGenes) {
+            measuredGeneFC.add(differentialExpressionInput.get(gene).fc());
+            if (graph.getRoot().getAssociatedGenes().contains(gene)) {
+//                backgroundGeneFC.add(differentialExpressionInput.get(gene).fc());
+            }
+        }
+        if (measuredGeneFC.isEmpty() || backgroundGeneFC.isEmpty()) {
+            ks_stat = 0;
+            ks_pvalue = 1;
+            return;
+        }
+        ks_stat = ks.kolmogorovSmirnovStatistic(measuredGeneFC.stream().mapToDouble(Double::doubleValue).toArray(), backgroundGeneFC.stream().mapToDouble(Double::doubleValue).toArray());
+        ks_pvalue = ks.kolmogorovSmirnovTest(measuredGeneFC.stream().mapToDouble(Double::doubleValue).toArray(), backgroundGeneFC.stream().mapToDouble(Double::doubleValue).toArray());
     }
 }
