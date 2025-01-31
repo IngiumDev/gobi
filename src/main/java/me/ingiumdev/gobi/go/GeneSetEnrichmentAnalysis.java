@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
+
 public class GeneSetEnrichmentAnalysis {
     private DAG graph;
     private Mapping mapping;
@@ -97,17 +99,28 @@ public class GeneSetEnrichmentAnalysis {
     }
 
     public List<GOAnalysisEntry> performEnrichment() {
-        List<GOAnalysisEntry> results = new ArrayList<>();
-        // Iterate over all GO terms
-        for (GOTerm goTerm : graph.getEntries().values()) {
-            // check if it is minsize and maxsize compliant
-            if (minSize <= goTerm.getAssociatedGenes().size() && goTerm.getAssociatedGenes().size() <= maxSize) {
-                System.out.println("GO:" + goTerm.getFullID());
-            }
+        List<GOAnalysisEntry> analysisEntries = graph.getEntries().values().parallelStream()
+                .filter(goTerm -> minSize <= goTerm.getAssociatedGenes().size()
+                        && goTerm.getAssociatedGenes().size() <= maxSize)
+                .map(this::analyzeGOEntry) // Replace with the actual transformation logic
+                .collect(Collectors.toList());
+        // fdr
+        // output the results and order by id ascending
+        analysisEntries.sort(Comparator.comparingInt(GOAnalysisEntry::getId));
+        //term	name	size	is_true	noverlap	hg_pval	hg_fdr	fej_pval	fej_fdr	ks_stat	ks_pval	ks_fdr	shortest_path_to_a_true
+        System.out.println("term\tname\tsize\tis_true\tnoverlap\thg_pval\thg_fdr\tfej_pval\tfej_fdr\tks_stat\tks_pval\tks_fdr\tshortest_path_to_a_true");
+        analysisEntries.forEach(System.out::println);
 
-        }
+        return analysisEntries;
+    }
 
-        return results;
+    // This method should be implemented to create a GOAnalysisEntry from a GOTerm
+    private GOAnalysisEntry analyzeGOEntry(GOTerm goTerm) {
+        // Process the GO term to generate a GOAnalysisEntry
+        GOAnalysisEntry entry = new GOAnalysisEntry(goTerm);
+        // calculate size
+        entry.calculateSize(graph, differentialExpressionInput);
+        return entry;
     }
 
     public static final class Builder {
