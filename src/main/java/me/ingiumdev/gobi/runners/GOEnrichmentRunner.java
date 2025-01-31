@@ -1,5 +1,6 @@
 package me.ingiumdev.gobi.runners;
 
+import me.ingiumdev.gobi.go.RootType;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.type.FileArgumentType;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -7,6 +8,8 @@ import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
 import java.io.File;
+
+import static me.ingiumdev.gobi.go.RootType.parseRootType;
 
 public class GOEnrichmentRunner {
     public static void main(String[] args) {
@@ -87,7 +90,7 @@ public class GOEnrichmentRunner {
         File oboFile = res.get("obo");
         String root = res.get("root");
         File mappingFile = res.get("mapping");
-        String mappingType = res.get("mappingtype");
+        RootType mappingType = parseRootType(res.get("mappingtype"));
         File enrichFile = res.get("enrich");
         File outputTsv = new File(String.valueOf(res.get("o")));
         int minSize = res.get("minsize");
