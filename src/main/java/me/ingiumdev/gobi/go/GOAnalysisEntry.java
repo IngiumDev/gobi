@@ -1,5 +1,7 @@
 package me.ingiumdev.gobi.go;
 
+import org.apache.commons.math3.distribution.HypergeometricDistribution;
+
 import java.util.Map;
 
 public class GOAnalysisEntry {
@@ -42,13 +44,50 @@ associated to the GO entry by the provided mapping (see option mapping).*/
     }
 
 
-    @Override
-    public String toString() {
-        return "GO:" + rawID + "\t" + name + "\t" + size + "\t" + isSOT + "\t" + numOverlap //+ "\t" + hg_pvalue + "\t" + hg_fdr + "\t" + fej_pvalue + "\t" + fej_fdr + "\t" + ks_stat + "\t" + ks_pvalue + "\t" + ks_fdr + "\t" + shortest_path_to_a_true
-                ;
+    public static double roundToFiveDecimalPlaces(double value) {
+        if (value == 0.0) {
+            return 0.0;
+        }
+
+        // Determine the sign of the value
+        double sign = Math.signum(value);
+        double absValue = Math.abs(value);
+
+        // Calculate the base-10 exponent
+        double exponent = Math.floor(Math.log10(absValue));
+
+        // Scale the value to have five decimal places in the mantissa
+        double scale = Math.pow(10, 5 - exponent);
+
+        // Perform rounding
+        double rounded = Math.round(absValue * scale) / scale;
+
+        // Restore the original sign
+        return sign * rounded;
     }
 
     public int getId() {
         return id;
+    }
+
+    @Override
+    public String toString() {
+        return "GO:" + rawID + "\t" + name + "\t" + size + "\t" + isSOT + "\t" + numOverlap + "\t" + roundToFiveDecimalPlaces(hg_pvalue) + "\t" + roundToFiveDecimalPlaces(hg_fdr) + "\t" + roundToFiveDecimalPlaces(fej_pvalue) //+ "\t" + fej_fdr + "\t" + ks_stat + "\t" + ks_pvalue + "\t" + ks_fdr + "\t" + shortest_path_to_a_true
+                ;
+    }
+
+    public void calculatehg_pvalue(int numDiffExpressedRootGenes, int numGenesInDifferentialExpression, GOTerm goTerm) {
+        hg_pvalue = calculateHypergeometricPValue(numDiffExpressedRootGenes, numGenesInDifferentialExpression, size, numOverlap);
+    }
+
+    public void calculatefej_pvalue(int numDiffExpressedRootGenes, int numGenesInDifferentialExpression, GOTerm goTerm) {
+        fej_pvalue = calculateHypergeometricPValue(numDiffExpressedRootGenes - 1, numGenesInDifferentialExpression - 1, size - 1, numOverlap - 1);
+    }
+
+    public double calculateHypergeometricPValue(int N, int K, int n, int k) {
+        // N, K, n, k
+        HypergeometricDistribution hypergeometricDistribution = new HypergeometricDistribution(N, K, n);
+        return hypergeometricDistribution.upperCumulativeProbability(k);
+
     }
 }

@@ -19,6 +19,10 @@ public class DAG {
         System.out.println();
     }
 
+    public GOTerm getRoot() {
+        return root;
+    }
+
     public HashMap<Integer, GOTerm> getEntries() {
         return entries;
     }

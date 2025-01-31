@@ -7,6 +7,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class GeneSetEnrichmentAnalysis {
+    int numDiffExpressedRootGenes;
+    int numDiffExpressedSigRootGenes;
     private DAG graph;
     private Mapping mapping;
     private RootType rootType;
@@ -31,7 +33,6 @@ public class GeneSetEnrichmentAnalysis {
     public void initDAG(String oboPath) {
         graph = new DAG(oboPath, mapping, rootType);
     }
-
 
     public void initDifferentialExpression(String path) {
         Map<String, DifferentialExpressionRecord> diffExpRecords = new HashMap<>();
@@ -99,19 +100,34 @@ public class GeneSetEnrichmentAnalysis {
     }
 
     public List<GOAnalysisEntry> performEnrichment() {
+        calcNumDiffExpressedRootGenes(graph, differentialExpressionInput);
+        differentialExpressionInput.size();
+        // Replace with the actual transformation logic
         List<GOAnalysisEntry> analysisEntries = graph.getEntries().values().parallelStream()
                 .filter(goTerm -> minSize <= goTerm.getAssociatedGenes().size()
                         && goTerm.getAssociatedGenes().size() <= maxSize)
-                .map(this::analyzeGOEntry) // Replace with the actual transformation logic
-                .collect(Collectors.toList());
+                .map(this::analyzeGOEntry).sorted(Comparator.comparingInt(GOAnalysisEntry::getId)).collect(Collectors.toList());
         // fdr
         // output the results and order by id ascending
-        analysisEntries.sort(Comparator.comparingInt(GOAnalysisEntry::getId));
         //term	name	size	is_true	noverlap	hg_pval	hg_fdr	fej_pval	fej_fdr	ks_stat	ks_pval	ks_fdr	shortest_path_to_a_true
         System.out.println("term\tname\tsize\tis_true\tnoverlap\thg_pval\thg_fdr\tfej_pval\tfej_fdr\tks_stat\tks_pval\tks_fdr\tshortest_path_to_a_true");
         analysisEntries.forEach(System.out::println);
 
         return analysisEntries;
+    }
+
+    private void calcNumDiffExpressedRootGenes(DAG graph, Map<String, DifferentialExpressionRecord> differentialExpressionInput) {
+        numDiffExpressedRootGenes = 0;
+        numDiffExpressedSigRootGenes = 0;
+        for (var differentialExpression : differentialExpressionInput.entrySet()) {
+            if (graph.getRoot().getAssociatedGenes().contains(differentialExpression.getKey())) {
+                numDiffExpressedRootGenes++;
+                if (differentialExpression.getValue().signif()) {
+                    numDiffExpressedSigRootGenes++;
+                }
+            }
+        }
+
     }
 
     // This method should be implemented to create a GOAnalysisEntry from a GOTerm
@@ -120,6 +136,12 @@ public class GeneSetEnrichmentAnalysis {
         GOAnalysisEntry entry = new GOAnalysisEntry(goTerm);
         // calculate size
         entry.calculateSize(graph, differentialExpressionInput);
+        entry.calculatehg_pvalue(numDiffExpressedRootGenes, numDiffExpressedSigRootGenes, goTerm);
+        entry.calculatefej_pvalue(numDiffExpressedRootGenes, numDiffExpressedSigRootGenes, goTerm);
+// N is total genes in root interescted with the genes in the differential expression
+        //K is the number of genes in the differential expression
+        // n = size of the GO term
+        // k =numoverlap
         return entry;
     }
 
