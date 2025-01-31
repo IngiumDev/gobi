@@ -2,9 +2,7 @@ package me.ingiumdev.gobi.go;
 
 import me.ingiumdev.gobi.parsers.OboParser;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class DAG {
     private final HashMap<Integer, GOTerm> entries;
@@ -22,9 +20,10 @@ public class DAG {
     }
 
     public static void main(String[] args) {
+        long start = System.currentTimeMillis();
         Mapping mapping = Mapping.createEnsemblMapping("~/IdeaProjects/gobi/data/GOEnrich/goa_human_ensembl.tsv");
         DAG dag = new DAG("~/IdeaProjects/gobi/data/GOEnrich/go.obo", mapping, RootType.BIOLOGICAL_PROCESS);
-        System.out.println();
+        System.out.println(System.currentTimeMillis() - start);
     }
 
     private void propagateGenes(GOTerm node) {
@@ -34,6 +33,9 @@ public class DAG {
         }
     }
 
+    public GOTerm getTerm(int id) {
+        return entries.get(id);
+    }
     private void propagateUpward(GOTerm leaf) {
         List<GOTerm> parents = leaf.getParents();
         for (GOTerm parent : parents) {
@@ -43,9 +45,9 @@ public class DAG {
     }
 
     private void resolveGenes(Mapping mapping) {
-        for (var entry : mapping.getMap().entrySet()) {
+        for (Map.Entry<String, Set<Integer>> entry : mapping.getMap().entrySet()) {
             String gene = entry.getKey();
-            List<Integer> associatedTerms = entry.getValue();
+            Set<Integer> associatedTerms = entry.getValue();
 
             for (int term : associatedTerms) {
                 GOTerm goTerm = entries.get(term);

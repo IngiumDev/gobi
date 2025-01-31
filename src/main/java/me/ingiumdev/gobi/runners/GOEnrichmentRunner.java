@@ -1,5 +1,6 @@
 package me.ingiumdev.gobi.runners;
 
+import me.ingiumdev.gobi.go.GeneSetEnrichmentAnalysis;
 import me.ingiumdev.gobi.go.RootType;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.impl.type.FileArgumentType;
@@ -87,15 +88,21 @@ public class GOEnrichmentRunner {
 
     private static void start(Namespace res) {
         // Extract parsed arguments
-        File oboFile = res.get("obo");
-        String root = res.get("root");
-        File mappingFile = res.get("mapping");
-        RootType mappingType = parseRootType(res.get("mappingtype"));
-        File enrichFile = res.get("enrich");
-        File outputTsv = new File(String.valueOf(res.get("o")));
+        String oboFile = res.getString("obo");
+        String mappingFile = res.getString("mapping");
+        RootType root = parseRootType(res.get("root"));
+        String mappingType = res.get("mappingtype");
+        String enrichFile = res.getString("enrich");
+        File outputTsv = new File(res.getString("o"));
         int minSize = res.get("minsize");
         int maxSize = res.get("maxsize");
         String overlapOut = res.get("overlapout");
-
+        GeneSetEnrichmentAnalysis analysis = new GeneSetEnrichmentAnalysis.Builder().setRootType(root)
+                .setMinSize(minSize)
+                .setMaxSize(maxSize)
+                .build();
+        analysis.initMapping(mappingFile);
+        analysis.initDAG(oboFile);
+        analysis.initDifferentialExpression(enrichFile);
     }
 }
