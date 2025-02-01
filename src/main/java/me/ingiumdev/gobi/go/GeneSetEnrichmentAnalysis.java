@@ -139,11 +139,7 @@ public class GeneSetEnrichmentAnalysis {
         entry.calculatehg_pvalue(numDiffExpressedRootGenes, numDiffExpressedSigRootGenes, goTerm);
         entry.calculatefej_pvalue(numDiffExpressedRootGenes, numDiffExpressedSigRootGenes, goTerm);
         entry.calculateKS(graph, differentialExpressionInput);
-
-// N is total genes in root interescted with the genes in the differential expression
-        //K is the number of genes in the differential expression
-        // n = size of the GO term
-        // k =numoverlap
+        entry.calculateShortestPathToTrue(SOTterms, graph, goTerm);
         return entry;
     }
 

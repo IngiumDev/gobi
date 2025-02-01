@@ -104,26 +104,17 @@ associated to the GO entry by the provided mapping (see option mapping).*/
                 backgroundGeneFC.add(differentialExpressionInput.get(t).fc());
             }
         }
-
-//        for (var differentialExpression : differentialExpressionInput.entrySet() ) {
-//            if (graph.getRoot().getAssociatedGenes().contains(differentialExpression.getKey()) ) {
-//              //  measuredGeneFC.add(differentialExpression.getValue().fc());
-//            } else {
-//                backgroundGeneFC.add(differentialExpression.getValue().fc());
-//            }
-//        }
         for (var gene : sizeGenes) {
             measuredGeneFC.add(differentialExpressionInput.get(gene).fc());
-            if (graph.getRoot().getAssociatedGenes().contains(gene)) {
-//                backgroundGeneFC.add(differentialExpressionInput.get(gene).fc());
-            }
-        }
-        if (measuredGeneFC.isEmpty() || backgroundGeneFC.isEmpty()) {
-            ks_stat = 0;
-            ks_pvalue = 1;
-            return;
         }
         ks_stat = ks.kolmogorovSmirnovStatistic(measuredGeneFC.stream().mapToDouble(Double::doubleValue).toArray(), backgroundGeneFC.stream().mapToDouble(Double::doubleValue).toArray());
         ks_pvalue = ks.kolmogorovSmirnovTest(measuredGeneFC.stream().mapToDouble(Double::doubleValue).toArray(), backgroundGeneFC.stream().mapToDouble(Double::doubleValue).toArray());
+    }
+
+
+    public void calculateShortestPathToTrue(Set<Integer> soTterms, DAG graph, GOTerm goTerm) {
+        if (!soTterms.isEmpty() && !soTterms.contains(goTerm.getId())) {
+
+        }
     }
 }
