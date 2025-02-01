@@ -26,8 +26,12 @@ public class GeneSetEnrichmentAnalysis {
         maxSize = builder.maxSize;
     }
 
-    public void initMapping(String mappingPath) {
-        mapping = Mapping.createEnsemblMapping(mappingPath);
+    public void initMapping(String mappingPath, String mappingType) {
+        if (mappingType.equals("ensembl")) {
+            mapping = Mapping.createEnsemblMapping(mappingPath);
+        } else {
+            mapping = Mapping.createGOMapping(mappingPath);
+        }
     }
 
     public void initDAG(String oboPath) {

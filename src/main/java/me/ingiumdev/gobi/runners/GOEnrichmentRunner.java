@@ -285,7 +285,7 @@ public class GOEnrichmentRunner {
                 .setMinSize(minSize)
                 .setMaxSize(maxSize)
                 .build();
-        analysis.initMapping(mappingFile);
+        analysis.initMapping(mappingFile, mappingType);
         analysis.initDAG(oboFile);
         analysis.initDifferentialExpression(enrichFile);
         List<GOAnalysisEntry> results = analysis.performEnrichment();
