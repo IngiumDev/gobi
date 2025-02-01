@@ -231,25 +231,7 @@ public class GeneSetEnrichmentAnalysis {
         log.info("Output written in {} ms", System.currentTimeMillis() - start);
     }
 
-    /*
-    • [-overlapout overlap_out_tsv]: optional parameter that specifies an output file.
-    if set, information about DAG entries, with shared mapped genes is written into this
-    file. The [overlapout tsv file must have the following columns:
-    – term1: GO-id (example: GO:1902554) of the first of the two overlapping DAG
-    entries
-    – term2: GO-id of the second of the two overlapping DAG entries
-    – is_relative: true if the associated DAG entry to term1 is ascendant or descendent of the one associated to term2, false otherwise.
-    – path_length: the length of shortest path between the two DAG entries. The
-    length is defined as the minimal number of edges between term1 and term2.
-    Hint: there may exist a shorter path between relatives than the direct one.
-    – num_overlapping: the number of gene ids associated to both DAG entries
-    4
-    – max_ov_percent: the maximum percentage (a float value between 0.0 and 100.0)
-    of the shared gene ids to all associated gene ids to term1 or term2
-    Hint: output only the GO entry pairs both passing the minsize, maxsize criteria.
-    You find an example output for overlapout in go_bp_mapping_go_50_500.overlapout
-    for the parameters:
-     */
+
     public void performOverlapAnalysis() {
         long start = System.currentTimeMillis();
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(overlapOut))) {
@@ -291,13 +273,104 @@ public class GeneSetEnrichmentAnalysis {
         log.info("Overlap analysis written in {} ms", System.currentTimeMillis() - start);
     }
 
+    /**
+     * @param goTerm1
+     * @param goTerm2
+     * @param numSharedGenes
+     * @return The principle is to restrict the search to the upward (parent) direction for each term, then combine the results.
+     * For each term, you perform a directed search upward—tracking every ancestor and how many steps it takes to get there.
+     * This gives you two maps: one for each term, with ancestors and their distances.
+     * By intersecting these maps (i.e., finding common ancestors), you determine the shared nodes that lie in both terms’ ancestry chains.
+     * For each common ancestor, adding the two distances yields a candidate path length (the sum of the upward moves from each term to that common ancestor).
+     * The minimal sum over all common ancestors is taken as the shortest path length between the two terms.
+     * This method is efficient because it only explores the typically small set of ancestors rather than the entire graph.
+     */
     private String processOverlapPair(GOTerm goTerm1, GOTerm goTerm2, int numSharedGenes) {
-        boolean isRelative = false;
-        int pathLength = 0;
+        // Create a local cache that will store ancestor maps for this pair.
+        Map<GOTerm, HashMap<GOTerm, Integer>> localCache = new HashMap<>();
 
-        double maxOvPercent = (double) numSharedGenes / Math.min(goTerm1.getAssociatedGenes().size(), goTerm2.getAssociatedGenes().size()) * 100;
-        return "GO:" + goTerm1.getFullID() + "\t" + "GO:" + goTerm2.getFullID() + "\t" + isRelative + "\t" + pathLength + "\t" + numSharedGenes + "\t" + maxOvPercent;
+        // Compute the shortest valid path length using the upward-only search with caching.
+        int pathLength = computeShortestPath(goTerm1, goTerm2, localCache);
+
+        // Determine whether one term is an ancestor (or descendant) of the other.
+        boolean isRel = isRelative(goTerm1, goTerm2, localCache);
+
+        double maxOvPercent = (double) numSharedGenes /
+                Math.min(goTerm1.getAssociatedGenes().size(), goTerm2.getAssociatedGenes().size()) * 100;
+
+        return "GO:" + goTerm1.getFullID() + "\t" +
+                "GO:" + goTerm2.getFullID() + "\t" +
+                isRel + "\t" +
+                pathLength + "\t" +
+                numSharedGenes + "\t" +
+                maxOvPercent;
     }
+
+    /**
+     * Computes and caches the set of ancestors for a given term (using only parent links)
+     * and returns a map from each visited ancestor to its distance (number of upward moves)
+     * from the start term. The cache is used only within one call to processOverlapPair.
+     */
+    private HashMap<GOTerm, Integer> computeAncestors(GOTerm term, Map<GOTerm, HashMap<GOTerm, Integer>> localCache) {
+        if (localCache.containsKey(term)) {
+            return localCache.get(term);
+        }
+        HashMap<GOTerm, Integer> distanceMap = new HashMap<>();
+        Deque<GOTerm> queue = new ArrayDeque<>();
+        distanceMap.put(term, 0);
+        queue.add(term);
+
+        while (!queue.isEmpty()) {
+            GOTerm current = queue.poll();
+            int currentDistance = distanceMap.get(current);
+            for (GOTerm parent : current.getParents()) {
+                if (!distanceMap.containsKey(parent)) {
+                    distanceMap.put(parent, currentDistance + 1);
+                    queue.add(parent);
+                }
+            }
+        }
+        localCache.put(term, distanceMap);
+        return distanceMap;
+    }
+
+    /**
+     * Computes the shortest path length (number of edges) between two terms
+     * by computing their ancestor maps (using parent links only) and then finding a common
+     * ancestor with the minimal total distance.
+     * Returns -1 if no common ancestor is found.
+     */
+    private int computeShortestPath(GOTerm term1, GOTerm term2, Map<GOTerm, HashMap<GOTerm, Integer>> localCache) {
+        HashMap<GOTerm, Integer> ancestors1 = computeAncestors(term1, localCache);
+        HashMap<GOTerm, Integer> ancestors2 = computeAncestors(term2, localCache);
+        int minTotalDistance = Integer.MAX_VALUE;
+
+        for (Map.Entry<GOTerm, Integer> entry : ancestors1.entrySet()) {
+            GOTerm ancestor = entry.getKey();
+            if (ancestors2.containsKey(ancestor)) {
+                int totalDistance = entry.getValue() + ancestors2.get(ancestor);
+                minTotalDistance = Math.min(minTotalDistance, totalDistance);
+            }
+        }
+
+        return (minTotalDistance == Integer.MAX_VALUE) ? -1 : minTotalDistance;
+    }
+
+    /**
+     * Determines whether two terms are relatives.
+     * They are considered relatives if one is an ancestor (or descendant) of the other.
+     */
+    private boolean isRelative(GOTerm term1, GOTerm term2, Map<GOTerm, HashMap<GOTerm, Integer>> localCache) {
+        // Check if term2 is an ancestor of term1.
+        HashMap<GOTerm, Integer> ancestors1 = computeAncestors(term1, localCache);
+        if (ancestors1.containsKey(term2)) {
+            return true;
+        }
+        // Otherwise, check if term1 is an ancestor of term2.
+        HashMap<GOTerm, Integer> ancestors2 = computeAncestors(term2, localCache);
+        return ancestors2.containsKey(term1);
+    }
+
 
     public static final class Builder {
         private RootType rootType;
