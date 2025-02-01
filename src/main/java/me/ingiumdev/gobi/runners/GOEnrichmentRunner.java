@@ -8,8 +8,9 @@ import net.sourceforge.argparse4j.impl.type.FileArgumentType;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.util.List;
 
 import static me.ingiumdev.gobi.go.RootType.parseRootType;
@@ -197,6 +198,8 @@ org.apache.commons.math3.distribution.HypergeometricDistribution
 org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest.
 6*/
 public class GOEnrichmentRunner {
+    private static final Logger log = LoggerFactory.getLogger(GOEnrichmentRunner.class);
+
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("GOEnrichmentRunner").build().defaultHelp(true)
                 .description("Perform Gene Ontology Set Enrichment Analysis");
@@ -263,6 +266,7 @@ public class GOEnrichmentRunner {
                 System.err.println("Error: minsize must be less than or equal to maxsize.");
                 System.exit(1);
             }
+            log.info("Arguments parsed successfully");
             start(res);
         } catch (ArgumentParserException e) {
             parser.printHelp();
@@ -277,17 +281,26 @@ public class GOEnrichmentRunner {
         RootType root = parseRootType(res.get("root"));
         String mappingType = res.get("mappingtype");
         String enrichFile = res.getString("enrich");
-        File outputTsv = new File(res.getString("o"));
+        String outputTsv = res.getString("o");
         int minSize = res.get("minsize");
         int maxSize = res.get("maxsize");
         String overlapOut = res.get("overlapout");
         GeneSetEnrichmentAnalysis analysis = new GeneSetEnrichmentAnalysis.Builder().setRootType(root)
                 .setMinSize(minSize)
                 .setMaxSize(maxSize)
+                .setOutput(outputTsv)
+                .setOverlapOut(overlapOut)
                 .build();
         analysis.initMapping(mappingFile, mappingType);
         analysis.initDAG(oboFile);
         analysis.initDifferentialExpression(enrichFile);
         List<GOAnalysisEntry> results = analysis.performEnrichment();
+        analysis.writeResults(results);
+        if (overlapOut != null) {
+            analysis.performOverlapAnalysis();
+
+        }
     }
+
+
 }

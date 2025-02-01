@@ -1,22 +1,36 @@
 package me.ingiumdev.gobi.go;
 
 import me.ingiumdev.gobi.parsers.OboParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class DAG {
+    private static final Logger log = LoggerFactory.getLogger(DAG.class);
     private final HashMap<Integer, GOTerm> entries;
     private GOTerm root;
     private List<GOTerm> leaves;
 
     public DAG(String path, Mapping mapping, RootType rootType) {
         OboParser parser = new OboParser(path, rootType);
+        long start = System.currentTimeMillis();
         entries = parser.parse();
+        // loaded entries
+        log.info("Loaded {} entries in {}ms", entries.size(), System.currentTimeMillis() - start);
+        start = System.currentTimeMillis();
         resolveParents();
+        log.info("Resolved parents in {}ms", System.currentTimeMillis() - start);
+        start = System.currentTimeMillis();
         resolveLeaves(); // root should have 15497 genes in ensembl
+        log.info("Resolved leaves in {}ms", System.currentTimeMillis() - start);
+        start = System.currentTimeMillis();
         resolveGenes(mapping);
+        log.info("Resolved genes in {}ms", System.currentTimeMillis() - start);
+        start = System.currentTimeMillis();
         propagateGenes(root);
-        System.out.println();
+        log.info("Propagated genes in {}ms", System.currentTimeMillis() - start);
+        log.info("Root contains {} genes", root.getAssociatedGenes().size());
     }
 
     public GOTerm getRoot() {
@@ -27,12 +41,6 @@ public class DAG {
         return entries;
     }
 
-    public static void main(String[] args) {
-        long start = System.currentTimeMillis();
-        Mapping mapping = Mapping.createEnsemblMapping("~/IdeaProjects/gobi/data/GOEnrich/goa_human_ensembl.tsv");
-        DAG dag = new DAG("~/IdeaProjects/gobi/data/GOEnrich/go.obo", mapping, RootType.BIOLOGICAL_PROCESS);
-        System.out.println(System.currentTimeMillis() - start);
-    }
 
     private void propagateGenes(GOTerm node) {
         for (GOTerm child : node.getChildren()) {

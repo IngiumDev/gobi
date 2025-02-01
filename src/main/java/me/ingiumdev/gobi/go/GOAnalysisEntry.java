@@ -21,6 +21,31 @@ public class GOAnalysisEntry {
     private double ks_stat;
     private double ks_pvalue;
     private double ks_fdr;
+
+    public void setKs_fdr(double ks_fdr) {
+        this.ks_fdr = ks_fdr;
+    }
+
+    public void setFej_fdr(double fej_fdr) {
+        this.fej_fdr = fej_fdr;
+    }
+
+    public void setHg_fdr(double hg_fdr) {
+        this.hg_fdr = hg_fdr;
+    }
+
+    public double getHg_pvalue() {
+        return hg_pvalue;
+    }
+
+    public double getFej_pvalue() {
+        return fej_pvalue;
+    }
+
+    public double getKs_pvalue() {
+        return ks_pvalue;
+    }
+
     private String shortest_path_to_a_true;
 
     public GOAnalysisEntry(GOTerm term) {
@@ -76,7 +101,9 @@ associated to the GO entry by the provided mapping (see option mapping).*/
 
     @Override
     public String toString() {
-        return "GO:" + rawID + "\t" + name + "\t" + size + "\t" + isSOT + "\t" + numOverlap + "\t" + roundToFiveDecimalPlaces(hg_pvalue) + "\t" + roundToFiveDecimalPlaces(hg_fdr) + "\t" + roundToFiveDecimalPlaces(fej_pvalue) + "\t" + fej_fdr + "\t" + roundToFiveDecimalPlaces(ks_stat) + "\t" + roundToFiveDecimalPlaces(ks_pvalue)// + "\t" + ks_fdr + "\t" + shortest_path_to_a_true
+        return "GO:" + rawID + "\t" + name + "\t" + size + "\t" + isSOT
+                + "\t" + numOverlap + "\t" + roundToFiveDecimalPlaces(hg_pvalue) + "\t" + roundToFiveDecimalPlaces(hg_fdr) + "\t" + roundToFiveDecimalPlaces(fej_pvalue) + "\t" + roundToFiveDecimalPlaces(fej_fdr) + "\t" + roundToFiveDecimalPlaces(ks_stat) + "\t" + roundToFiveDecimalPlaces(ks_pvalue) + "\t" + ks_fdr
+                + "\t" + shortest_path_to_a_true
                 ;
     }
 
@@ -113,8 +140,128 @@ associated to the GO entry by the provided mapping (see option mapping).*/
 
 
     public void calculateShortestPathToTrue(Set<Integer> soTterms, DAG graph, GOTerm goTerm) {
-        if (!soTterms.isEmpty() && !soTterms.contains(goTerm.getId())) {
-
+        // If no true entries are provided or if the analyzed term is already true, nothing to do.
+        if (soTterms == null || soTterms.isEmpty() || soTterms.contains(goTerm.getId())) {
+            this.shortest_path_to_a_true = "";
+            return;
         }
+
+        // 1. Upward search: record all nodes reachable by going upward (using only parent pointers)
+        //    from the analyzed term. For each node, store the number of upward moves and a pointer
+        //    to reconstruct the upward path.
+        Map<GOTerm, Integer> upwardDist = new HashMap<>();
+        Map<GOTerm, GOTerm> upwardPred = new HashMap<>();
+        Queue<GOTerm> upwardQueue = new LinkedList<>();
+
+        upwardQueue.add(goTerm);
+        upwardDist.put(goTerm, 0);
+        upwardPred.put(goTerm, null);
+
+        while (!upwardQueue.isEmpty()) {
+            GOTerm current = upwardQueue.poll();
+            for (GOTerm parent : current.getParents()) {
+                if (!upwardDist.containsKey(parent)) {
+                    upwardDist.put(parent, upwardDist.get(current) + 1);
+                    upwardPred.put(parent, current);
+                    upwardQueue.add(parent);
+                }
+            }
+        }
+
+        // 2. For each candidate upward node (ancestor), attempt a downward search
+        //    (using only child pointers) to reach a true node.
+        //    We will record the total valid path length (upward moves + downward moves)
+        //    and keep track of the best candidate (the turning point or LCA).
+        int bestTotalDist = Integer.MAX_VALUE;
+        GOTerm bestCandidate = null;
+        GOTerm bestTrueNode = null;
+        // For the best candidate, store its downward predecessor mapping for path reconstruction.
+        Map<GOTerm, GOTerm> bestDownwardPred = null;
+
+        for (GOTerm candidate : upwardDist.keySet()) {
+            // Downward BFS from candidate (using only children pointers)
+            Map<GOTerm, Integer> downwardDist = new HashMap<>();
+            Map<GOTerm, GOTerm> downwardPred = new HashMap<>();
+            Queue<GOTerm> downwardQueue = new LinkedList<>();
+
+            downwardQueue.add(candidate);
+            downwardDist.put(candidate, 0);
+            downwardPred.put(candidate, null);
+
+            GOTerm foundTrue = null;
+            while (!downwardQueue.isEmpty()) {
+                GOTerm current = downwardQueue.poll();
+                if (soTterms.contains(current.getId())) {
+                    foundTrue = current;
+                    break;
+                }
+                for (GOTerm child : current.getChildren()) {
+                    if (!downwardDist.containsKey(child)) {
+                        downwardDist.put(child, downwardDist.get(current) + 1);
+                        downwardPred.put(child, current);
+                        downwardQueue.add(child);
+                    }
+                }
+            }
+
+            if (foundTrue != null) {
+                int totalDist = upwardDist.get(candidate) + downwardDist.get(foundTrue);
+                if (totalDist < bestTotalDist) {
+                    bestTotalDist = totalDist;
+                    bestCandidate = candidate;
+                    bestTrueNode = foundTrue;
+                    bestDownwardPred = downwardPred;
+                }
+            }
+        }
+
+        // If no candidate yields a valid downward path, then leave the path empty.
+        if (bestCandidate == null || bestTrueNode == null) {
+            this.shortest_path_to_a_true = "";
+            return;
+        }
+
+        // 3. Reconstruct the upward path from the analyzed term to the best candidate (LCA).
+        List<GOTerm> upwardPath = new ArrayList<>();
+        GOTerm curr = bestCandidate;
+        while (curr != null) {
+            upwardPath.add(curr);
+            curr = upwardPred.get(curr);
+        }
+        Collections.reverse(upwardPath); // Now, upwardPath[0] is goTerm, last element is the LCA.
+
+        // 4. Reconstruct the downward path from the candidate (LCA) to the true term,
+        //    using the stored downward predecessor mapping.
+        List<GOTerm> downwardPath = new ArrayList<>();
+        curr = bestTrueNode;
+        while (curr != null && !curr.equals(bestCandidate)) {
+            downwardPath.add(curr);
+            curr = bestDownwardPred.get(curr);
+        }
+        Collections.reverse(downwardPath);
+        // Avoid duplicating the candidate if it appears at the start of the downward path.
+        if (!downwardPath.isEmpty() && downwardPath.get(0).equals(bestCandidate)) {
+            downwardPath.remove(0);
+        }
+
+        // 5. Assemble the final path: join the upward part and the downward part,
+        //    marking the turning point (LCA) with an appended " *".
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (int i = 0; i < upwardPath.size(); i++) {
+            if (!first) {
+                sb.append("|");
+            }
+            first = false;
+            sb.append(upwardPath.get(i).getName());
+            if (i == upwardPath.size() - 1) {  // this is the candidate (LCA)
+                sb.append(" *");
+            }
+        }
+        for (GOTerm term : downwardPath) {
+            sb.append("|").append(term.getName());
+        }
+
+        this.shortest_path_to_a_true = sb.toString();
     }
 }
