@@ -1,0 +1,75 @@
+%! suppress = LineBreak
+\documentclass{article}
+
+\usepackage{fancyhdr}
+\usepackage{minted}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage{booktabs} % For cleaner tables (optional)
+\usepackage{graphicx}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{todonotes}
+
+
+\lstset{
+    breaklines=true,
+    breakatwhitespace=true,
+    basicstyle=\ttfamily,
+    columns=fullflexible
+}
+
+\usepackage[sorting=none,backend=biber]{biblatex}
+\usepackage[
+    a4paper,
+    left=0.75in,
+    right=0.75in,
+    top=0.75in,
+    bottom=0.75in
+]{geometry}
+\usepackage{mathtools}
+\usepackage{blindtext}
+\addbibresource{GOEnrichment.bib}
+
+
+\hypersetup{
+    colorlinks=true,   % Farben statt Umrandung für Links
+    linkcolor=black,    % Farbe für interne Links
+    citecolor=blue,    % Farbe für Zitate
+    filecolor=blue,    % Farbe für Dateien
+    urlcolor=blue      % Farbe für URLs
+}
+
+
+\pagestyle{fancy}
+\title{Topic 5: Ontology and Gene Set Enrichment Analysis\\\large Lab Course Genome-Oriented Bioinformatics}
+\author{}
+\date{10.02.2025}
+
+
+\begin{document}
+
+    \maketitle
+    \renewcommand{\abstractname}{}
+    \begin{abstract}
+        \large
+
+    \end{abstract}
+    \hrule
+    \tableofcontents
+    \vspace{10pt} % Optional: Add space after the TOC as well
+    \hrule
+
+    \pagebreak
+
+
+    \section{Introduction}\label{sec:introduction}
+
+
+    \section{Materials and Methods}\label{sec:materials-and-methods}
+
+
+    \section{Results}\label{sec:results}
+\end{document}
