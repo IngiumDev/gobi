@@ -1,9 +1,6 @@
 package me.ingiumdev.gobi.go;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class GOTerm {
     private final int id;
@@ -120,6 +117,19 @@ public class GOTerm {
 
         public GOTerm build() {
             return new GOTerm(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Builder builder = (Builder) o;
+            return id == builder.id && Objects.equals(name, builder.name) && Objects.equals(fullID, builder.fullID) && Objects.equals(tempParentIDs, builder.tempParentIDs);
+        }
+
+        @Override
+        public int hashCode() {
+            return id;
         }
     }
 }

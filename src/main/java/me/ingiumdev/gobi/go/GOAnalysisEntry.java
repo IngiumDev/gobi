@@ -4,14 +4,15 @@ import org.apache.commons.math3.distribution.HypergeometricDistribution;
 import org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class GOAnalysisEntry {
 
     private final int id;
     private final String rawID;
     private final String name;
-    private int size;
     private final boolean isSOT;
+    private int size;
     private int numOverlap;
     private Set<String> sizeGenes;
     private double hg_pvalue;
@@ -21,6 +22,26 @@ public class GOAnalysisEntry {
     private double ks_stat;
     private double ks_pvalue;
     private double ks_fdr;
+    private String shortest_path_to_a_true;
+
+    public GOAnalysisEntry(GOTerm term) {
+        this.id = term.getId();
+        this.rawID = term.getFullID();
+        this.name = term.getName();
+        this.isSOT = term.isSOT();
+    }
+
+    public static double roundToFiveDecimalPlaces(double value) {
+        if (value == 0.0) {
+            return 0.0;
+        }
+        double sign = Math.signum(value);
+        double absValue = Math.abs(value);
+        double exponent = Math.floor(Math.log10(absValue));
+        double scale = Math.pow(10, 5 - exponent);
+        double rounded = Math.round(absValue * scale) / scale;
+        return sign * rounded;
+    }
 
     public void setKs_fdr(double ks_fdr) {
         this.ks_fdr = ks_fdr;
@@ -46,15 +67,6 @@ public class GOAnalysisEntry {
         return ks_pvalue;
     }
 
-    private String shortest_path_to_a_true;
-
-    public GOAnalysisEntry(GOTerm term) {
-        this.id = term.getId();
-        this.rawID = term.getFullID();
-        this.name = term.getName();
-        this.isSOT = term.isSOT();
-    }
-
     public void calculateSize(DAG graph, Map<String, GeneSetEnrichmentAnalysis.DifferentialExpressionRecord> differentialExpressionInput) {
         /* size: number of measured associated genes to the GO categories (i.e. the
 number of gene ids both occurring in the file given by the enrich option and
@@ -72,39 +84,13 @@ associated to the GO entry by the provided mapping (see option mapping).*/
         }
     }
 
-
-    public static double roundToFiveDecimalPlaces(double value) {
-        if (value == 0.0) {
-            return 0.0;
-        }
-
-        // Determine the sign of the value
-        double sign = Math.signum(value);
-        double absValue = Math.abs(value);
-
-        // Calculate the base-10 exponent
-        double exponent = Math.floor(Math.log10(absValue));
-
-        // Scale the value to have five decimal places in the mantissa
-        double scale = Math.pow(10, 5 - exponent);
-
-        // Perform rounding
-        double rounded = Math.round(absValue * scale) / scale;
-
-        // Restore the original sign
-        return sign * rounded;
-    }
-
     public int getId() {
         return id;
     }
 
     @Override
     public String toString() {
-        return "GO:" + rawID + "\t" + name + "\t" + size + "\t" + isSOT
-                + "\t" + numOverlap + "\t" + roundToFiveDecimalPlaces(hg_pvalue) + "\t" + roundToFiveDecimalPlaces(hg_fdr) + "\t" + roundToFiveDecimalPlaces(fej_pvalue) + "\t" + roundToFiveDecimalPlaces(fej_fdr) + "\t" + roundToFiveDecimalPlaces(ks_stat) + "\t" + roundToFiveDecimalPlaces(ks_pvalue) + "\t" + ks_fdr
-                + "\t" + shortest_path_to_a_true
-                ;
+        return "GO:" + rawID + "\t" + name + "\t" + size + "\t" + isSOT + "\t" + numOverlap + "\t" + roundToFiveDecimalPlaces(hg_pvalue) + "\t" + roundToFiveDecimalPlaces(hg_fdr) + "\t" + roundToFiveDecimalPlaces(fej_pvalue) + "\t" + roundToFiveDecimalPlaces(fej_fdr) + "\t" + roundToFiveDecimalPlaces(ks_stat) + "\t" + roundToFiveDecimalPlaces(ks_pvalue) + "\t" + ks_fdr + "\t" + shortest_path_to_a_true;
     }
 
     public void calculatehg_pvalue(int numDiffExpressedRootGenes, int numGenesInDifferentialExpression, GOTerm goTerm) {
@@ -124,34 +110,44 @@ associated to the GO entry by the provided mapping (see option mapping).*/
 
     public void calculateKS(DAG graph, Map<String, GeneSetEnrichmentAnalysis.DifferentialExpressionRecord> differentialExpressionInput) {
         KolmogorovSmirnovTest ks = new KolmogorovSmirnovTest();
-        List<Double> measuredGeneFC = new ArrayList<>();
-        List<Double> backgroundGeneFC = new ArrayList<>();
-        for (String t : graph.getRoot().getAssociatedGenes()) {
-            if (!sizeGenes.contains(t) && differentialExpressionInput.containsKey(t)) {
-                backgroundGeneFC.add(differentialExpressionInput.get(t).fc());
-            }
+
+        List<Double> measuredGeneFC = sizeGenes.stream().map(gene -> differentialExpressionInput.get(gene).fc()).collect(Collectors.toCollection(() -> new ArrayList<>(sizeGenes.size())));
+        List<Double> backgroundGeneFC = graph.getRoot().getAssociatedGenes().stream().filter(t -> !sizeGenes.contains(t) && differentialExpressionInput.containsKey(t)).map(t -> differentialExpressionInput.get(t).fc()).collect(Collectors.toCollection(() -> new ArrayList<>(graph.getRoot().getAssociatedGenes().size())));
+
+        double[] measuredArray = new double[measuredGeneFC.size()];
+        for (int i = 0; i < measuredGeneFC.size(); i++) {
+            measuredArray[i] = measuredGeneFC.get(i);
         }
-        for (var gene : sizeGenes) {
-            measuredGeneFC.add(differentialExpressionInput.get(gene).fc());
+
+        double[] backgroundArray = new double[backgroundGeneFC.size()];
+        for (int i = 0; i < backgroundGeneFC.size(); i++) {
+            backgroundArray[i] = backgroundGeneFC.get(i);
         }
-        ks_stat = ks.kolmogorovSmirnovStatistic(measuredGeneFC.stream().mapToDouble(Double::doubleValue).toArray(), backgroundGeneFC.stream().mapToDouble(Double::doubleValue).toArray());
-        ks_pvalue = ks.kolmogorovSmirnovTest(measuredGeneFC.stream().mapToDouble(Double::doubleValue).toArray(), backgroundGeneFC.stream().mapToDouble(Double::doubleValue).toArray());
+
+        ks_stat = ks.kolmogorovSmirnovStatistic(measuredArray, backgroundArray);
+        ks_pvalue = ks.kolmogorovSmirnovTest(measuredArray, backgroundArray);
     }
 
 
-    public void calculateShortestPathToTrue(Set<Integer> soTterms, DAG graph, GOTerm goTerm) {
+    public void calculateShortestPathToTrue(Set<Integer> SOTTerms, GOTerm goTerm) {
         // If no true entries are provided or if the analyzed term is already true, nothing to do.
-        if (soTterms == null || soTterms.isEmpty() || soTterms.contains(goTerm.getId())) {
+        if (SOTTerms == null || SOTTerms.isEmpty() || SOTTerms.contains(goTerm.getId())) {
             this.shortest_path_to_a_true = "";
             return;
         }
 
-        // 1. Upward search: record all nodes reachable by going upward (using only parent pointers)
-        //    from the analyzed term. For each node, store the number of upward moves and a pointer
-        //    to reconstruct the upward path.
+        // 1. Upward search: record all nodes reachable by going upward from the analyzed term.
+        // For each node, store the number of upward moves and a pointer
+        // to reconstruct the upward path.
+        // upwardDist: distance from the analyzed term to the current node.
+        // upwardPred: predecessor node in the upward path.
         Map<GOTerm, Integer> upwardDist = new HashMap<>();
         Map<GOTerm, GOTerm> upwardPred = new HashMap<>();
-        Queue<GOTerm> upwardQueue = new LinkedList<>();
+        // Use ArrayDeque for faster queue operations.
+        // --> special kind of array that grows
+        // and allows users to add or remove an element from both sides of the queue.
+        // Queue stores the nodes to be processed.
+        Queue<GOTerm> upwardQueue = new ArrayDeque<>();
 
         upwardQueue.add(goTerm);
         upwardDist.put(goTerm, 0);
@@ -159,30 +155,37 @@ associated to the GO entry by the provided mapping (see option mapping).*/
 
         while (!upwardQueue.isEmpty()) {
             GOTerm current = upwardQueue.poll();
+            int currentDist = upwardDist.get(current);
             for (GOTerm parent : current.getParents()) {
                 if (!upwardDist.containsKey(parent)) {
-                    upwardDist.put(parent, upwardDist.get(current) + 1);
+                    upwardDist.put(parent, currentDist + 1);
                     upwardPred.put(parent, current);
                     upwardQueue.add(parent);
                 }
             }
         }
 
-        // 2. For each candidate upward node (ancestor), attempt a downward search
-        //    (using only child pointers) to reach a true node.
-        //    We will record the total valid path length (upward moves + downward moves)
-        //    and keep track of the best candidate (the turning point or LCA).
+        // 2. Process candidates in increasing order of upward distance to allow for pruning.
+        List<GOTerm> candidates = new ArrayList<>(upwardDist.keySet());
+        candidates.sort(Comparator.comparingInt(upwardDist::get));
+
         int bestTotalDist = Integer.MAX_VALUE;
         GOTerm bestCandidate = null;
         GOTerm bestTrueNode = null;
-        // For the best candidate, store its downward predecessor mapping for path reconstruction.
         Map<GOTerm, GOTerm> bestDownwardPred = null;
 
-        for (GOTerm candidate : upwardDist.keySet()) {
-            // Downward BFS from candidate (using only children pointers)
+        // For each candidate (potential turning point / LCA): check if there is a downward path to a true node.
+        for (GOTerm candidate : candidates) {
+            int candidateUpwardDist = upwardDist.get(candidate);
+            // Prune candidates that already have an upward cost not lower than the current best.
+            if (candidateUpwardDist >= bestTotalDist) {
+                break;
+            }
+
+            // Downward BFS from candidate (using only child pointers).
             Map<GOTerm, Integer> downwardDist = new HashMap<>();
             Map<GOTerm, GOTerm> downwardPred = new HashMap<>();
-            Queue<GOTerm> downwardQueue = new LinkedList<>();
+            Queue<GOTerm> downwardQueue = new ArrayDeque<>();
 
             downwardQueue.add(candidate);
             downwardDist.put(candidate, 0);
@@ -191,13 +194,23 @@ associated to the GO entry by the provided mapping (see option mapping).*/
             GOTerm foundTrue = null;
             while (!downwardQueue.isEmpty()) {
                 GOTerm current = downwardQueue.poll();
-                if (soTterms.contains(current.getId())) {
+                int currentDownwardDist = downwardDist.get(current);
+                // Prune: if the sum already meets or exceeds bestTotalDist, skip further processing from this node.
+                if (candidateUpwardDist + currentDownwardDist >= bestTotalDist) {
+                    continue;
+                }
+                if (SOTTerms.contains(current.getId())) {
                     foundTrue = current;
                     break;
                 }
                 for (GOTerm child : current.getChildren()) {
                     if (!downwardDist.containsKey(child)) {
-                        downwardDist.put(child, downwardDist.get(current) + 1);
+                        int newDownwardDist = currentDownwardDist + 1;
+                        // Prune early: if candidateUpwardDist + newDownwardDist is already worse, skip this child.
+                        if (candidateUpwardDist + newDownwardDist >= bestTotalDist) {
+                            continue;
+                        }
+                        downwardDist.put(child, newDownwardDist);
                         downwardPred.put(child, current);
                         downwardQueue.add(child);
                     }
@@ -205,7 +218,7 @@ associated to the GO entry by the provided mapping (see option mapping).*/
             }
 
             if (foundTrue != null) {
-                int totalDist = upwardDist.get(candidate) + downwardDist.get(foundTrue);
+                int totalDist = candidateUpwardDist + downwardDist.get(foundTrue);
                 if (totalDist < bestTotalDist) {
                     bestTotalDist = totalDist;
                     bestCandidate = candidate;
@@ -216,7 +229,7 @@ associated to the GO entry by the provided mapping (see option mapping).*/
         }
 
         // If no candidate yields a valid downward path, then leave the path empty.
-        if (bestCandidate == null || bestTrueNode == null) {
+        if (bestCandidate == null) {
             this.shortest_path_to_a_true = "";
             return;
         }
@@ -230,7 +243,7 @@ associated to the GO entry by the provided mapping (see option mapping).*/
         }
         Collections.reverse(upwardPath); // Now, upwardPath[0] is goTerm, last element is the LCA.
 
-        // 4. Reconstruct the downward path from the candidate (LCA) to the true term,
+        // 4. Reconstruct the downward path from the candidate (LCA) to the true node,
         //    using the stored downward predecessor mapping.
         List<GOTerm> downwardPath = new ArrayList<>();
         curr = bestTrueNode;
@@ -240,8 +253,8 @@ associated to the GO entry by the provided mapping (see option mapping).*/
         }
         Collections.reverse(downwardPath);
         // Avoid duplicating the candidate if it appears at the start of the downward path.
-        if (!downwardPath.isEmpty() && downwardPath.get(0).equals(bestCandidate)) {
-            downwardPath.remove(0);
+        if (!downwardPath.isEmpty() && downwardPath.getFirst().equals(bestCandidate)) {
+            downwardPath.removeFirst();
         }
 
         // 5. Assemble the final path: join the upward part and the downward part,
@@ -264,4 +277,5 @@ associated to the GO entry by the provided mapping (see option mapping).*/
 
         this.shortest_path_to_a_true = sb.toString();
     }
+
 }
