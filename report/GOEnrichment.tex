@@ -21,7 +21,7 @@
     columns=fullflexible
 }
 
-\usepackage[sorting=none,backend=biber]{biblatex}
+\usepackage[backend=biber, style=nature, sorting=none]{biblatex}
 \usepackage[
     a4paper,
     left=0.75in,
@@ -67,17 +67,109 @@
 
     \section{Introduction}\label{sec:introduction}
 
-High-throughput experiments, such as differential expression analyses, generate extensive lists of candidate genes, presenting significant challenges in data interpretation. A key strategy for addressing these challenges involves leveraging biological knowledge bases to annotate and functionally characterize the gene lists. In this project, a Java program is developed to integrate differential expression data with structured biological information, enabling the identification of over-represented functional gene sets.
-
+    High-throughput experiments, such as differential expression analyses, generate extensive lists of candidate genes, presenting significant challenges in data interpretation. A key strategy for addressing these challenges involves leveraging biological knowledge bases to annotate and functionally characterize the gene lists. In this project, a Java program is developed to integrate differential expression data with structured biological information, enabling the identification of over-represented functional gene sets.
 
     \subsection{Differential Expression Analysis}\label{subsec:differential-expression-analysis}
 
     \subsection{Gene Ontology}\label{subsec:gene-ontology}
+    The Gene Ontology (GO) is a structured, controlled vocabulary that standardizes the description of gene functions\cite{RN1}. GO organized gene product function in three different domains. Molecular Function (MF) describes the molecular activities of individual gene products, such as a specific kinase. Cellular Component (CC) describes the location of gene products, such as the mitochondria. Biological Process (BP) describes the pathways and larger processes to which gene products contribute, such as transport\cite{RN2}. A singular GO Term is a specific descriptor within one of these domains. Each term conveys details about a gene product’s function, location, or role in a larger biological process. It has a list of genes associated with it, and a list of relationships with other GO terms. For example, the "is a" relationship indicates that one term is a subtype of another, or "part of," which shows that a gene product is a component of a larger complex or process\cite{RN1}. These relationships are organized in a directed acyclic graph (DAG) structure, where nodes represent terms, and edges represent relationships between terms. Relationships in this graph are not symmetric, meaning that if term A is a parent of term B, term B is not necessarily a parent of term A. Additionally, the graph is acyclic, meaning that there are no loops in the graph. This structure can help us understand the effect a set of down or upregulated genes has on a biological process, cellular component, or molecular function.
+
     \subsection{Gene Set Enrichment Analysis}\label{subsec:gene-set-enrichment-analysis}
+    Gene Set Enrichment Analysis (GSEA) is a statistical approach used to determine whether predefined groups of genes (gene sets) show statistically significant enrichment in a ranked list of genes derived from high-throughput experiments, such as differential gene expression analysis.
 
 
     \section{Materials and Methods}\label{sec:materials-and-methods}
 
+    \subsection{Program Usage}\label{subsec:program-usage}
+    \begin{verbatim}
+java -jar GOEnrichmentRunner.jar
+usage: GOEnrichmentRunner [-h] -obo <obo_file> -root <GO_namespace> -mapping <gene2go_mapping_file> -mappingtype [ensembl|go] -enrich <diffexp_file> -o <output_tsv> -minsize <int>
+                          -maxsize <int> [-overlapout <overlap_out_tsv>]
+
+Perform Gene Ontology Set Enrichment Analysis
+
+named arguments:
+  -h, --help             show this help message and exit
+  -obo <obo_file>        Path to the OBO file
+  -root <GO_namespace>   Specify GO namespace: biological_process, cellular_component, or molecular_function
+  -mapping <gene2go_mapping_file>
+                         Path to the gene-to-GO mapping file
+  -mappingtype [ensembl|go]
+                         Specify the format of the mapping file: ensembl or go
+  -enrich <diffexp_file>
+                         Path to the enrichment analysis input file
+  -o <output_tsv>        Path to the output TSV file for enrichment results
+  -minsize <int>         Minimum size of GO entries to consider
+  -maxsize <int>         Maximum size of GO entries to consider
+  -overlapout <overlap_out_tsv>
+                         Optional output file for DAG overlap information
+    \end{verbatim}
+
+    \subsection{Program Structure}\label{subsec:program-structure}
+    This program calculates enrichment statistics by integrating differential expression data with the hierarchical structure of the Gene Ontology (GO) DAG. It evaluates whether measured genes, particularly those flagged as significantly differentially expressed, are overrepresented in specific GO categories by computing multiple statistical tests---including the hypergeometric test, Fisher’s exact test with jack-knifing, and the Kolmogorov-Smirnov (KS) test---and by determining the shortest paths within the GO DAG linking analyzed terms to known truly enriched entries. The main steps of the program are as follows:
+    \begin{enumerate}
+        \item Parsing of the mapping file
+        \item Parsing of the OBO file and initialization of the DAG
+        \item Parsing of the differential expression file
+        \item Enrichment analysis and calculation of the p-values, FDR, and shortest paths
+        \item (optional) Calculation of the DAG overlap information
+        \item Writing of the results to the output file
+
+    \end{enumerate}
+
+    \subsection{Input File Format}\label{subsec:input-file-format}
+    The program requires three primary input file types: the OBO file, the mapping file, and the differential expression file.
+
+    \paragraph{OBO File:}
+    The OBO file (e.g., \texttt{go.obo}) contains the Gene Ontology definitions and relationships. It is parsed to initialize the GO Directed Acyclic Graph (DAG) by skipping obsolete entries and using the \texttt{is\_a} relationships to build the hierarchical structure.
+
+    \paragraph{Mapping File:}
+    The mapping file associates genes with GO terms and supports two formats based on the \texttt{-mappingtype} parameter:
+    \begin{itemize}
+        \item \textbf{go:} Provided in the Gene Annotation File (GAF) format, the file (e.g., \texttt{goa\_human.gaf.gz}) is compressed as a \texttt{.gz} file. Only non-comment lines (those not starting with \texttt{!}) are processed, using columns 3--5, which correspond to the gene identifier, the association qualifier modifier, and the GO category identifier. Only associations without any association qualifier modifier are considered.
+        \item \textbf{ensembl:} Provided as a tab-separated values (TSV) file (e.g., \texttt{goa\_human\_ensembl.tsv}), it consists of three columns: the Ensembl gene ID, the HGNC gene symbol, and a list of associated GO terms (from all namespaces). In this format, the list of GO terms is separated by the symbol \texttt{--}.
+    \end{itemize}
+
+    \paragraph{Differential Expression File:}
+    This TSV file contains the experimental results for enrichment analysis and has three columns:
+    \begin{itemize}
+        \item \textbf{id:} The gene identifier.
+        \item \textbf{fc:} The log\textsubscript{2} fold change value representing the differential expression of the gene. This value is used in the Kolmogorov-Smirnov (KS) test to compare the distribution of fold changes.
+        \item \textbf{signif:} A boolean value indicating whether the gene is considered significantly differentially expressed. Genes with \texttt{signif=true} are used for the over-representation analysis.
+    \end{itemize}
+    Optionally, lines starting with the symbol \texttt{\#} in the differential expression file indicate simulated truly enriched GO identifiers, serving as a standard-of-truth.
+
+    \subsection{Output File Format}\label{subsec:output-file-format}
+    The main output file is a tab-separated values (TSV) file containing the following columns:
+    \begin{itemize}
+        \item \textbf{term}: The unique GO identifier (e.g., \texttt{GO:1902554}) for the analyzed GO entry.
+        \item \textbf{name}: The descriptive name of the GO entry.
+        \item \textbf{size}: The number of measured genes associated with the GO entry (i.e., the count of genes both present in the differential expression file and linked to the GO term via the provided mapping).
+        \item \textbf{is\_true}: A boolean flag indicating whether the GO term is part of the simulated, truly enriched set as specified in the input (lines starting with \texttt{\#}).
+        \item \textbf{noverlap}: The number of significantly differentially expressed genes (where \texttt{signif=true}) associated with the GO entry.
+        \item \textbf{hg\_pval}: The p-value for enrichment computed using the hypergeometric distribution.
+        \item \textbf{hg\_fdr}: The Benjamini-Hochberg corrected (FDR-adjusted) p-value corresponding to the hypergeometric test.
+        \item \textbf{fej\_pval}: The enrichment p-value derived from Fisher’s exact test, implemented with a jack-knifing approach.
+        \item \textbf{fej\_fdr}: The FDR-adjusted p-value for Fisher’s exact test.
+        \item \textbf{ks\_stat}: The KS test statistic comparing the log2 fold change distribution of genes associated with the GO term to that of the background gene set.
+        \item \textbf{ks\_pval}: The p-value resulting from the KS test.
+        \item \textbf{ks\_fdr}: The FDR-adjusted p-value for the KS test.
+        \item \textbf{shortest\_path\_to\_a\_true}: For GO entries that are not part of the true set, this column contains a ‘\texttt{--}’ separated list of GO entry names that represents the shortest path in the DAG from the analyzed GO term to the nearest true GO term. Within this path, the least common ancestor (LCA) is annotated with an asterisk (e.g., \texttt{regulation of immune system process*}). If the analyzed term is already a true entry or if no true entries are provided, this field remains empty.
+    \end{itemize}
+
+    If the optional \texttt{-overlapout} parameter is provided, an additional TSV file is generated containing detailed information about overlapping GO entries that share mapped genes. This file includes the following columns:
+    \begin{itemize}
+        \item \textbf{term1}: The GO identifier (e.g., \texttt{GO:1902554}) for the first overlapping DAG entry.
+        \item \textbf{term2}: The GO identifier for the second overlapping DAG entry.
+        \item \textbf{is\_relative}: A boolean value indicating whether the GO entry corresponding to \texttt{term1} is an ascendant or descendant of the one corresponding to \texttt{term2}. A value of \texttt{true} denotes a direct ancestral or descendant relationship, while \texttt{false} indicates no such relationship.
+        \item \textbf{path\_length}: The length of the shortest path between the two GO entries, defined as the minimal number of edges connecting them within the GO DAG.
+        \item \textbf{num\_overlapping}: The number of gene identifiers that are associated with both GO entries.
+        \item \textbf{max\_ov\_percent}: The maximum percentage (a float value between 0.0 and 100.0) of the shared gene identifiers relative to the total number of genes associated with either \texttt{term1} or \texttt{term2}.
+    \end{itemize}
+    Only GO entry pairs that meet the defined \texttt{minsize} and \texttt{maxsize} criteria are included in this overlap output file.
+
 
     \section{Results}\label{sec:results}
+    \AtNextBibliography{\small}
+    \printbibliography
 \end{document}
