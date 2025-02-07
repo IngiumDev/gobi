@@ -114,9 +114,57 @@ named arguments:
         \item Enrichment analysis and calculation of the p-values, FDR, and shortest paths
         \item (optional) Calculation of the DAG overlap information
         \item Writing of the results to the output file
-
     \end{enumerate}
+    A \texttt{GeneSetEnrichmentAnalysis} object is initialized with the parameters and organizes the input data as well as storing the results of the enrichment analysis.
 
+    \subsubsection{Mapping File Parsing}\label{subsubsec:mapping-file-parsing}
+    The mapping file parsing component is designed to efficiently extract gene-to-GO term associations from two different file formats, depending on the chosen \texttt{-mappingtype} parameter. The implementation avoids using inefficient methods like \texttt{split()} in favor of manual character-by-character parsing, which enhances performance when processing large files.
+
+    \paragraph{Ensembl Mapping:}
+    For the \texttt{ensembl} mapping type, the input is a TSV file (e.g., \texttt{goa\_human\_ensembl.tsv}) containing three columns: the Ensembl gene ID, the HGNC gene symbol, and a list of GO terms. The list of GO terms is provided as a concatenated string where individual terms are separated by the delimiter \texttt{|}. The parser iterates through each line, first extracting the HGNC symbol and then scanning for GO terms. Each GO term is identified by the \texttt{GO:} prefix, the prefix is removed, and the numeric part is parsed into an integer before being added to a set associated with that gene symbol.
+
+    \paragraph{GO Mapping:}
+    For the \texttt{go} mapping type, the input is provided in a compressed GAF file (e.g., \texttt{goa\_human.gaf.gz}). This file is read directly from its compressed state using a \texttt{GZIPInputStream}. The parser processes non-comment lines and focuses on columns 3, 4, and 5. Here, the third column contains the gene name, the fourth column is used as a qualifier (with lines containing any qualifier being skipped), and the fifth column contains the GO term. Similar to the Ensembl parser, the GO term is extracted by manually scanning the string, and its numeric portion is stored in a set mapped to the gene.
+
+    \paragraph{Data Storage:}
+    In both cases, the associations are stored in a \texttt{HashMap} where each key is a gene identifier (specifically, the HGNC symbol) and the corresponding value is a \texttt{HashSet} of integer representations of GO terms. Integers are used instead of a string representation due to hashing efficiency
+
+    \subsubsection{DAG Initialization}\label{subsubsec:dag-initialization}
+    The initialization of the DAG begins with parsing the OBO file via an \texttt{OboParser}. This parser reads the GO definitions and constructs a hash map of \texttt{GOTerm} objects, each encapsulating a unique numeric identifier, a full identifier string, a descriptive name, and placeholders for parent and child relationships. To efficiently capture the hierarchy, temporary parent IDs are stored during parsing, leaving the creation of parent-child links until all terms are loaded.
+    Subsequently, the \texttt{resolveParents} method processes these temporary IDs to establish the direct parent and child relationships among terms. Any term lacking parents is identified as the root of the DAG. In parallel, the \texttt{resolveLeaves} method identifies leaf nodes—those without any children.
+    The DAG is further processed by integrating gene associations from the mapping file through the \texttt{resolveGenes} method, which links genes to their corresponding GO terms. This \texttt{propagateGenes} method propagates gene associations from child nodes upward to parent nodes.
+
+    \subsubsection{Differential Expression File Parsing}\label{subsubsec:differential-expression-file-parsing}
+    The differential expression file parsing implementation is designed with efficiency in mind. Lines beginning with \texttt{\#} are used to extract Standard of Truth (SOT) GO terms, and the remaining lines are parsed manually by iterating over characters to extract the gene ID, log\textsubscript{2} fold change value, and significance flag. This approach avoids the overhead of methods like \texttt{split()} and stores each parsed record in a hash map for quick access during analysis.
+
+    \subsubsection{Enrichment Analysis}\label{subsubsec:enrichment-analysis}
+    The enrichment analysis is applied only to GO terms whose associated gene counts fall within the specified minimum and maximum thresholds. The analysis proceeds in two phases: first, raw enrichment statistics are computed in parallel for each qualifying GO term; second, the resulting p-values are adjusted using the Benjamini–Hochberg procedure to control the False Discovery Rate (FDR).
+
+    \paragraph{Raw Enrichment Statistics Computation}
+    Each GO term is processed concurrently using parallel streams. For every term, the following statistics are calculated:
+    \begin{itemize}
+        \item \textbf{Size and Overlap:} The number of measured genes associated with the GO term is determined (size), and the number of those that are significantly differentially expressed (overlap) is recorded.
+        \item \textbf{Hypergeometric Test:} Computes the probability of obtaining the observed overlap by chance based on the hypergeometric distribution.
+        \item \textbf{Fisher's Exact Test (with Jackknife):} Constructs a contingency table to assess overrepresentation; jackknife resampling is used to refine the variance estimate.
+        \item \textbf{Kolmogorov–Smirnov (KS) Test:} Compares the distribution of log\textsubscript{2} fold changes of genes within the term against that of the background, providing both a test statistic and a p-value.
+    \end{itemize}
+
+    \paragraph{Shortest Path Calculation to a Standard of Truth (SOT) GO Term}
+    For GO terms not already flagged as Standard of Truth, the analysis computes the minimal path to the nearest SOT term within the GO hierarchy. This is accomplished by a two-phase search:
+    \begin{enumerate}
+        \item \textbf{Upward Search:} A breadth-first search (BFS) is initiated from the analyzed term, following parent links. During this traversal, the algorithm records the distance (in edges) to each ancestor and stores predecessor pointers to enable path reconstruction.
+        \item \textbf{Downward Search:} For each candidate ancestor (sorted by increasing upward distance), a downward BFS is performed using child links to locate a path to a SOT term. The search prunes candidates where the sum of the upward and current downward distances exceeds the best total distance found so far.
+    \end{enumerate}
+    Once a candidate yielding the smallest combined distance is identified, the upward path (from the analyzed term to the candidate) is reconstructed using the stored predecessor information, and the downward path (from the candidate to the SOT term) is similarly recovered. The two paths are then concatenated—with the candidate (serving as the turning point or least common ancestor) marked by an appended asterisk—to produce the final representation of the shortest path.
+
+    \paragraph{P-value Adjustment via Benjamini–Hochberg Correction}
+    After raw p-values for the hypergeometric, Fisher's exact, and KS tests are computed, the Benjamini–Hochberg procedure is applied to each set to control the FDR, defined as the expected proportion of false positives among the results declared significant. The adjustment process involves:
+    \begin{enumerate}
+        \item Sorting the raw p-values in ascending order.
+        \item Adjusting each p-value by multiplying it by the total number of tests and dividing by its rank.
+        \item Assigning these adjusted p-values back to the corresponding GO term entries.
+    \end{enumerate}
+    This correction ensures that the significance levels remain reliable despite the multiple hypothesis tests performed.
     \subsection{Input File Format}\label{subsec:input-file-format}
     The program requires three primary input file types: the OBO file, the mapping file, and the differential expression file.
 
