@@ -94,6 +94,7 @@ public class GOEnrichmentRunner {
     }
 
     private static void start(Namespace res) {
+        long startTime = System.currentTimeMillis();
         // Extract parsed arguments
         String oboFile = res.getString("obo");
         String mappingFile = res.getString("mapping");
@@ -119,6 +120,7 @@ public class GOEnrichmentRunner {
             analysis.performOverlapAnalysis();
 
         }
+        log.info("Total runtime: {} ms", System.currentTimeMillis() - startTime);
     }
 
 

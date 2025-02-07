@@ -13,6 +13,9 @@
 \usepackage{listings}
 \usepackage{todonotes}
 
+\usepackage{tabularx}
+
+
 
 \lstset{
     breaklines=true,
@@ -21,7 +24,13 @@
     columns=fullflexible
 }
 
-\usepackage[backend=biber, style=nature, sorting=none]{biblatex}
+\usepackage[backend=biber, style=numeric-comp,
+    sortlocale=auto,
+    url=true,
+    doi=true,
+    eprint=false,
+    bibencoding=utf-8,
+    sorting=none]{biblatex}
 \usepackage[
     a4paper,
     left=0.75in,
@@ -32,6 +41,10 @@
 \usepackage{mathtools}
 \usepackage{blindtext}
 \addbibresource{GOEnrichment.bib}
+\DeclareFieldFormat{urldate}{%
+    (Accessed: \thefield{urlday}\addspace%
+    \mkbibmonth{\thefield{urlmonth}}\addspace%
+    \thefield{urlyear}\isdot)}
 
 
 \hypersetup{
@@ -115,7 +128,7 @@ named arguments:
         \item (optional) Calculation of the DAG overlap information
         \item Writing of the results to the output file
     \end{enumerate}
-    A \texttt{GeneSetEnrichmentAnalysis} object is initialized with the parameters and organizes the input data as well as storing the results of the enrichment analysis.
+    A \texttt{GeneSetEnrichmentAnalysis} object is initialized with the parameters and organizes the input data as well as storing the results of the enrichment analysis. Logging is provided at key stages of the program to help debugging and analyse the runtime.
 
     \subsubsection{Mapping File Parsing}\label{subsubsec:mapping-file-parsing}
     The mapping file parsing component is designed to efficiently extract gene-to-GO term associations from two different file formats, depending on the chosen \texttt{-mappingtype} parameter. The implementation avoids using inefficient methods like \texttt{split()} in favor of manual character-by-character parsing, which enhances performance when processing large files.
@@ -150,12 +163,12 @@ named arguments:
     \end{itemize}
 
     \paragraph{Shortest Path Calculation to a Standard of Truth (SOT) GO Term}
-    For GO terms not already flagged as Standard of Truth, the analysis computes the minimal path to the nearest SOT term within the GO hierarchy. This is accomplished by a two-phase search:
+    For GO terms not flagged as Standard of Truth, the algorithm computes the minimal path to the nearest SOT term within the GO hierarchy. This is achieved via a bidirectional search:
     \begin{enumerate}
-        \item \textbf{Upward Search:} A breadth-first search (BFS) is initiated from the analyzed term, following parent links. During this traversal, the algorithm records the distance (in edges) to each ancestor and stores predecessor pointers to enable path reconstruction.
-        \item \textbf{Downward Search:} For each candidate ancestor (sorted by increasing upward distance), a downward BFS is performed using child links to locate a path to a SOT term. The search prunes candidates where the sum of the upward and current downward distances exceeds the best total distance found so far.
+        \item \textbf{Upward Search:} A breadth-first search (BFS) is initiated from the analyzed term using parent links. An \texttt{ArrayDeque} is used as the queue for BFS operations. Unlike a fixed-size array, the \texttt{ArrayDeque} is a resizable double-ended queue that allows efficient insertion and removal at both ends—ideal for BFS where elements are frequently enqueued and dequeued\cite{geeksforgeeks_2023}. During this phase, distances (i.e., the number of edges) to each ancestor are recorded in a \texttt{HashMap}, along with pointers to reconstruct the upward path.
+        \item \textbf{Downward Search:} For each candidate ancestor (sorted by increasing upward distance), a downward BFS is performed using child links to locate a SOT term. Similar to the upward search, an \texttt{ArrayDeque} manages the queue, while a \texttt{HashMap} tracks distances and predecessor nodes for the downward traversal. This dual search (upward and downward) ensures that both ancestral and descendant directions are explored to identify the minimal connecting path.
     \end{enumerate}
-    Once a candidate yielding the smallest combined distance is identified, the upward path (from the analyzed term to the candidate) is reconstructed using the stored predecessor information, and the downward path (from the candidate to the SOT term) is similarly recovered. The two paths are then concatenated—with the candidate (serving as the turning point or least common ancestor) marked by an appended asterisk—to produce the final representation of the shortest path.
+    Once a candidate yielding the smallest combined distance is found, the upward path (from the analyzed term to the candidate) and the downward path (from the candidate to the SOT term) are reconstructed using the stored predecessor pointers. The final path is then formatted as a sequence of GO term names, with the turning point (least common ancestor) marked by an appended asterisk.
 
     \paragraph{P-value Adjustment via Benjamini–Hochberg Correction}
     After raw p-values for the hypergeometric, Fisher's exact, and KS tests are computed, the Benjamini–Hochberg procedure is applied to each set to control the FDR, defined as the expected proportion of false positives among the results declared significant. The adjustment process involves:
@@ -165,6 +178,48 @@ named arguments:
         \item Assigning these adjusted p-values back to the corresponding GO term entries.
     \end{enumerate}
     This correction ensures that the significance levels remain reliable despite the multiple hypothesis tests performed.
+
+    \paragraph{Statistical Definitions:}
+    \begin{itemize}
+        \item \textbf{Hypergeometric Test:} Evaluates the probability of drawing the observed number of significant genes from a finite population without replacement.
+        \item \textbf{Fisher's Exact Test:} Assesses the association between gene significance and GO term membership using contingency tables. With the incorporated jackknife resampling, this test provides a robust estimate of whether the proportion of significantly expressed genes within the GO term is higher than expected by chance—serving as the measure of overrepresentation.\cite{csaba_2019}
+        \item \textbf{KS Test:} A nonparametric test that compares the distribution of log\textsubscript{2} fold change values for genes in the GO term against the background distribution. In this context, the KS statistic acts as an enrichment score by quantifying the extent to which the gene set's distribution deviates from the overall background.\cite{subramanian_tamayo_mootha_mukherjee_ebert_gillette_paulovich_pomeroy_golub_lander_etal_2005}
+        \item \textbf{False Discovery Rate (FDR):} The expected fraction of false positives among the significant results after adjusting for multiple hypothesis tests.
+    \end{itemize}
+
+    \subsubsection{Overlap Analysis}\label{subsubsec:overlap-analysis}
+    The overlap analysis quantifies the relationships between pairs of GO terms by evaluating both the extent of shared gene associations and their hierarchical proximity within the GO Directed Acyclic Graph (DAG). This analysis is conducted only on GO terms that meet the specified minimum and maximum size criteria.
+
+    \paragraph{Pairwise Comparison and Shared Gene Count}
+    The program iterates over all unique pairs of filtered GO terms. For each pair, the number of overlapping genes is determined by comparing their respective gene association sets. If the pair shares one or more genes, further metrics are computed.
+
+    \paragraph{Hierarchical Relationship and Shortest Path Calculation}
+    For overlapping pairs, two key metrics are derived to capture their hierarchical relationship:
+    \begin{itemize}
+        \item \textbf{Relative Relationship:}
+        A GO term is deemed relative to another if one is an ancestor of the other. This is established by generating an ancestor map for each term (via a breadth-first search using parent links) and checking for mutual inclusion.
+        \item \textbf{Shortest Path Length:}
+        The shortest path between two GO terms is computed by:
+        \begin{enumerate}
+            \item \textbf{Upward Search:} An ancestor map is generated for each term, which records every visited ancestor along with the number of edges (upward moves) required to reach it. This is achieved using a BFS implemented with an \texttt{ArrayDeque} as the queue.
+            \item \textbf{Intersection and Distance Calculation:} The two ancestor maps are intersected identify common ancestors. For each common ancestor, the total distance is computed as the sum of the upward moves from each term. The minimal total distance among these is taken as the shortest path length between the two GO terms.
+        \end{enumerate}
+    \end{itemize}
+
+    \paragraph{Overlap Metrics}
+    In addition to the hierarchical measurements, the analysis computes:
+    \begin{itemize}
+        \item \textbf{Number of Overlapping Genes:} The count of genes shared between the two GO terms.
+        \item \textbf{Maximum Overlap Percentage:} Calculated as:
+        \[
+            \text{max\_ov\_percent} = \frac{\text{num\_overlapping}}{\min(\text{size of term1}, \text{size of term2})} \times 100,
+        \]
+        this metric represents the relative degree of overlap based on the smaller gene set.
+    \end{itemize}
+
+    \paragraph{Implementation and Output}
+    The overlap analysis is implemented using parallel processing to handle the large number of GO term pairs efficiently. A global cache is employed to store computed ancestor maps, reducing redundant calculations during pairwise comparisons. The first time a term is processed, the ancestor map is calculated and stored in the global cache. If another thread tries to access the ancestor map before the first thread has finished calculating it, it briefly waits and only retrieves the finished map, thereby eliminating and thread related inconsistencies where an incomplete map is returned.
+
     \subsection{Input File Format}\label{subsec:input-file-format}
     The program requires three primary input file types: the OBO file, the mapping file, and the differential expression file.
 
@@ -218,6 +273,46 @@ named arguments:
 
 
     \section{Results}\label{sec:results}
-    \AtNextBibliography{\small}
-    \printbibliography
+
+    \subsection{Runtime}\label{subsec:runtime}
+
+The program was run for the provided test files on a PC with a Ryzen 5 3600 and 16GB of RAM, using both the Ensembl and GO mapping files for each of the three GO namespaces. The program was executed with a minimum GO entry size of 50 and a maximum of 500. Table~\ref{tab:runtime} shows the runtime breakdown for each step.
+
+
+
+The mapping file processing shows considerable differences between the GO and Ensembl. For example, in the Biological Process (BP) ontology, the GO mapping takes 798\,ms compared to 181\,ms for Ensembl. This pattern is consistent across the Molecular Function (MF) and Cellular Component (CC) tests, suggesting that the zipped GO mapping is more complicated to process. The graph loading operations (loading entries, resolving parents, leaves, genes, and propagating genes) contribute significantly to the runtime. These values differ between ontologies (e.g., 637\,ms for GO-BP versus 303\,ms for GO-MF), likely do to the varying DAG sizes and complexities. The enrichment calculation step is the most time-consuming. In the BP runs, it takes 3789\,ms for GO mapping and 3207\,ms for Ensembl. The overlap analysis takes between 1484 and 1908\,ms. These two steps dominate the runtime and could be further optimized. However, by the nature of what they are processing, like the shortest path and the KS test, they are inherently time-consuming. Loading differential expression records, adjusting p-values, and writing output require minimal time (all under 50\,ms)
+
+Overall, the total runtimes vary between 1503\,ms (Ensembl, CC) and 7217\,ms (GO, BP). The enrichment and overlap calculations remain the largest contributors to the execution time.
+
+
+
+\begin{table}[htbp]
+    \centering
+    \caption{Runtime Breakdown for GO/Ensembl Mappings Across GO Namespaces on a Ryzen 5 3600 (16GB RAM) System. Tests used GO entry size constraints of 50 (min) and 500 (max).}
+    \label{tab:runtime}
+    \resizebox{\columnwidth}{!}{%
+        \begin{tabular}{llrrrrrrrr}
+            \toprule
+            \textbf{Mapping} & \textbf{Ontology} & \textbf{Mapping (ms)} & \textbf{DAG (ms)}  & \textbf{DiffExpr (ms)} & \textbf{Enrichment (ms)} & \textbf{p-adjust (ms)} & \textbf{Output (ms)} & \textbf{Overlap (ms)} & \textbf{Total (ms)} \\
+            \midrule
+            GO      & BP & 798  & 637  & 17   & 3789  & 15   & 38   & 1908  & 7217  \\
+            \rowcolor[HTML]{C0C0C0}
+            Ensembl & BP & 181  & 725  & 17   & 3207  & 12   & 38   & 1484  & 5677  \\
+            GO      & MF & 1093 & 303  & 28   & 1076  & 5    & 19   & 391   & 2932  \\
+            \rowcolor[HTML]{C0C0C0}
+            Ensembl & MF & 155  & 279  & 26   & 843   & 5    & 21   & 364   & 1705  \\
+            GO      & CC & 854  & 188  & 17   & 726   & 5    & 18   & 305   & 2118  \\
+            \rowcolor[HTML]{C0C0C0}
+            Ensembl & CC & 229  & 229  & 24   & 704   & 4    & 20   & 287   & 1503  \\
+            \bottomrule
+        \end{tabular}%
+    }
+\end{table}
+
+
+
+
+
+    \AtNextBibliography{\small}\nocite{*}
+    \printbibliography[heading=bibintoc, title={References}]
 \end{document}
