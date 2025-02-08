@@ -272,17 +272,24 @@ named arguments:
     Only GO entry pairs that meet the defined \texttt{minsize} and \texttt{maxsize} criteria are included in this overlap output file.
 
 
+    \subsection{Provided Files}\label{subsec:provided-files}
+    The following files were provided for testing the program: %simul_exp_go_bp_ensembl.tsv releases/2016-12-24
+    \begin{itemize}
+        \item \textbf{simul_exp_go_bp_ensembl.tsv:} Differential expression file for the Biological Process (BP) ontology with simulated, truly enriched standard-of-truth GO Terms.
+        \item \textbf{go.obo:} The Gene Ontology OBO (Release 2016-12-24)file containing the GO definitions and relationships.
+    \end{itemize}
     \section{Results}\label{sec:results}
 
     \subsection{Runtime}\label{subsec:runtime}
 
-The program was run for the provided test files on a PC with a Ryzen 5 3600 and 16GB of RAM, using both the Ensembl and GO mapping files for each of the three GO namespaces. The program was executed with a minimum GO entry size of 50 and a maximum of 500. Table~\ref{tab:runtime} shows the runtime breakdown for each step.
+The program was run for the provided test files on a PC with a Ryzen 5 3600 and 16GB of RAM, using both the Ensembl and GO mapping files for each of the three GO namespaces. The program was executed with a size range of 50 to 500 genes per for a Term—this filtering helps avoid the issues associated with extremely small gene sets (which can yield inflated scores) and overly large ones (which may lead to inaccurate normalization)\cite{gsea_user_guide}.
+. Table~\ref{tab:runtime} shows the runtime breakdown for each step.
 
 
 
-The mapping file processing shows considerable differences between the GO and Ensembl. For example, in the Biological Process (BP) ontology, the GO mapping takes 798\,ms compared to 181\,ms for Ensembl. This pattern is consistent across the Molecular Function (MF) and Cellular Component (CC) tests, suggesting that the zipped GO mapping is more complicated to process. The graph loading operations (loading entries, resolving parents, leaves, genes, and propagating genes) contribute significantly to the runtime. These values differ between ontologies (e.g., 637\,ms for GO-BP versus 303\,ms for GO-MF), likely do to the varying DAG sizes and complexities. The enrichment calculation step is the most time-consuming. In the BP runs, it takes 3789\,ms for GO mapping and 3207\,ms for Ensembl. The overlap analysis takes between 1484 and 1908\,ms. These two steps dominate the runtime and could be further optimized. However, by the nature of what they are processing, like the shortest path and the KS test, they are inherently time-consuming. Loading differential expression records, adjusting p-values, and writing output require minimal time (all under 50\,ms)
+The mapping file processing shows considerable differences between the GO and Ensembl. For example, in the Biological Process (BP) ontology, the GO mapping takes 798\,ms compared to 181\,ms for Ensembl. This pattern is consistent across the Molecular Function (MF) and Cellular Component (CC) tests, suggesting that the zipped GO mapping is more complicated to process. The graph loading operations (loading entries, resolving parents, leaves, genes, and propagating genes) contribute significantly to the runtime. These values differ between ontologies (e.g., 637\,ms for GO-BP versus 303\,ms for GO-MF) likely due to the varying DAG sizes and complexities. The enrichment calculation step is the most time-consuming. In the BP runs, it takes 3789\,ms for GO mapping and 3207\,ms for Ensembl. The overlap analysis takes between 1484 and 1908\,ms. These two steps dominate the runtime and could be further optimized. However, by the nature of what they are processing, like the shortest path and the KS test, they are inherently time-consuming. Loading differential expression records, adjusting p-values, and writing the output requires minimal time (all under 50\,ms)
 
-Overall, the total runtimes vary between 1503\,ms (Ensembl, CC) and 7217\,ms (GO, BP). The enrichment and overlap calculations remain the largest contributors to the execution time.
+Overall, the total runtimes vary between 1503\,ms (Ensembl, CC) and 7217\,ms (GO, BP). The enrichment and overlap calculations are the largest contributors to the execution time.
 
 
 
