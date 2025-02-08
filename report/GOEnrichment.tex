@@ -86,12 +86,12 @@
 
     \section{Introduction}\label{sec:introduction}
 
-    High-throughput experiments, such as differential expression analyses, generate extensive lists of candidate genes, presenting significant challenges in data interpretation. A key strategy for addressing these challenges involves leveraging biological knowledge bases to annotate and functionally characterize the gene lists. In this project, a Java program is developed to integrate differential expression data with structured biological information, enabling the identification of over-represented functional gene sets.
+    High-throughput experiments, such as differential expression analyses, generate extensive candidate gene lists, presenting significant data interpretation challenges. A key strategy for addressing these challenges involves leveraging biological knowledge bases to annotate and functionally characterize the gene lists. In this project, a Java program is developed to integrate differential expression data with structured biological information, enabling the identification of over-represented functional gene sets.
 
     \subsection{Differential Expression Analysis}\label{subsec:differential-expression-analysis}
 
     \subsection{Gene Ontology}\label{subsec:gene-ontology}
-    The Gene Ontology (GO) is a structured, controlled vocabulary that standardizes the description of gene functions\cite{RN1}. GO organized gene product function in three different domains. Molecular Function (MF) describes the molecular activities of individual gene products, such as a specific kinase. Cellular Component (CC) describes the location of gene products, such as the mitochondria. Biological Process (BP) describes the pathways and larger processes to which gene products contribute, such as transport\cite{RN2}. A singular GO Term is a specific descriptor within one of these domains. Each term conveys details about a gene product’s function, location, or role in a larger biological process. It has a list of genes associated with it, and a list of relationships with other GO terms. For example, the "is a" relationship indicates that one term is a subtype of another, or "part of," which shows that a gene product is a component of a larger complex or process\cite{RN1}. These relationships are organized in a directed acyclic graph (DAG) structure, where nodes represent terms, and edges represent relationships between terms. Relationships in this graph are not symmetric, meaning that if term A is a parent of term B, term B is not necessarily a parent of term A. Additionally, the graph is acyclic, meaning that there are no loops in the graph. This structure can help us understand the effect a set of down or upregulated genes has on a biological process, cellular component, or molecular function.
+    The Gene Ontology (GO) is a structured, controlled vocabulary that standardizes the description of gene functions\cite{RN1}. GO organized gene product function in three different domains. Molecular Function (MF) describes the molecular activities of individual gene products, such as a specific kinase. Cellular Component (CC) describes the location of gene products, such as the mitochondria. Biological Process (BP) describes the pathways and larger processes to which gene products contribute, such as transport\cite{RN2}. A singular GO Term is a specific descriptor within one of these domains. Each term conveys details about a gene product’s function, location, or role in a larger biological process. It has a list of genes associated with it and a list of relationships with other GO terms. For example, the "is a" relationship indicates that one term is a subtype of another, or "part of," which shows that a gene product is a component of a larger complex or process\cite{RN1}. These relationships are organized in a directed acyclic graph (DAG) structure, where nodes represent terms, and edges represent relationships between terms. Relationships in this graph are not symmetric, meaning that if term A is a parent of term B, term B is not necessarily a parent of term A. Additionally, the graph is acyclic, meaning that there are no loops in the graph. This structure can help us understand how a set of down or upregulated genes affects a biological process, cellular component, or molecular function.
 
     \subsection{Over-representation Analysis}\label{subsec:over-representation-analysis}
 
@@ -135,30 +135,30 @@ named arguments:
         \item (optional) Calculation of the DAG overlap information
         \item Writing of the results to the output file
     \end{enumerate}
-    A \texttt{GeneSetEnrichmentAnalysis} object is initialized with the parameters and organizes the input data as well as storing the results of the enrichment analysis. Logging is provided at key stages of the program to help debugging and analyse the runtime.
+    A \texttt{GeneSetEnrichmentAnalysis} object is initialized with the parameters of the analysis, organizes the input data, and stores the enrichment analysis results. Logging is provided at key stages of the program to help debug and analyze the runtime.
 
     \subsubsection{Mapping File Parsing}\label{subsubsec:mapping-file-parsing}
-    The mapping file needs to be parsed to extract the gene to GO term associations. Two file formats are supportedf, depending on the chosen \texttt{-mappingtype} parameter. The implementation avoids using inefficient methods like \texttt{split()} in favor of manual character-by-character parsing, which enhances performance when processing large files.
+    The mapping file must be parsed to extract the gene to GO term associations. Two file formats are supported, depending on the chosen \texttt{-mappingtype} parameter. The implementation avoids inefficient methods like \texttt{split()} in favor of manual character-by-character parsing, enhancing performance when processing large files.
 
     \paragraph{Ensembl Mapping:}
     For the \texttt{ensembl} mapping type, the input is a TSV file (e.g., \texttt{goa\_human\_ensembl.tsv}). The list of GO terms is provided as a concatenated string where individual terms are separated by the delimiter \texttt{|}. The parser iterates through each line, first extracting the HGNC symbol and then scanning for GO terms. Each GO term is identified by the \texttt{GO:} prefix, the prefix is removed, and the numeric part is parsed into an integer before being added to a set associated with that gene symbol.
 
     \paragraph{GO Mapping:}
-    For the \texttt{go} mapping type, the input is provided in a compressed GAF file (e.g., \texttt{goa\_human.gaf.gz}). This file is read directly from its compressed state using a \texttt{GZIPInputStream}. The parser processes non-comment lines and focuses on columns 3, 4, and 5. Similar to the Ensembl parser, the GO term is extracted by manually scanning the string, and its numeric portion is stored in a set mapped to the gene.
+    For the \texttt{go} mapping type, the input is provided in a compressed GAF file (e.g., \texttt{goa\_human.gaf.gz}). This file is read directly from its compressed state using a \texttt{GZIPInputStream}. The parser processes non-comment lines and focuses on columns 3, 4, and 5. Like the Ensembl parser, the GO term is extracted by manually scanning the string, and its numeric portion is stored in a set mapped to the gene.
 
     \paragraph{Data Strucutre:}
     In both cases, the associations are stored in a \texttt{HashMap} where each key is a gene identifier (specifically, the HGNC symbol) and the corresponding value is a \texttt{HashSet} of integer representations of GO terms. Integers are used instead of a string representation due to hashing efficiency.
 
     \subsubsection{DAG Initialization}\label{subsubsec:dag-initialization}
     The initialization of the DAG begins with parsing the OBO file via an \texttt{OboParser}. This parser reads the GO definitions and constructs a hash map of \texttt{GOTerm} objects, each encapsulating a unique numeric identifier, a full identifier string, a descriptive name, and placeholders for parent and child relationships. To efficiently capture the hierarchy, temporary parent IDs are stored during parsing, leaving the creation of parent-child links until all terms are loaded.
-    Subsequently, the \texttt{resolveParents} method processes these temporary IDs to establish the direct parent and child relationships among terms. Any term lacking parents is identified as the root of the DAG. In parallel, the \texttt{resolveLeaves} method identifies leaf nodes—those without any children.
+    Subsequently, the \texttt{resolveParents} method processes these temporary IDs to establish the direct parent and child relationships among terms. Any term lacking parents is identified as the root of the DAG. In parallel, the \texttt{resolveLeaves} method identifies leaf nodes (have no children children).
     The DAG is further processed by integrating gene associations from the mapping file through the \texttt{resolveGenes} method, which links genes to their corresponding GO terms. This \texttt{propagateGenes} method propagates gene associations from child nodes upward to parent nodes.
 
     \subsubsection{Differential Expression File Parsing}\label{subsubsec:differential-expression-file-parsing}
     The differential expression file parsing implementation is designed with efficiency in mind. Lines beginning with \texttt{\#} are used to extract Standard of Truth (SOT) GO terms, and the remaining lines are parsed manually by iterating over characters to extract the gene ID, log\textsubscript{2} fold change value, and significance flag. This approach avoids the overhead of methods like \texttt{split()} and stores each parsed record in a hash map for quick access during analysis.
 
     \subsubsection{Enrichment Analysis}\label{subsubsec:enrichment-analysis}
-    The enrichment analysis is applied only to GO terms whose associated gene counts fall within the specified minimum and maximum thresholds. The analysis proceeds in two phases: first, raw enrichment statistics are computed in parallel for each qualifying GO term; second, the resulting p-values are adjusted using the Benjamini–Hochberg procedure to control the False Discovery Rate (FDR).
+    The enrichment analysis is applied only to GO terms whose associated gene counts fall within the specified minimum and maximum thresholds. The analysis proceeds in two phases: raw enrichment statistics are computed in parallel for each qualifying GO term and the resulting p-values are adjusted using the Benjamini–Hochberg procedure to control the False Discovery Rate (FDR).
 
     \paragraph{Raw Enrichment Statistics Computation}
     Each GO term is processed concurrently using parallel streams. For every term, the following statistics are calculated:
@@ -174,9 +174,9 @@ named arguments:
         \end{itemize}
 
         \item \textbf{Fisher's Exact Test (with Jackknife):}
-        In addition to the hypergeometric test, a Fisher's exact test is performed with jackknife resampling. The inputs for this test are analogous to those used for the hypergeometric test, but each parameter is reduced by one to account for the jackknife correction:
+        In addition to the hypergeometric test, Fisher's exact test is performed with jackknife resampling. The inputs for this test are analogous to those used for the hypergeometric test, but each parameter is reduced by one to account for the jackknife correction:
         \begin{itemize}
-            \item $N-1$: Total number of differentially expressed genes in the root, minus one.
+            \item $N-1$: Total number of differentially expressed genes in the root minus one.
             \item $K-1$: Number of significantly differentially expressed genes in the root, minus one.
             \item $n-1$: GO term \textit{size} minus one.
             \item $k-1$: Observed \textit{overlap} minus one.
@@ -191,10 +191,10 @@ named arguments:
     \end{itemize}
 
     \paragraph{Shortest Path Calculation to a Standard of Truth (SOT) GO Term}
-    For GO terms not flagged as Standard of Truth, the algorithm computes the minimal path to the nearest SOT term within the GO hierarchy. This is achieved via a bidirectional search:
+    The algorithm computes the minimal path to the nearest SOT term within the GO hierarchy for GO terms not flagged as Standard of Truth. This is achieved via a bidirectional search:
     \begin{enumerate}
         \item \textbf{Upward Search:} A breadth-first search (BFS) is initiated from the analyzed term using parent links. An \texttt{ArrayDeque} is used as the queue for BFS operations. Unlike a fixed-size array, the \texttt{ArrayDeque} is a resizable double-ended queue that allows efficient insertion and removal at both ends—ideal for BFS where elements are frequently enqueued and dequeued\cite{geeksforgeeks_2023}. During this phase, distances (i.e., the number of edges) to each ancestor are recorded in a \texttt{HashMap}, along with pointers to reconstruct the upward path.
-        \item \textbf{Downward Search:} For each candidate ancestor (sorted by increasing upward distance), a downward BFS is performed using child links to locate a SOT term. Similar to the upward search, an \texttt{ArrayDeque} manages the queue, while a \texttt{HashMap} tracks distances and predecessor nodes for the downward traversal. This dual search (upward and downward) ensures that both ancestral and descendant directions are explored to identify the minimal connecting path.
+        \item \textbf{Downward Search:} For each candidate ancestor (sorted by increasing upward distance), a downward BFS is performed using child links to locate a SOT term. Like the upward search, an \texttt{ArrayDeque} manages the queue, while a \texttt{HashMap} tracks distances and predecessor nodes for the downward traversal. This dual search (upward and downward) ensures that both ancestral and descendant directions are explored to identify the minimal connecting path.
     \end{enumerate}
     Once a candidate yielding the smallest combined distance is found, the upward path (from the analyzed term to the candidate) and the downward path (from the candidate to the SOT term) are reconstructed using the stored predecessor pointers. The final path is then formatted as a sequence of GO term names, with the turning point (least common ancestor) marked by an appended asterisk.
 
@@ -210,8 +210,8 @@ named arguments:
     \paragraph{Statistical Definitions:}
     \begin{itemize}
         \item \textbf{Hypergeometric Test:} Evaluates the probability of drawing the observed number of significant genes from a finite population without replacement.
-        \item \textbf{Fisher's Exact Test:} Assesses the association between gene significance and GO term membership using contingency tables. With the incorporated jackknife resampling, this test provides a robust estimate of whether the proportion of significantly expressed genes within the GO term is higher than expected by chance—serving as the measure of overrepresentation.\cite{csaba_2019}
-        \item \textbf{KS Test:} A nonparametric test that compares the distribution of log\textsubscript{2} fold change values for genes in the GO term against the background distribution. In this context, the KS statistic acts as an enrichment score by quantifying the extent to which the gene set's distribution deviates from the overall background.\cite{subramanian_tamayo_mootha_mukherjee_ebert_gillette_paulovich_pomeroy_golub_lander_etal_2005}
+        \item \textbf{Fisher's Exact Test:} Assesses the association between gene significance and GO term membership using contingency tables. With the incorporated jackknife resampling, this test provides a robust estimate of whether the proportion of significantly expressed genes within the GO term is higher than expected by chance—serving as the measure of overrepresentation\cite{csaba_2019}.
+        \item \textbf{KS Test:} A nonparametric test that compares the distribution of log\textsubscript{2} fold change values for genes in the GO term against the background distribution. In this context, the KS statistic acts as an enrichment score by quantifying the extent to which the gene set's distribution deviates from the overall background\cite{subramanian_tamayo_mootha_mukherjee_ebert_gillette_paulovich_pomeroy_golub_lander_etal_2005}.
         \item \textbf{False Discovery Rate (FDR):} The expected fraction of false positives among the significant results after adjusting for multiple hypothesis tests.
     \end{itemize}
 
@@ -230,7 +230,7 @@ named arguments:
         The shortest path between two GO terms is computed by:
         \begin{enumerate}
             \item \textbf{Upward Search:} An ancestor map is generated for each term, which records every visited ancestor along with the number of edges (upward moves) required to reach it. This is achieved using a BFS implemented with an \texttt{ArrayDeque} as the queue.
-            \item \textbf{Intersection and Distance Calculation:} The two ancestor maps are intersected identify common ancestors. For each common ancestor, the total distance is computed as the sum of the upward moves from each term. The minimal total distance among these is taken as the shortest path length between the two GO terms.
+            \item \textbf{Intersection and Distance Calculation:} The two ancestor maps are intersected to identify common ancestors. The total distance is computed for each common ancestor as the sum of the upward moves from each term. The minimal total distance among these is taken as the shortest path length between the two GO terms.
         \end{enumerate}
     \end{itemize}
 
@@ -248,18 +248,18 @@ named arguments:
     \end{itemize}
 
     \paragraph{Implementation and Output}
-    The overlap analysis is implemented using parallel processing to handle the large number of GO term pairs efficiently. A global cache is used to store computed ancestor maps, reducing redundant calculations during pairwise comparisons. The first time a term is processed, the ancestor map is calculated and stored in the global cache. If another thread tries to access the ancestor map before the first thread has finished calculating it, it briefly waits and only retrieves the finished map, thereby eliminating and thread related inconsistencies where an incomplete map is returned.
+    The overlap analysis is implemented using parallel processing to handle the large number of GO term pairs efficiently. A global cache is used to store computed ancestor maps, reducing redundant calculations during pairwise comparisons. The first time a term is processed, the ancestor map is calculated and stored in the global cache. If another thread tries to access the ancestor map before the first thread has finished calculating it, it briefly waits and only retrieves the finished map, thereby eliminating thread-related inconsistencies where an incomplete map is returned.
 
     \subsection{Input File Format}\label{subsec:input-file-format}
-    The program requires three input file types: the OBO file, the mapping file, and the differential expression file.
+    The program requires three input file types: the OBO, mapping, and differential expression files.
 
     \paragraph{OBO File:}
-    The OBO file contains the Gene Ontology definitions and relationships. It is parsed to initialize the GO Directed Acyclic Graph (DAG) by skipping obsolete entries and using the \texttt{is\_a} relationships to build the hierarchical structure.
+    The OBO file contains the definitions of Gene Ontology and its relationships. It is parsed to initialize the GO Directed Acyclic Graph (DAG) by skipping obsolete entries and using the \texttt{is\_a} relationships to build the hierarchical structure.
 
     \paragraph{Mapping File:}
     The mapping file associates genes with GO terms and supports two formats based on the \texttt{-mappingtype} parameter:
     \begin{itemize}
-        \item \textbf{go:} Provided in the Gene Annotation File (GAF) format, the file (e.g., \texttt{goa\_human.gaf.gz}) is compressed as a \texttt{.gz} file. Only non-comment lines (those not starting with \texttt{!}) are processed, using columns 3--5, which correspond to the gene identifier, the association qualifier modifier, and the GO category identifier. Only associations without any association qualifier modifier are considered.
+        \item \textbf{go:} Provided in the Gene Annotation File (GAF) format, the file (e.g., \texttt{goa\_human.gaf.gz}) is compressed as a \texttt{.gz} file. Only non-comment lines (those not starting with \texttt{!}) are processed using columns 3--5, which correspond to the gene identifier, the association qualifier modifier, and the GO category identifier. Only associations without any association qualifier modifier are considered.
         \item \textbf{ensembl:} Provided as a tab-separated values (TSV) file (e.g., \texttt{goa\_human\_ensembl.tsv}), it consists of three columns: the Ensembl gene ID, the HGNC gene symbol, and a list of associated GO terms (from all namespaces). In this format, the list of GO terms is separated by the symbol \texttt{|}.
     \end{itemize}
 
@@ -267,10 +267,10 @@ named arguments:
     Contains the experimental results for enrichment analysis and has three columns (TSV):
     \begin{itemize}
         \item \textbf{id:} The gene identifier.
-        \item \textbf{fc:} The log\textsubscript{2} fold change value representing the differential expression of the gene. This value is used in the Kolmogorov-Smirnov (KS) test to compare the distribution of fold changes.
-        \item \textbf{signif:} A boolean value indicating whether the gene is considered significantly differentially expressed. Genes with \texttt{signif=true} are used for the over-representation analysis.
+        \item \textbf{fc:} The log\textsubscript{2} fold change value represents the gene's differential expression. This value is used in the Kolmogorov-Smirnov (KS) test to compare the distribution of fold changes.
+        \item \textbf{signif:} A boolean value indicates whether the gene is significantly differentially expressed. Genes with \texttt{signif=true} are used for the over-representation analysis.
     \end{itemize}
-    Optionally, lines starting with the symbol \texttt{\#} in the differential expression file indicate simulated truly enriched GO identifiers, serving as a standard-of-truth.
+    Optionally, lines starting with the symbol \texttt{\#} in the differential expression file indicate simulated truly enriched GO identifiers, serving as a standard of truth.
 
     \subsection{Output File Format}\label{subsec:output-file-format}
     The main output file is a tab-separated values (TSV) file containing the following columns:
@@ -287,10 +287,10 @@ named arguments:
         \item \textbf{ks\_stat}: The KS test statistic comparing the log2 fold change distribution of genes associated with the GO term to that of the background gene set.
         \item \textbf{ks\_pval}: The p-value resulting from the KS test.
         \item \textbf{ks\_fdr}: The FDR-adjusted p-value for the KS test.
-        \item \textbf{shortest\_path\_to\_a\_true}: For GO entries that are not part of the true set, this column contains a ‘\texttt{--}’ separated list of GO entry names that represents the shortest path in the DAG from the analyzed GO term to the nearest true GO term. Within this path, the least common ancestor (LCA) is annotated with an asterisk (e.g., \texttt{regulation of immune system process*}). If the analyzed term is already a true entry or if no true entries are provided, this field remains empty.
+        \item \textbf{shortest\_path\_to\_a\_true}: For GO entries that are not part of the true set, this column contains a ‘\texttt{--}’ separated list of GO entry names that represent the shortest path in the DAG from the analyzed GO term to the nearest true GO term. Within this path, the least common ancestor (LCA) is annotated with an asterisk (e.g., \texttt{regulation of immune system process*}). This field remains empty if the analyzed term is already a true entry or if no true entries are provided.
     \end{itemize}
 
-    If the optional \texttt{-overlapout} parameter is provided, an additional TSV file is generated containing detailed information about overlapping GO entries that share mapped genes. This file includes the following columns:
+    If the optional \texttt{-overlapout} parameter is provided, an additional TSV file containing detailed information about overlapping GO entries that share mapped genes is generated. This file includes the following columns:
     \begin{itemize}
         \item \textbf{term1}: The GO identifier (e.g., \texttt{GO:1902554}) for the first overlapping DAG entry.
         \item \textbf{term2}: The GO identifier for the second overlapping DAG entry.
@@ -299,26 +299,27 @@ named arguments:
         \item \textbf{num\_overlapping}: The number of gene identifiers that are associated with both GO entries.
         \item \textbf{max\_ov\_percent}: The maximum percentage (a float value between 0.0 and 100.0) of the shared gene identifiers relative to the total number of genes associated with either \texttt{term1} or \texttt{term2}.
     \end{itemize}
-    Only GO entry pairs that meet the defined \texttt{minsize} and \texttt{maxsize} criteria and have shared genes are included in this overlap output file.
+    This overlap output file includes only GO entry pairs that meet the defined \texttt{minsize} and \texttt{maxsize} criteria and have shared genes.
 
     \subsection{Provided Files}\label{subsec:provided-files}
-    The following files were provided for testing the program: %simul_exp_go_bp_ensembl.tsv releases/2016-12-24
+    The following files were provided for testing the program:
     \begin{itemize}
         \item \textbf{simul\_exp\_go\_bp\_ensembl.tsv:} Differential expression file for the Biological Process (BP) ontology with simulated, truly enriched standard-of-truth GO Terms.
-        \item \textbf{go.obo:} The Gene Ontology OBO (Release 2016-12-24) file containing the GO definitions and relationships.
+        \item \textbf{go.obo:} The Gene Ontology OBO (Release 2016-12-24) file contains GO definitions and relationships.
         \item
     \end{itemize}
 % TODO: Finish this
+
 
     \section{Results}\label{sec:results}
 
     \subsection{Runtime}\label{subsec:runtime}
 
-    The program was run for the provided test files on a PC with a Ryzen 5 3600 and 16GB of RAM, using both the Ensembl and GO mapping files for each of the three GO namespaces. The program was executed with a size range of 50 to 500 genes per for a Term—this filtering helps avoid the issues associated with extremely small gene sets (which can yield inflated scores) and overly large ones (which may lead to inaccurate normalization)\cite{gsea_user_guide}.
-    . Table~\ref{tab:runtime} shows the runtime breakdown for each step.
+    The program was run for the provided test files on a PC with a Ryzen 5 3600 and 16GB of RAM, using both the Ensembl and GO mapping files for each of the three GO namespaces. The program was executed with a size range of 50 to 500 genes per Term—this filtering helps avoid the issues associated with extremely small gene sets (which can yield inflated scores) and overly large ones (which may lead to inaccurate normalization)\cite{gsea_user_guide}.
+    Table~\ref{tab:runtime} shows the runtime breakdown for each step.
 
 
-    The mapping file processing shows considerable differences between the GO and Ensembl. For example, in the Biological Process (BP) ontology, the GO mapping takes 798\,ms compared to 181\,ms for Ensembl. This pattern is consistent across the Molecular Function (MF) and Cellular Component (CC) tests, suggesting that the zipped GO mapping is more complicated to process. The graph loading operations (loading entries, resolving parents, leaves, genes, and propagating genes) contribute significantly to the runtime. These values differ between ontologies (e.g., 637\,ms for GO-BP versus 303\,ms for GO-MF) likely due to the varying DAG sizes and complexities. The enrichment calculation step is the most time-consuming. In the BP runs, it takes 3789\,ms for GO mapping and 3207\,ms for Ensembl. The overlap analysis takes between 1484 and 1908\,ms. These two steps dominate the runtime and could be further optimized. However, by the nature of what they are processing, like the shortest path and the KS test, they are inherently time-consuming. Loading differential expression records, adjusting p-values, and writing the output requires minimal time (all under 50\,ms)
+    The mapping file processing shows considerable differences between the GO and Ensembl. For example, in the Biological Process (BP) ontology, the GO mapping takes 798\,ms compared to 181\,ms for Ensembl. This pattern is consistent across the Molecular Function (MF) and Cellular Component (CC) tests, suggesting that the zipped GO mapping is more complicated to process. The graph loading operations (loading entries, resolving parents, leaves, genes, and propagating genes) contribute significantly to the runtime. These values differ between ontologies (e.g., 637\,ms for GO-BP versus 303\,ms for GO-MF) likely due to the varying DAG sizes and complexities. The enrichment calculation step is the most time-consuming. In the BP runs, it takes 3789\,ms for GO mapping and 3207\,ms for Ensembl. The overlap analysis takes between 1484 and 1908\,ms. These two steps dominate the runtime and could be further optimized. However, they are inherently time-consuming by the nature of what they are processing, like the shortest path and the KS test. Loading differential expression records, adjusting p-values, and writing the output requires minimal time (all under 50\,ms)
 
     Overall, the total runtimes vary between 1503\,ms (Ensembl, CC) and 7217\,ms (GO, BP). The enrichment and overlap calculations are the largest contributors to the execution time.
 
@@ -348,7 +349,7 @@ named arguments:
     \end{table}
 
     \subsection[GO Namespace Analysis]{Gene Ontology Namespace Analysis}\label{subsec:gene-ontology-namespace-analysis}
-    In order to quantify how the different GO Namespaces differ, various graph metrics can be explored. A \texttt{-analysis} parameter was added to the program that calculates and outputs the following metrics:
+    To quantify how the different GO Namespaces differ, various graph metrics can be explored. A \texttt{-analysis} parameter was added to the program that calculates and outputs the following metrics:
     \begin{itemize}
         \item  The number of gene sets
         \item The number of total genes (in the root)
@@ -359,11 +360,11 @@ named arguments:
         \item Distribution of leaf to root path lengths,
         \item Distribution of set differences: The number of genes in the parent set that are not in the child set.
     \end{itemize}
-    These general metrics are calculated were calculated for each GO Namespace and mapping type and are summarized in Table~\ref{tab:ontology_comparison_combined}. Since only the number of genes varies between different mappings, the rows for different mappings were combined and a column for the size for each mapping was added.
+    These general metrics were calculated for each GO Namespace and mapping type and summarized in Table~\ref{tab:ontology_comparison_combined}. Since only the number of genes varies between different mappings, the rows for different mappings were combined and a column for the size for each mapping was added.
     \begin{figure}[tbph]
         \centering
         \includegraphics[width=0.2\textwidth]{figures/GOEnrichment/Shortcut-diagram-crop}
-        % TODO: redo caption
+
         \caption{Diagram defining what a shortcut is. If $y < z + x$, with $x=1$ as it is a child, $y$ is a shortcut.}
         \label{fig:shortcut_diagram}
     \end{figure}
@@ -392,11 +393,11 @@ named arguments:
     \end{table}
 
     The BP namespace has a substantially higher number of gene states compared to MF and CC. However, despite BP having more terms, the total gene counts (both GO and Ensembl) are similar to CC, possibly suggesting that BP has a higher specificity of its associated genes, as it does not have a proportional increase in the number of genes. Expectedly, the number of shortcuts in the DAG is higher in BP, as it has more terms and leaf nodes.
-    Figure \ref{fig:gene_set_sizes_combined} presents the cumulative distribution of gene set sizes across all three GO namespaces. The left subplot shows the absolute cumulative count while the right subplot displays the relative proportion (CDF). The x-axis is symlog-scaled to accommodate the wide range of values. The BP namespace exhibits a higher cumulative count due to its larger graph size. However, despite this difference, the distribution of gene set sizes remains similar across all three ontologies. In Figure \ref{fig:gene_set_sizes_min_to_max}, the gene sets are restricted to the default minimum and maximum sizes (50 and 500, respectively). The distribution is almost identical for all ontologies.
+    Figure \ref{fig:gene_set_sizes_combined} presents the cumulative distribution of gene set sizes across all three GO namespaces. The left subplot shows the absolute cumulative count, while the right subplot displays the relative proportion (CDF). The x-axis is symlog-scaled to accommodate the wide range of values. The BP namespace exhibits a higher cumulative count due to its larger graph size. However, despite this difference, the distribution of gene set sizes remains similar across all three ontologies. In Figure \ref{fig:gene_set_sizes_min_to_max}, the gene sets are restricted to the default minimum and maximum sizes (50 and 500, respectively). The distribution is almost identical for all ontologies.
 
-    Figure \ref{fig:leaf_path_lengths_cdf} displays the cumulative distribution of leaf-to-root path lengths for each GO namespace. The CC namespace has significantly shorter paths compared to BP and MF due to its smaller graph size. The distribution of path lengths is similar for BP and MF, with the majority of terms having a path length of 4--8 steps.
+    Figure \ref{fig:leaf_path_lengths_cdf} displays each GO namespace's cumulative distribution of leaf-to-root path lengths. The CC namespace has significantly shorter paths than BP and MF due to its smaller graph size. The distribution of path lengths is similar for BP and MF, with the majority of terms having a path length of 4--8 steps.
 
-    Figure \ref{fig:set_differences_cdf} shows the cumulative distribution of set differences (parent - child) for each GO namespace. The BP and MF distributions are closely aligned, while CC demonstrates a higher number of set differences. This difference may be attributed to the fact that cellular components often aggregate many smaller structures into larger ones, leading to more complex parent-child relationships.
+    Figure \ref{fig:set_differences_cdf} shows each GO namespace's cumulative distribution of set differences (parent-child). The BP and MF distributions are closely aligned, while CC demonstrates a higher number of set differences. This difference may be attributed to the fact that cellular components often aggregate many smaller structures into larger ones, leading to more complex parent-child relationships.
 
     \begin{figure}[htbp]
         \centering
@@ -413,7 +414,7 @@ named arguments:
             \caption*{(b) Relative Proportion (CDF).}
             \label{fig:gene_set_sizes_cdf_symlog}
         \end{minipage}
-        \caption{Comparison of cumulative distributions of gene set sizes. The x-axis is symlog-scaled, meaning it applies a logarithmic transformation to larger values while retaining a linear scale near zero. The BP namepsace has a higher cumulative count due to its larger graph. Interestingly, the distribution of the gene set size remains similar, as seen in the relative distribution.}
+        \caption{Comparison of cumulative distributions of gene set sizes. The x-axis is symlog-scaled, which applies a logarithmic transformation to larger values while retaining a linear scale near zero. The BP namespace has a higher cumulative count due to its larger graph. Interestingly, the gene set size distribution remains similar, as seen in the relative distribution.}
         \label{fig:gene_set_sizes_combined}
     \end{figure}
 
@@ -436,7 +437,7 @@ named arguments:
         \begin{minipage}[b]{0.48\textwidth}
             \centering
             \includegraphics[width=\textwidth]{figures/GOEnrichment/cumulative_distribution_set_differences}
-            \caption{Cumulative Distribution of Set Differences (Parent - Child). BP and MF share a similar distribution, while CC has a higher number of set differences.}
+            \caption{Cumulative Distribution of Set Differences (Parent-Child). BP and MF share a similar distribution, while CC has a higher number of set differences.}
             \label{fig:set_differences_cdf}
         \end{minipage}
     \end{figure}
