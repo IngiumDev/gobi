@@ -73,6 +73,9 @@ public class GOEnrichmentRunner {
         parser.addArgument("-overlapout")
                 .help("Optional output file for DAG overlap information")
                 .metavar("<overlap_out_tsv>");
+        parser.addArgument("-analysis")
+                .help("Optional output file for DAG info")
+                .metavar("<analysis_out_tsv>");
 
         if (args.length == 0) {
             parser.printHelp();
@@ -88,6 +91,7 @@ public class GOEnrichmentRunner {
             log.info("Arguments parsed successfully");
             start(res);
         } catch (ArgumentParserException e) {
+            e.printStackTrace();
             parser.printHelp();
             System.exit(1);
         }
@@ -105,6 +109,7 @@ public class GOEnrichmentRunner {
         int minSize = res.get("minsize");
         int maxSize = res.get("maxsize");
         String overlapOut = res.get("overlapout");
+        String analysisOut = res.get("analysis");
         GeneSetEnrichmentAnalysis analysis = new GeneSetEnrichmentAnalysis.Builder().setRootType(root)
                 .setMinSize(minSize)
                 .setMaxSize(maxSize)
@@ -119,6 +124,9 @@ public class GOEnrichmentRunner {
         if (overlapOut != null) {
             analysis.performOverlapAnalysis();
 
+        }
+        if (analysisOut != null) {
+            analysis.performExtraAnalysis(analysisOut);
         }
         log.info("Total runtime: {} ms", System.currentTimeMillis() - startTime);
     }

@@ -341,6 +341,137 @@ public class GeneSetEnrichmentAnalysis {
         return ancestors2.containsKey(term1);
     }
 
+    public void performExtraAnalysis(String analysisOutPath) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(analysisOutPath))) {
+            // Get all GO terms.
+            Collection<GOTerm> allTerms = graph.getEntries().values();
+
+            // Global summary.
+            int numGeneSets = allTerms.size();
+            Set<String> allGenes = new HashSet<>();
+            for (GOTerm term : allTerms) {
+                allGenes.addAll(term.getAssociatedGenes());
+            }
+            int numGenes = allGenes.size();
+            int numLeafs = graph.getLeaves().size();
+
+            // Compute distances from the root to each term using BFS.
+            Map<GOTerm, Integer> distanceFromRoot = new HashMap<>();
+            Queue<GOTerm> queue = new ArrayDeque<>();
+            GOTerm root = graph.getRoot();
+            distanceFromRoot.put(root, 0);
+            queue.add(root);
+            while (!queue.isEmpty()) {
+                GOTerm current = queue.poll();
+                int currentDist = distanceFromRoot.get(current);
+                if (current.getChildren() != null) {
+                    for (GOTerm child : current.getChildren()) {
+                        // update if a shorter path is found.
+                        if (!distanceFromRoot.containsKey(child) || distanceFromRoot.get(child) > currentDist + 1) {
+                            distanceFromRoot.put(child, currentDist + 1);
+                            queue.add(child);
+                        }
+                    }
+                }
+            }
+
+            // Compute leaf path lengths.
+            List<Integer> leafPathLengths = new ArrayList<>();
+            for (GOTerm leaf : graph.getLeaves()) {
+                Integer d = distanceFromRoot.get(leaf);
+                if (d != null) {
+                    leafPathLengths.add(d);
+                }
+            }
+            int minPathLength = leafPathLengths.stream().min(Integer::compareTo).orElse(-1);
+            int maxPathLength = leafPathLengths.stream().max(Integer::compareTo).orElse(-1);
+
+            // For each term (except the root), each parent edge is a shortcut
+            // if parent's distance + 1 does not equal the term's distance.
+            int numShortcuts = 0;
+            for (GOTerm term : allTerms) {
+                if (term.equals(root)) continue;
+                Integer dChild = distanceFromRoot.get(term);
+                if (term.getParents() != null) {
+                    for (GOTerm parent : term.getParents()) {
+                        Integer dParent = distanceFromRoot.get(parent);
+                        if (dParent != null && dParent + 1 != dChild) {
+                            numShortcuts++;
+                        }
+                    }
+                }
+            }
+
+            // Distribution of gene set sizes.
+            List<Integer> geneSetSizes = new ArrayList<>();
+            List<Integer> filteredGeneSetSizes = new ArrayList<>();
+            for (GOTerm term : allTerms) {
+                int size = term.getAssociatedGenes().size();
+                geneSetSizes.add(size);
+                if (size >= minSize && size <= maxSize) {
+                    filteredGeneSetSizes.add(size);
+                }
+            }
+
+            // Distribution of set differences between child and parent sets.
+            // For each parent-child relationship, compute the size of the set difference:
+            // the genes present in the child but not in the parent.
+            List<Integer> setDifferenceSizes = new ArrayList<>();
+            for (GOTerm term : allTerms) {
+                if (term.getParents() != null) {
+                    for (GOTerm parent : term.getParents()) {
+                        // Only include the pair if both parent's and child's gene sets are non-empty.
+                        if (!term.getAssociatedGenes().isEmpty() && !parent.getAssociatedGenes().isEmpty()) {
+                            // Compute the difference: genes in the parent that are not in the child.
+                            Set<String> diff = new HashSet<>(parent.getAssociatedGenes());
+                            diff.removeAll(term.getAssociatedGenes());
+                            setDifferenceSizes.add(diff.size());
+                        }
+                    }
+                }
+            }
+
+            // Write a global summary.
+            writer.write("Global Summary:\n");
+            writer.write("Number of gene sets: " + numGeneSets + "\n");
+            writer.write("Number of genes: " + numGenes + "\n");
+            writer.write("Number of leaf nodes: " + numLeafs + "\n");
+            writer.write("Shortest path from root to leaf: " + minPathLength + "\n");
+            writer.write("Longest path from root to leaf: " + maxPathLength + "\n");
+            writer.write("Number of shortcuts in the DAG: " + numShortcuts + "\n\n");
+
+            // Write distributions as comma-separated lists.
+            writer.write("Distribution of Gene Set Sizes (All):\n");
+            writer.write(joinList(geneSetSizes) + "\n\n");
+
+            writer.write("Distribution of Gene Set Sizes (minSize to maxSize):\n");
+            writer.write(joinList(filteredGeneSetSizes) + "\n\n");
+
+            writer.write("Distribution of Leaf Path Lengths from Root:\n");
+            writer.write(joinList(leafPathLengths) + "\n\n");
+
+            writer.write("Distribution of Set Differences (Parent - Child):\n");
+            writer.write(joinList(setDifferenceSizes) + "\n\n");
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error writing extra analysis output", e);
+        }
+    }
+
+    /**
+     * Joins List of integers into a comma-separated string.
+     */
+    private String joinList(List<Integer> list) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < list.size(); i++) {
+            sb.append(list.get(i));
+            if (i < list.size() - 1) {
+                sb.append(",");
+            }
+        }
+        return sb.toString();
+    }
+
 
     public static final class Builder {
         private RootType rootType;
