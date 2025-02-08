@@ -52,6 +52,11 @@ public class DAG {
     public GOTerm getTerm(int id) {
         return entries.get(id);
     }
+
+    public List<GOTerm> getLeaves() {
+        return leaves;
+    }
+
     private void propagateUpward(GOTerm leaf) {
         List<GOTerm> parents = leaf.getParents();
         for (GOTerm parent : parents) {
