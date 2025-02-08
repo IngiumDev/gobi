@@ -1002,3 +1002,7 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,pycharm,intellij+all,intellij+iml,r,java,maven,python,vs,macos,windows,linux
+/.idea/codeStyles/codeStyleConfig.xml
+/report/CovidAnalysis.bbl
+/report/CovidAnalysis.blg
+/META-INF/MANIFEST.MF
