@@ -393,12 +393,6 @@ named arguments:
     \end{table}
 
     The BP namespace has a substantially higher number of gene states compared to MF and CC. However, despite BP having more terms, the total gene counts (both GO and Ensembl) are similar to CC, possibly suggesting that BP has a higher specificity of its associated genes, as it does not have a proportional increase in the number of genes. Expectedly, the number of shortcuts in the DAG is higher in BP, as it has more terms and leaf nodes.
-    Figure \ref{fig:gene_set_sizes_combined} presents the cumulative distribution of gene set sizes across all three GO namespaces. The left subplot shows the absolute cumulative count, while the right subplot displays the relative proportion (CDF). The x-axis is symlog-scaled to accommodate the wide range of values. The BP namespace exhibits a higher cumulative count due to its larger graph size. However, despite this difference, the distribution of gene set sizes remains similar across all three ontologies. In Figure \ref{fig:gene_set_sizes_min_to_max}, the gene sets are restricted to the default minimum and maximum sizes (50 and 500, respectively). The distribution is almost identical for all ontologies.
-
-    Figure \ref{fig:leaf_path_lengths_cdf} displays each GO namespace's cumulative distribution of leaf-to-root path lengths. The CC namespace has significantly shorter paths than BP and MF due to its smaller graph size. The distribution of path lengths is similar for BP and MF, with the majority of terms having a path length of 4--8 steps.
-
-    Figure \ref{fig:set_differences_cdf} shows each GO namespace's cumulative distribution of set differences (parent-child). The BP and MF distributions are closely aligned, while CC demonstrates a higher number of set differences. This difference may be attributed to the fact that cellular components often aggregate many smaller structures into larger ones, leading to more complex parent-child relationships.
-
     \begin{figure}[htbp]
         \centering
         \begin{minipage}[b]{0.48\textwidth}
@@ -417,14 +411,14 @@ named arguments:
         \caption{Comparison of cumulative distributions of gene set sizes. The x-axis is symlog-scaled, which applies a logarithmic transformation to larger values while retaining a linear scale near zero. The BP namespace has a higher cumulative count due to its larger graph. Interestingly, the gene set size distribution remains similar, as seen in the relative distribution.}
         \label{fig:gene_set_sizes_combined}
     \end{figure}
-
+    Figure \ref{fig:gene_set_sizes_combined} presents the cumulative distribution of gene set sizes across all three GO namespaces. The left subplot shows the absolute cumulative count, while the right subplot displays the relative proportion (CDF). The x-axis is symlog-scaled to accommodate the wide range of values. The BP namespace exhibits a higher cumulative count due to its larger graph size. However, despite this difference, the distribution of gene set sizes remains similar across all three ontologies. In Figure \ref{fig:gene_set_sizes_min_to_max}, the gene sets are restricted to the default minimum and maximum sizes (50 and 500, respectively). The distribution is almost identical for all ontologies.
     \begin{figure}[htbp]
         \centering
-        \includegraphics[width=0.7\textwidth]{figures/GOEnrichment/cumulative_distribution_gene_set_sizes_minSize_to_maxSize}
-        \caption{Cumulative Distribution of Gene Set Sizes only for the Minimum to Maximum Size Range. The distribution looks extremely similar for all three ontologies.}
+        \includegraphics[width=0.5\textwidth]{figures/GOEnrichment/cumulative_distribution_gene_set_sizes_minSize_to_maxSize}
+        \caption{Cumulative Distribution of Gene Set Sizes only for the Minimum (50) to Maximum (500) Size Range. The distribution looks extremely similar for all three ontologies.}
         \label{fig:gene_set_sizes_min_to_max}
     \end{figure}
-
+    Figure \ref{fig:leaf_path_lengths_cdf} displays each GO namespace's cumulative distribution of leaf-to-root path lengths. The CC namespace has significantly shorter paths than BP and MF due to its smaller graph size. The distribution of path lengths is similar for BP and MF, with the majority of terms having a path length of 4--8 steps.
     \begin{figure}[htbp]
         \centering
         \begin{minipage}[b]{0.48\textwidth}
@@ -441,7 +435,49 @@ named arguments:
             \label{fig:set_differences_cdf}
         \end{minipage}
     \end{figure}
+    Figure \ref{fig:set_differences_cdf} shows each GO namespace's cumulative distribution of set differences (parent-child). The BP and MF distributions are closely aligned, while CC demonstrates a higher number of set differences. This difference may be attributed to the fact that cellular components often aggregate many smaller structures into larger ones, leading to more complex parent-child relationships.
 
+    \subsection{Comparison to g:Profiler}\label{subsec:comparison-to-gprofiler}
+    In order to gauge the performance of this tool, g:Profiler\cite{kolberg_raudvere_kuzmin_adler_vilo_peterson_2023}, a widely used enrichment analysis tool, was applied to the same input files. All significantly expressed gene names from the differential expression file were used as input for g:Profiler. The analysis was restricted to the GO BP namespace because the simulated input contained standard-of-truth (SOT) GO terms in this namespace. The search\footnote{\url{https://biit.cs.ut.ee/gplink/l/ahcyWanp-QS} version:e112\_eg59\_p19\_25aa4782} was further limited to GO terms with sizes between 50 and 500 genes.
+
+    For the ROC analysis, each reported GO term is assigned a continuous score defined as
+    \[
+        \text{score} = -\log_{10}(\text{FDR}),
+    \]
+    for our tool, and analogously
+    \[
+        \text{score} = -\log_{10}(\text{adjusted p-value}),
+    \]
+    for g:Profiler. This transformation converts low (i.e. more significant) FDR or p-values into high scores, so that stronger evidence for enrichment corresponds to higher scores. By sweeping over the continuous score thresholds, ROC curves are generated that plot the true positive rate (TPR) against the false positive rate (FPR).
+
+    It is important to note that, due to filtering differences, only the GO terms actually reported by each method are considered in the ROC analysis. In particular, some SOT terms that fall below the minimum size cutoff in our tool (e.g., IDs 0098743, 0098754, 0001906, 1900047, 2000242, 0043473, 0034260) are not included in its output and therefore are not counted as false negatives. Similarly, g:Profiler employs a different ontology version, so certain SOT terms (e.g. GO:0044848, which has been deleted in the current version\footnote{\url{https://www.ebi.ac.uk/QuickGO/GTerm?id=GO:0044848\#term=history}}) are absent from its output. Consequently, the ROC analysis is based solely on the reported terms, and any SOT term not present in a given output is excluded from that tool's evaluation.
+
+    Two thresholds are annotated on the ROC curves:
+    \begin{enumerate}
+        \item A fixed significance threshold corresponding to a p-value (or FDR) of 0.05. After transformation, this threshold is
+        \[
+            -\log_{10}(0.05) \approx 1.30.
+        \]
+        \item The SOT threshold, defined as the minimum score necessary to correctly classify all SOT terms (that aren't filtered).
+    \end{enumerate}
+
+    Figure~\ref{fig:roc} shows that our tool achieved an AUC of 0.94 while g:Profiler achieved an AUC of 0.96. The ROC curves are annotated with the fixed threshold (score $\approx$ 1.30) and the SOT thresholds (score = 7.22 for our tool and 24.06 for g:Profiler), along with their corresponding TPR and FPR values. In our tool, the SOT threshold yielded a TPR of 1.00 with an FPR of 0.47, whereas the fixed threshold resulted in a TPR of 1.00 but a higher FPR of 0.72. In contrast, g:Profiler’s SOT threshold provided a TPR of 1.00 with an FPR of 0.20, and its fixed threshold gave a TPR of 1.00 with an FPR of 0.86. These differences illustrate how each method’s filtering and underlying ontology version affect the identification of enriched terms.
+
+    Figure~\ref{fig:venn} displays a Venn diagram comparing the significant GO terms (FDR or adjusted p-value $<$ 0.05) from both methods. In this comparison, 7 SOT terms were found by both tools, 5 SOT terms were found exclusively by each tool, and 2 SOT terms were not found by either. Overall, there were 805 shared significant terms; however, g:Profiler reported 1,144 additional significant terms while our tool identified 321 unique significant terms at the 0.05 threshold.
+
+    \begin{figure}[ht]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/GOEnrichment/GProfiler_Comparison_ROC.pdf}
+        \caption{ROC curves comparing our tool (AUC = 0.94) and g:Profiler (AUC = 0.96) using the Fisher's jackknifing adjusted FDR values (for our tool) and adjusted p-values (for g:Profiler). The fixed significance threshold (score $\approx$ 1.30) and the SOT thresholds (minimum scores among reported SOT terms) are annotated.}
+        \label{fig:roc}
+    \end{figure}
+
+    \begin{figure}[ht]
+        \centering
+        \includegraphics[width=0.8\textwidth]{figures/GOEnrichment/GProfiler_Comparison_Venn.pdf}
+        \caption{Venn diagram comparing significant GO terms (FDR/adjusted p-value $<$ 0.05) between our tool and g:Profiler. The diagram shows that 7 SOT terms were identified by both methods, 5 exclusively by each, and 2 by neither. Overall, 805 significant terms were shared, with g:Profiler reporting 1,144 additional significant terms and our tool identifying 321 unique terms.}
+        \label{fig:venn}
+    \end{figure}
 
     \section{}
     \AtNextBibliography{\small}\nocite{*}
