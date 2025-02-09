@@ -88,15 +88,31 @@
 
     High-throughput experiments, such as differential expression analyses, generate extensive candidate gene lists, presenting significant data interpretation challenges. A key strategy for addressing these challenges involves leveraging biological knowledge bases to annotate and functionally characterize the gene lists. In this project, a Java program, \texttt{GOEnrich}, is developed to integrate differential expression data with structured biological information, enabling the identification of over-represented functional gene sets.
 
-    \subsection{Differential Expression Analysis}\label{subsec:differential-expression-analysis}
-
     \subsection{Gene Ontology}\label{subsec:gene-ontology}
     The Gene Ontology (GO) is a structured, controlled vocabulary that standardizes the description of gene functions\cite{RN1}. GO organized gene product function in three different domains. Molecular Function (MF) describes the molecular activities of individual gene products, such as a specific kinase. Cellular Component (CC) describes the location of gene products, such as the mitochondria. Biological Process (BP) describes the pathways and larger processes to which gene products contribute, such as transport\cite{RN2}. A singular GO Term is a specific descriptor within one of these domains. Each term conveys details about a gene product’s function, location, or role in a larger biological process. It has a list of genes associated with it and a list of relationships with other GO terms. For example, the "is a" relationship indicates that one term is a subtype of another, or "part of," which shows that a gene product is a component of a larger complex or process\cite{RN1}. These relationships are organized in a directed acyclic graph (DAG) structure, where nodes represent terms, and edges represent relationships between terms. Relationships in this graph are not symmetric, meaning that if term A is a parent of term B, term B is not necessarily a parent of term A. Additionally, the graph is acyclic, meaning that there are no loops in the graph. This structure can help us understand how a set of down or upregulated genes affects a biological process, cellular component, or molecular function.
 
     \subsection{Over-representation Analysis}\label{subsec:over-representation-analysis}
+    Various bioinformatics methods produce long candidate lists of genes which are potentially biologically relevant. Over-representation analysis (ORA) is a method used to determine whether a particular set of genes or proteins is represented more than expected by chance in a given gene set\cite{ora-explanation}. ORA requires three inputs:
+    \begin{enumerate}
+        \item A collection of pathways i.e.\ GO
+        \item Genes of interest, which are genes that are differentially expressed significantly (from a differential expression analysis)
+        \item A background set of genes, which are all genes that were measured in the experiment
+    \end{enumerate}
+    P values are calculated using a right-tailed Fisher's test, also known as a cumulative hypergeometric probability. The calculated p-values of a GO Term represent the probability of seeing an intersection the size of the observed intersection or larger\cite{g:profiler-docs}. The P-value formula is as follows:
+    \[
+        P(X\geq k) =  1-\sum^{k-1}_{i=0}\frac{\binom{M}{i}\binom{N-M}{n-i}}{\binom{N}{n}}
+    \]
+    Where:
+    \begin{itemize}
+        \item $N$ is the total number of genes in the background set
+        \item $M$ is the total number of genes in the background set that are annotated with the GO term
+        \item $n$ is the total number of genes in the gene set
+        \item $k$ is the number of genes in the gene set that are annotated with the GO term
+    \end{itemize} \cite{ora-explanation}
+    The p-values are then adjusted for multiple testing.
 
     \subsection{Gene Set Enrichment Analysis}\label{subsec:gene-set-enrichment-analysis}
-    Gene Set Enrichment Analysis (GSEA) is a statistical approach used to determine whether predefined groups of genes (gene sets) show statistically significant enrichment in a ranked list of genes derived from high-throughput experiments, such as differential gene expression analysis.
+    Gene Set Enrichment Analysis (GSEA) is a statistical approach used to determine whether predefined groups of genes (gene sets) show statistically significant enrichment in a ranked list of genes derived from high-throughput experiments, such as differential gene expression analysis. In GSEA, we also use a gene list as an input, except that the gene list is ranked based on a metric that represents the gene's differential expression (e.g. log2 fold-change). Attempting to find out if a specific term is enriched, we try to find out whether its genes are randomly distributed throughout the gene list or primarily found at the top or bottom of the list (over/under represented). The GSEA algorithm calculates an enrichment score (ES) for each gene set, which corresponds to a weighted Kolmogorov-Smirnov statistics\cite{subramanian}. For this assignment the Kolmogorov-Smirnov test will be used to estimate the significance without permuting.
 
 
     \section{Materials and Methods}\label{sec:materials-and-methods}
@@ -209,7 +225,7 @@ named arguments:
     \begin{itemize}
         \item \textbf{Hypergeometric Test:} Evaluates the probability of drawing the observed number of significant genes from a finite population without replacement.
         \item \textbf{Fisher's Exact Test:} Assesses the association between gene significance and GO term membership using contingency tables. With the incorporated jackknife resampling, this test provides a robust estimate of whether the proportion of significantly expressed genes within the GO term is higher than expected by chance—serving as the measure of overrepresentation\cite{csaba_2019}.
-        \item \textbf{KS Test:} A nonparametric test that compares the distribution of log\textsubscript{2} fold change values for genes in the GO term against the background distribution. In this context, the KS statistic acts as an enrichment score by quantifying the extent to which the gene set's distribution deviates from the overall background\cite{subramanian_tamayo_mootha_mukherjee_ebert_gillette_paulovich_pomeroy_golub_lander_etal_2005}.
+        \item \textbf{KS Test:} A nonparametric test that compares the distribution of log\textsubscript{2} fold change values for genes in the GO term against the background distribution. In this context, the KS statistic acts as an enrichment score by quantifying the extent to which the gene set's distribution deviates from the overall background\cite{subramanian}.
         \item \textbf{False Discovery Rate (FDR):} The expected fraction of false positives among the significant results after adjusting for multiple hypothesis tests.
     \end{itemize}
 
@@ -304,9 +320,10 @@ named arguments:
     \begin{itemize}
         \item \textbf{simul\_exp\_go\_bp\_ensembl.tsv:} Differential expression file for the Biological Process (BP) ontology with simulated, truly enriched standard-of-truth GO Terms.
         \item \textbf{go.obo:} The Gene Ontology OBO (Release 2016-12-24) file contains GO definitions and relationships.
-        \item
+        \item \textbf{goa\_human.gaf.gz:} The Gene Annotation File (GAF) for human genes, compressed as a \texttt{.gz} file.
+        \item \textbf{goa\_human\_ensembl.tsv:} The Ensembl gene-to-GO mapping file for human genes.
+        \item \textbf{simul\_exp\_go\_bp\_ensembl\_min50\_max500.enrich.out:} The expected output file for the provided differential expression file using the Ensembl mapping and the BP ontology with a gene size range of 50 to 500.
     \end{itemize}
-% TODO: Finish this
 
 
     \section{Results}\label{sec:results}
@@ -480,7 +497,7 @@ named arguments:
     \end{figure}
 
     \subsection{WebGestalt Comparison}\label{subsec:webgestalt-comparison}
-    To assess the GSEA component of \texttt{GOEnrich}, it was compared to WebGestalt\cite{elizarraras_liao_shi_zhu_pico_zhang_2024}. The same input files were used, and the analysis was restricted to the BP ontology. The parameters used for WebGestalt are provided in Section~\ref{subsec:webgestalt-paramaters}\footnote{Results: \url{https://www.webgestalt.org/results/1739092074/#}}. As with g:Profiler, a custom .GMT file did not work, so the default BP ontology was used.
+    To assess the GSEA component of \texttt{GOEnrich}, it was compared to WebGestalt\cite{elizarraras_liao_shi_zhu_pico_zhang_2024}. The same input files were used, and the analysis was restricted to the BP ontology. The parameters used for WebGestalt are provided in Section~\ref{subsec:webgestalt-paramaters}\footnote{Results: \url{https://www.webgestalt.org/results/1739092074/}}. As with g:Profiler, a custom .GMT file did not work, so the default BP ontology was used.
 
     Unfortunately, this once again makes it difficult to compare our results, as a different ontology version was used. The minsize and maxsize parameters were set to 50 and 500, respectively, to match the \texttt{GOEnrich} analysis. The same transformations done in Section~\ref{subsec:comparison-to-gprofiler}, meaning for the ROC curve, only the terms reported by both tools were considered. The same \texttt{GOEnrich} results were used from Section~\ref{subsec:comparison-to-gprofiler}, except that the ks\_fdr column was used for comparison.
 
