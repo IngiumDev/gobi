@@ -150,9 +150,7 @@ named arguments:
     In both cases, the associations are stored in a \texttt{HashMap} where each key is a gene identifier (specifically, the HGNC symbol) and the corresponding value is a \texttt{HashSet} of integer representations of GO terms. Integers are used instead of a string representation due to hashing efficiency.
 
     \subsubsection{DAG Initialization}\label{subsubsec:dag-initialization}
-    The initialization of the DAG begins with parsing the OBO file via an \texttt{OboParser}. This parser reads the GO definitions and constructs a hash map of \texttt{GOTerm} objects, each encapsulating a unique numeric identifier, a full identifier string, a descriptive name, and placeholders for parent and child relationships. To efficiently capture the hierarchy, temporary parent IDs are stored during parsing, leaving the creation of parent-child links until all terms are loaded.
-    Subsequently, the \texttt{resolveParents} method processes these temporary IDs to establish the direct parent and child relationships among terms. Any term lacking parents is identified as the root of the DAG. In parallel, the \texttt{resolveLeaves} method identifies leaf nodes (have no children children).
-    The DAG is further processed by integrating gene associations from the mapping file through the \texttt{resolveGenes} method, which links genes to their corresponding GO terms. This \texttt{propagateGenes} method propagates gene associations from child nodes upward to parent nodes.
+    The initialization of the DAG begins with parsing the OBO file via an \texttt{OboParser}. This parser reads the GO definitions and constructs a hash map of \texttt{GOTerm} objects, each encapsulating a unique numeric identifier, a full identifier string, a descriptive name, and placeholders for parent and child relationships. To efficiently capture the hierarchy, temporary parent IDs are stored during parsing, leaving the creation of parent-child links until all terms are loaded. Subsequently, the \texttt{resolveParents} method processes these temporary IDs to establish the direct parent and child relationships among terms. Any term lacking parents is identified as the root of the DAG. In parallel, the \texttt{resolveLeaves} method identifies leaf nodes (have no children children). The DAG is further processed by integrating gene associations from the mapping file through the \texttt{resolveGenes} method, which links genes to their corresponding GO terms. This \texttt{propagateGenes} method propagates gene associations from child nodes upward to parent nodes.
 
     \subsubsection{Differential Expression File Parsing}\label{subsubsec:differential-expression-file-parsing}
     The differential expression file parsing implementation is designed with efficiency in mind. Lines beginning with \texttt{\#} are used to extract Standard of Truth (SOT) GO terms, and the remaining lines are parsed manually by iterating over characters to extract the gene ID, log\textsubscript{2} fold change value, and significance flag. This approach avoids the overhead of methods like \texttt{split()} and stores each parsed record in a hash map for quick access during analysis.
@@ -315,8 +313,7 @@ named arguments:
 
     \subsection{Runtime}\label{subsec:runtime}
 
-    The program was run for the provided test files on a PC with a Ryzen 5 3600 and 16GB of RAM, using both the Ensembl and GO mapping files for each of the three GO namespaces. The program was executed with a size range of 50 to 500 genes per Term—this filtering helps avoid the issues associated with extremely small gene sets (which can yield inflated scores) and overly large ones (which may lead to inaccurate normalization)\cite{gsea_user_guide}.
-    Table~\ref{tab:runtime} shows the runtime breakdown for each step.
+    The program was run for the provided test files on a PC with a Ryzen 5 3600 and 16GB of RAM, using both the Ensembl and GO mapping files for each of the three GO namespaces. The program was executed with a size range of 50 to 500 genes per Term—this filtering helps avoid the issues associated with extremely small gene sets (which can yield inflated scores) and overly large ones (which may lead to inaccurate normalization)\cite{gsea_user_guide}. Table~\ref{tab:runtime} shows the runtime breakdown for each step.
 
 
     The mapping file processing shows considerable differences between the GO and Ensembl. For example, in the Biological Process (BP) ontology, the GO mapping takes 798\,ms compared to 181\,ms for Ensembl. This pattern is consistent across the Molecular Function (MF) and Cellular Component (CC) tests, suggesting that the zipped GO mapping is more complicated to process. The graph loading operations (loading entries, resolving parents, leaves, genes, and propagating genes) contribute significantly to the runtime. These values differ between ontologies (e.g., 637\,ms for GO-BP versus 303\,ms for GO-MF) likely due to the varying DAG sizes and complexities. The enrichment calculation step is the most time-consuming. In the BP runs, it takes 3789\,ms for GO mapping and 3207\,ms for Ensembl. The overlap analysis takes between 1484 and 1908\,ms. These two steps dominate the runtime and could be further optimized. However, they are inherently time-consuming by the nature of what they are processing, like the shortest path and the KS test. Loading differential expression records, adjusting p-values, and writing the output requires minimal time (all under 50\,ms)
@@ -438,7 +435,7 @@ named arguments:
     Figure \ref{fig:set_differences_cdf} shows each GO namespace's cumulative distribution of set differences (parent-child). The BP and MF distributions are closely aligned, while CC demonstrates a higher number of set differences. This difference may be attributed to the fact that cellular components often aggregate many smaller structures into larger ones, leading to more complex parent-child relationships.
 
     \subsection{Comparison to g:Profiler}\label{subsec:comparison-to-gprofiler}
-    In order to gauge the performance of \texttt{GOEnrich}, g:Profiler\cite{kolberg_raudvere_kuzmin_adler_vilo_peterson_2023}, a widely used enrichment analysis tool, was applied to the genes marked as significant in the differential expression input file. The analysis was restricted to the GO BP namespace because the simulated input contained standard-of-truth GO terms in this namespace. The search\footnote{\url{https://biit.cs.ut.ee/gplink/l/ahcyWanp-QS} version:e112\_eg59\_p19\_25aa4782} was further limited to GO terms with sizes between 50 and 500 genes. The Benjamini-Hochberg adjusted p-values from g:Profiler were used for comparison.
+    In order to gauge the performance of \texttt{GOEnrich}, g:Profiler\cite{kolberg_raudvere_kuzmin_adler_vilo_peterson_2023}, a widely used enrichment analysis tool, was applied to the genes marked as significant in the differential expression input file. The analysis was restricted to the GO BP namespace because the simulated input contained standard-of-truth GO terms in this namespace. The search\footnote{\url{https://biit.cs.ut.ee/gplink/l/ahcyWanp-QS} version:e112\_eg59\_p19\_25aa4782} was further limited to GO terms with sizes between 50 and 500 genes. The Benjamini-Hochberg adjusted p-values from g:Profiler were used for comparison. \texttt{GOEnrich} was run with the ensembl mapping and BP namespace, with a minsize of 50 and a maxsize of 500. In order to see how \texttt{GOEnrich} would perform without the usual size restriction, it was also run with minsize set to 10. The fej\_fdr column from \texttt{GOEnrich} was used for comparison.
 
     For the Receiver operating characteristic (ROC) analysis, each reported GO term is assigned a continuous score defined as
     \[
@@ -450,7 +447,7 @@ named arguments:
     \]
     for g:Profiler. This transformation converts low (i.e. more significant) FDR or p-values into high scores, so that stronger evidence (more significance) for enrichment corresponds to higher scores. By 'iterating' over the continuos scoring thresholds, the ROC curves are generated that plot the true positive rate (TPR) against the false positive rate (FPR). The Area Under the Curve (AUC) is then calculated to quantify the overall performance of each tool.
 
-    It is important to note that, due to filtering differences, only the GO terms actually reported by each method are considered in the ROC analysis. In particular, some SOT terms that fall below the minimum size cutoff in \texttt{GOEnrich} (e.g., IDs 0098743, 0098754, 0001906, 1900047, 2000242, 0043473, 0034260) are not included in its output and therefore are not counted as false negatives. Similarly, g:Profiler employs a different ontology version, so certain SOT terms (e.g. GO:0044848, which has been deleted in the current version\footnote{\url{https://www.ebi.ac.uk/QuickGO/GTerm?id=GO:0044848\#term=history}}) are absent from its output. Consequently, the ROC analysis is based solely on the reported terms, and any SOT term not present in a given output is excluded from that tool's evaluation. In order to see how \texttt{GOEnrich} would perform without the usual size restriction, it was also run with minsize set to 10.
+    It is important to note that, due to filtering differences, only the GO terms actually reported by each method are considered in the ROC analysis. In particular, some SOT terms that fall below the minimum size cutoff in \texttt{GOEnrich} (e.g., IDs 0098743, 0098754, 0001906, 1900047, 2000242, 0043473, 0034260) are not included in its output and therefore are not counted as false negatives. Similarly, g:Profiler employs a different ontology version, so certain SOT terms (e.g. GO:0044848, which has been deleted in the current version\footnote{\url{https://www.ebi.ac.uk/QuickGO/GTerm?id=GO:0044848\#term=history}}) are absent from its output. Consequently, the ROC analysis is based solely on the reported terms, and any SOT term not present in a given output is excluded from that tool's evaluation.
 
     Two thresholds are annotated on the ROC curves:
     \begin{enumerate}
@@ -460,26 +457,71 @@ named arguments:
         \]
         \item The SOT threshold, defined as the minimum score necessary to correctly classify all SOT terms (that aren't filtered).
     \end{enumerate}
-    Figure\ref{fig:roc} shows that \texttt{GOEnrich}(50) achieved an AUC of 0.94, while g:Profiler achieved an AUC of 0.96. The run with \texttt{GOEnrich}(10) achieved a slightly lower AUC of 0.93, as it includes far more significant genes. This is in line with obervations made earlier that lowering the minsize parameter will yield more significant terms, but also more false positives. The ROC curves are annotated with the fixed threshold (score $\approx$ 1.30) and the SOT thresholds (score = 7.22 for our \texttt{GOEnrich}(50),24.06 for g:Profiler, and 4.71 for \texttt{GOEnrich}(10)), along with their corresponding TPR and FPR values. In \texttt{GOEnrich}(50) the SOT threshold yielded a TPR of 1.00 with an FPR of 0.47, whereas the fixed threshold resulted in a TPR of 1.00 but a higher FPR of 0.72. In contrast, g:Profiler’s SOT threshold provided a TPR of 1.00 with an FPR of 0.20, and its fixed threshold gave a TPR of 1.00 with an FPR of 0.86. This illustrates how a simple threshold of 0.05 is not optimal in this case, since both tools find too many false positives. The SOT threshold for \texttt{GOEnrich}(10) is the lowest one, but still has the best FPR (0.2) for a TPR of 1. In contrast, the fixed threshold (score $\approx$ 1.30) yields a TPR of 1.00 across all methods; however, the false positive rate is substantially higher for g:Profiler 0.86 compared to 0.72 for \texttt{GOEnrich}(50) and 0.59 for \texttt{GOEnrich}(10).
-    The difference in AUC values suggests that g:Profiler is slightly better at distinguishing between true and false positives, but the difference is not substantial. Additionally, due to the differences in file formats and filtering\footnote{It was attempted to use g:Profiler with the provided input files by using a \texttt{.GAF + .OBO -> .GMT} conversion site, but this ultimately did not work. \url{https://biit.cs.ut.ee/gmt-helper/}}, these results are not directly comparable and should be interpreted with caution.
+    Figure~\ref{fig:roc} shows that \texttt{GOEnrich}(50) achieved an AUC of 0.94, while g:Profiler achieved an AUC of 0.96. The run with \texttt{GOEnrich}(10) achieved a slightly lower AUC of 0.93, as it includes far more significant genes. This is in line with obervations made earlier that lowering the minsize parameter will yield more significant terms, but also more false positives. The ROC curves are annotated with the fixed threshold (score $\approx$ 1.30) and the SOT thresholds (score = 7.22 for our \texttt{GOEnrich}(50),24.06 for g:Profiler, and 4.71 for \texttt{GOEnrich}(10)), along with their corresponding TPR and FPR values. In \texttt{GOEnrich}(50) the SOT threshold yielded a TPR of 1.00 with an FPR of 0.47, whereas the fixed threshold resulted in a TPR of 1.00 but a higher FPR of 0.72. In contrast, g:Profiler’s SOT threshold provided a TPR of 1.00 with an FPR of 0.20, and its fixed threshold gave a TPR of 1.00 with an FPR of 0.86. This illustrates how a simple threshold of 0.05 is not optimal in this case, since both tools find too many false positives. The SOT threshold for \texttt{GOEnrich}(10) is the lowest one, but still has the best FPR (0.2) for a TPR of 1. In contrast, the fixed threshold (score $\approx$ 1.30) yields a TPR of 1.00 across all methods; however, the false positive rate is substantially higher for g:Profiler 0.86 compared to 0.72 for \texttt{GOEnrich}(50) and 0.59 for \texttt{GOEnrich}(10). The difference in AUC values suggests that g:Profiler is slightly better at distinguishing between true and false positives, but the difference is not substantial. Additionally, due to the differences in file formats and filtering\footnote{It was attempted to use g:Profiler with the provided input files by using a \texttt{.GAF + .OBO -> .GMT} conversion site, but this ultimately did not work. \url{https://biit.cs.ut.ee/gmt-helper/}}, these results are not directly comparable and should be interpreted with caution.
 
 
     Figure~\ref{fig:upset} presents an UpSet plot that compares the significant GO terms (FDR or adjusted p-value $<$ 0.05) derived from three analyses: \texttt{GOEnrich} with minsize 50, \texttt{GOEnrich} with minsize 10, and g:Profiler. The plot shows that all SOT terms were identified by \texttt{GOEnrich} (minsize 10). Among these, 7 SOT terms were common to all three methods, 2 terms were uniquely detected by \texttt{GOEnrich} (minsize 50) (i.e., not by g:Profiler), and 2 terms were exclusively identified by g:Profiler (i.e., not by \texttt{GOEnrich} (minsize 50)). Additionally, \texttt{GOEnrich} (minsize 10) found the highest total number of significant genes (2696), followed by g:Profiler (1961) and \texttt{GOEnrich} (minsize 50) (1138). These results underscore that, while lowering the minsize parameter increases sensitivity by yielding more significant terms, it also introduces more false positives. Thus, even after multiple hypothesis testing correction, the fixed threshold appears suboptimal because the sheer number of significant terms may render the results less useful.
 
     \begin{figure}[htbp]
         \centering
-        \includegraphics[width=0.5\textwidth]{figures/GOEnrichment/GProfiler_Comparison_ROC_ALL}
-        \caption{ROC curves comparing \texttt{GOEnrich}(minsize 50 and minsize 10) and g:Profiler. The fixed significance threshold (score $\approx$ 1.30) and the SOT thresholds are annotated.}
-        \label{fig:roc}
+        \begin{minipage}[b]{0.39\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/GOEnrichment/GProfiler_Comparison_ROC_ALL}
+            \caption{ROC curves comparing \texttt{GOEnrich}(minsize 50 and minsize 10) and g:Profiler. The fixed significance threshold (score $\approx$ 1.30) and the SOT thresholds are annotated. Due to differing ontology versions, only the terms reported by both tools are considered. The score is defined as $-\log_{10}(\text{significance})$.}
+            \label{fig:roc}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[b]{0.59\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/GOEnrichment/GProfiler_Comparison_UpSet}
+            \caption{Upset plot comparing SOT terms from significant GO analyses performed using \texttt{GOEnrich} (minsize = 50), \texttt{GOEnrich} (minsize = 10), and \texttt{g:Profiler} (all with FDR/adjusted p-value < 0.05). The diagram shows that all SOT terms were identified by \texttt{GOEnrich}(10). Among these, 7 terms were common to all three methods, 2 terms were uniquely detected by \texttt{GOEnrich}(50) (i.e., not by \texttt{g:Profiler}), and 2 terms were exclusively identified by \texttt{g:Profiler} (i.e., not by \texttt{GOEnrich}(50)). Additionally, \texttt{GOEnrich}(10) found the highest total number of significant genes (2696), followed by \texttt{g:Profiler} (1961) and \texttt{GOEnrich}(50) (1138).}
+            \label{fig:upset}
+        \end{minipage}
     \end{figure}
+
+    \subsection{WebGestalt Comparison}\label{subsec:webgestalt-comparison}
+    To assess the GSEA component of \texttt{GOEnrich}, it was compared to WebGestalt\cite{elizarraras_liao_shi_zhu_pico_zhang_2024}. The same input files were used, and the analysis was restricted to the BP ontology. The parameters used for WebGestalt are provided in Section~\ref{subsec:webgestalt-paramaters}\footnote{Results: \url{https://www.webgestalt.org/results/1739092074/#}}. As with g:Profiler, a custom .GMT file did not work, so the default BP ontology was used.
+
+    Unfortunately, this once again makes it difficult to compare our results, as a different ontology version was used. The minsize and maxsize parameters were set to 50 and 500, respectively, to match the \texttt{GOEnrich} analysis. The same transformations done in Section~\ref{subsec:comparison-to-gprofiler}, meaning for the ROC curve, only the terms reported by both tools were considered. The same \texttt{GOEnrich} results were used from Section~\ref{subsec:comparison-to-gprofiler}, except that the ks\_fdr column was used for comparison.
+
+    Figure~\ref{fig:roc_webgestalt} shows the ROC curves comparing \texttt{GOEnrich} and WebGestalt. The AUC for \texttt{GOEnrich} is 0.94, while WebGestalt achieved a higher AUC of 0.97. For \texttt{GOEnrich}, the SOT threshold is 0.46, which yields a TPR of 1.00 and an FPR of 0.57; using the fixed threshold (score $\approx$ 1.30) results in a TPR of 0.92 and an FPR of 0.25. In contrast, WebGestalt has a SOT threshold of 1.18 (TPR = 1.00, FPR = 0.20) and, at the fixed threshold (score $\approx$ 1.30), a TPR of 0.88 with an FPR of 0.06. This suggests that while both tools are able to identify true positives, WebGestalt has a considerably lower FPR at the fixed threshold of (0.05). Overall, these results show that the GSEA method filters out more genes than the ORA method (As seen in Figure~\ref{fig:venn_webgestalt} and Figure~\ref{fig:upset}).
+
+    Figure~\ref{fig:venn_webgestalt} depicts a Venn diagram comparing the significant GO terms (FDR $<$ 0.05) among the SOT set, \texttt{GOEnrich} , and WebGestalt. The diagram shows that both tools correctly identified 6 SOT terms, with 5 terms uniquely identified by \texttt{GOEnrich} and 1 terms uniquely identified by WebGestalt. However, this difference is likely due to the differing ontology versions used by the two tools and the minsize and maxsize parameters excluding some of the SOT terms which are smaller than 50. More interestingly, the diagram shows that \texttt{GOEnrich} identifies considerably more significant terms than WebGestalt (375 vs 25), showing that WebGestalt is more stringent in its filtering.
 
     \begin{figure}[htbp]
         \centering
-        \includegraphics[width=0.6\textwidth]{figures/GOEnrichment/GProfiler_Comparison_UpSet}
-        \caption{Upset plot comparing SOT terms from significant GO analyses performed using \texttt{GOEnrich} (minsize = 50), \texttt{GOEnrich} (minsize = 10), and \texttt{g:Profiler} (all with FDR/adjusted p-value < 0.05). The diagram shows that all SOT terms were identified by \texttt{GOEnrich}(10). Among these, 7 terms were common to all three methods, 2 terms were uniquely detected by \texttt{GOEnrich}(50) (i.e., not by \texttt{g:Profiler}), and 2 terms were exclusively identified by \texttt{g:Profiler} (i.e., not by \texttt{GOEnrich}(50)). Additionally, \texttt{GOEnrich}(10) found the highest total number of significant genes (2696), followed by \texttt{g:Profiler} (1961) and \texttt{GOEnrich}(50) (1138).}
-        \label{fig:upset}
+        \begin{minipage}[b]{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/GOEnrichment/WebGestalt_Comparison_ROC}
+            \caption{ROC curves comparing \texttt{GOEnrich} and WebGestalt. The fixed significance threshold (score $\approx$ 1.30) and the SOT thresholds are annotated. Due to differing ontology versions, only the terms reported by both tools are considered. The AUC for \texttt{GOEnrich} is 0.94, while WebGestalt achieved an AUC of 0.97. The score is defined as $-\log_{10}(\text{FDR})$.}
+            \label{fig:roc_webgestalt}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[b]{0.48\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{figures/GOEnrichment/WebGestalt_Comparison_Venn}
+            \caption{Venn diagram comparing the significant GO terms (FDR/adjusted p-value $<$ 0.05) among the SOT set, \texttt{GOEnrich} (ks\_fdr), and WebGestalt (FDR).}
+            \label{fig:venn_webgestalt}
+        \end{minipage}
     \end{figure}
 
+
+    \section{Supplement}\label{sec:supplement}
+
+    \subsection{WebGestalt Parameters}\label{subsec:webgestalt-paramaters}
+    Enrichment method: GSEA
+    Organism: hsapiens\\
+    Enrichment Categories: geneontology\_Biological\_Process\_noRedundant\\
+    Interesting list: . ID type: genesymbol\\
+    The interesting list contains 17054 user IDs in which 16241 user IDs are unambiguously mapped to 16241 unique entrezgene IDs and 813 user IDs can not be mapped to any entrezgene ID.\\
+    The GO Slim summary are based upon the 16241 unique entrezgene IDs.\\
+    Among the 16241 unique entrezgene IDs, 13634 IDs are annotated to the selected functional categories, which are used for the enrichment analysis.\\
+    Parameters for the enrichment analysis:\\
+
+    Minimum number of IDs in the category: 50\\
+    Maximum number of IDs in the category: 500\\
+    Significance Level: FDR $<$ 1\\
+    Number of permutation: 1000\\
     \AtNextBibliography{\small}\nocite{*}
     \printbibliography[heading=bibintoc, title={References}]
 \end{document}
