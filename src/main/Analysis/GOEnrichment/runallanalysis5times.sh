@@ -17,7 +17,7 @@ namespaces_root=("biological_process" "cellular_component" "molecular_function")
 jars=("jars/GOEnrichmentRunner-big.jar" "jars/GOEnrichmentRunner-bignonparallel.jar")
 
 # Number of iterations for averaging runtime
-iterations=5
+iterations=10
 
 # Calculate the total number of iterations
 total_iterations=$(( ${#mapping_types[@]} * ${#namespaces_abbr[@]} * ${#jars[@]} * iterations ))
