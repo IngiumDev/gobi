@@ -80,6 +80,9 @@
                     <resource>
                         <directory>${basedir}/src/main/java</directory>
                     </resource>
+                    <resource>
+                        <directory>${basedir}/src/main/resources</directory>
+                    </resource>
                 </resources>
                 <plugins>
                     <plugin>
@@ -148,6 +151,9 @@
                 <resources>
                     <resource>
                         <directory>${basedir}/src/main/java</directory>
+                    </resource>
+                    <resource>
+                        <directory>${basedir}/src/main/resources</directory>
                     </resource>
                 </resources>
                 <plugins>
@@ -219,6 +225,9 @@
                     <resource>
                         <directory>${basedir}/src/main/java</directory>
                     </resource>
+                    <resource>
+                        <directory>${basedir}/src/main/resources</directory>
+                    </resource>
                 </resources>
                 <plugins>
                     <plugin>
@@ -287,6 +296,9 @@
                 <resources>
                     <resource>
                         <directory>${basedir}/src/main/java</directory>
+                    </resource>
+                    <resource>
+                        <directory>${basedir}/src/main/resources</directory>
                     </resource>
                 </resources>
                 <plugins>
@@ -357,6 +369,9 @@
                 <resources>
                     <resource>
                         <directory>${basedir}/src/main/java</directory>
+                    </resource>
+                    <resource>
+                        <directory>${basedir}/src/main/resources</directory>
                     </resource>
                 </resources>
                 <plugins>

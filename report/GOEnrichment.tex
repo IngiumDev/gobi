@@ -13,6 +13,7 @@
 \usepackage{listings}
 \usepackage{todonotes}
 
+
 \usepackage{tabularx}
 
 
@@ -85,6 +86,13 @@
 
 
     \section{Introduction}\label{sec:introduction}
+
+    \todo{Mention that precision recall curves might be better}
+    \todo{Move time usage to a bar plots and show the time without parallelizing somehow}
+    \todo{Abstract}
+    \todo{Mention that some sot terms don't even show up in the ensembl mapping}
+    \todo{Mention how long it took on the submission server}
+    \todo{Add urldate to sources}
 
     High-throughput experiments, such as differential expression analyses, generate extensive candidate gene lists, presenting significant data interpretation challenges. A key strategy for addressing these challenges involves leveraging biological knowledge bases to annotate and functionally characterize the gene lists. In this project, a Java program, \texttt{GOEnrich}, is developed to integrate differential expression data with structured biological information, enabling the identification of over-represented functional gene sets.
 
@@ -327,7 +335,7 @@ named arguments:
 
 
     \section{Results}\label{sec:results}
-
+    \texttt{GOEnrich} passes the submission server with 100\% in 42 seconds.
     \subsection{Runtime}\label{subsec:runtime}
 
     The program was run for the provided test files on a PC with a Ryzen 5 3600 and 16GB of RAM, using both the Ensembl and GO mapping files for each of the three GO namespaces. The program was executed with a size range of 50 to 500 genes per Term—this filtering helps avoid the issues associated with extremely small gene sets (which can yield inflated scores) and overly large ones (which may lead to inaccurate normalization)\cite{gsea_user_guide}. Table~\ref{tab:runtime} shows the runtime breakdown for each step.
@@ -464,7 +472,7 @@ named arguments:
     \]
     for g:Profiler. This transformation converts low (i.e., more significant) FDR or p-values into high scores so that stronger evidence (more significance) for enrichment corresponds to higher scores. By 'iterating' over the continuos scoring thresholds, the ROC curves are generated that plot the true positive rate (TPR) against the false positive rate (FPR). The Area Under the Curve (AUC) is then calculated to quantify the overall performance of each tool.
 
-    It is important to note that, due to filtering differences, only the GO terms actually reported by each method are considered in the ROC analysis. In particular, some SOT terms that fall below the minimum size cutoff in \texttt{GOEnrich} (e.g., IDs 0098743, 0098754, 0001906, 1900047, 2000242, 0043473, 0034260) are not included in its output and therefore are not counted as false negatives. Similarly, g:Profiler employs a different ontology version, so certain SOT terms (e.g. GO:0044848, which has been deleted in the current version\footnote{\url{https://www.ebi.ac.uk/QuickGO/GTerm?id=GO:0044848\#term=history}}) are absent from its output. Consequently, the ROC analysis is based solely on the reported terms, and any SOT term not present in a given output is excluded from that tool's evaluation.
+    It is important to note that, due to filtering differences, only the GO terms actually reported by each method are considered in the ROC analysis. In particular, some SOT terms that fall below the minimum size cutoff in \texttt{GOEnrich} (e.g., IDs 0098743, 0098754, 0001906, 1900047, 2000242, 0043473, 0034260) are not included in its output and therefore are not counted as false negatives. There are also some terms that do not exist in the ensembl mapping. Similarly, g:Profiler employs a different ontology version, so certain SOT terms\footnote{e.g. GO:0044848, which has been deleted in the current version \url{https://www.ebi.ac.uk/QuickGO/GTerm?id=GO:0044848\#term=history}} are absent from its output. Consequently, the ROC analysis is based solely on the reported terms, and any SOT term not present in a given output is excluded from that tool's evaluation.
 
     Two thresholds are annotated on the ROC curves:
     \begin{enumerate}
@@ -501,7 +509,7 @@ named arguments:
 
     Unfortunately, this once again makes it difficult to compare our results, as a different ontology version was used. The minsize and maxsize parameters were set to 50 and 500, respectively, to match the \texttt{GOEnrich} analysis. The same transformations done in Section~\ref{subsec:comparison-to-gprofiler}, meaning for the ROC curve, only the terms reported by both tools were considered. The same \texttt{GOEnrich} results were used from Section~\ref{subsec:comparison-to-gprofiler}, except that the ks\_fdr column was used for comparison.
 
-    Figure~\ref{fig:roc_webgestalt} shows the ROC curves comparing \texttt{GOEnrich} and WebGestalt. The AUC for \texttt{GOEnrich} is 0.94, while WebGestalt achieved a higher AUC of 0.97. For \texttt{GOEnrich}, the SOT threshold is 0.46, which yields a TPR of 1.00 and an FPR of 0.57; using the fixed threshold (score $\approx$ 1.30) results in a TPR of 0.92 and an FPR of 0.25. In contrast, WebGestalt has a SOT threshold of 1.18 (TPR = 1.00, FPR = 0.20) and, at the fixed threshold (score $\approx$ 1.30), a TPR of 0.88 with an FPR of 0.06. This suggests that while both tools are able to identify true positives, WebGestalt has a considerably lower FPR at the fixed threshold of (0.05). Overall, these results show that the GSEA method filters out more genes than the ORA method (As seen in Figure~\ref{fig:venn_webgestalt} and Figure~\ref{fig:upset}).
+    Figure~\ref{fig:roc_webgestalt} shows the ROC curves comparing \texttt{GOEnrich} and WebGestalt. The AUC for \texttt{GOEnrich} is 0.94, while WebGestalt achieved a higher AUC of 0.97. For \texttt{GOEnrich}, the SOT threshold is 0.46, which yields a TPR of 1.00 and an FPR of 0.57; using the fixed threshold (score $\approx$ 1.30) results in a TPR of 0.92 and an FPR of 0.25. In contrast, WebGestalt has a SOT threshold of 1.18 (TPR = 1.00, FPR = 0.20) and, at the fixed threshold (score $\approx$ 1.30), a TPR of 0.88 with an FPR of 0.06. This suggests that while both tools are able to identify true positives, WebGestalt has a considerably lower FPR at the fixed threshold of (0.05). Overall, these results show that the GSEA method filters out more genes than the ORA method (As seen in Figure~\ref{fig:venn_webgestalt} and Figure~\ref{fig:upset}). Due to the class imbalance between true and false, a precision-recall curve might be more informative than the ROC curve.
 
     Figure~\ref{fig:venn_webgestalt} depicts a Venn diagram comparing the significant GO terms (FDR $<$ 0.05) among the SOT set, \texttt{GOEnrich}, and WebGestalt. The diagram shows that both tools correctly identified 6 SOT terms, with 5 terms uniquely identified by \texttt{GOEnrich} and 1 term uniquely identified by WebGestalt. However, this difference is likely due to the differing ontology versions used by the two tools and the minsize and maxsize parameters, excluding some of the SOT terms smaller than 50. More interestingly, the diagram shows that \texttt{GOEnrich} identifies considerably more significant terms than WebGestalt (375 vs 25), showing that WebGestalt is more stringent in its filtering.
 

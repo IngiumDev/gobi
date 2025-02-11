@@ -1,4 +1,3 @@
-```cat ~/IdeaProjects/gobi/data/GOEnrich/goa_human.gaf | grep -v "\!" | cut -f 4 | sort | uniq -c
 391175
 1399 NOT
 14 NOT|colocalizes_with

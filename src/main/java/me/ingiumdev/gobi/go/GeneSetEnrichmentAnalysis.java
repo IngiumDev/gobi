@@ -253,7 +253,6 @@ public class GeneSetEnrichmentAnalysis {
                     }
                 }
             });
-            System.out.println(filteredTerms.size());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
