@@ -370,6 +370,16 @@ named arguments:
         }
     \end{table}
 
+
+
+    To complement this initial analysis, Figure~\ref{fig:runtime-breakdown} presents a more detailed evaluation of the runtime performance with respect to the effects of parallelization. While Table~\ref{tab:runtime} provides an overall breakdown of the runtime for each processing step, the figure focuses specifically on how parallelization influences the enrichment and overlap calculations, which are the primary bottlenecks. This secondary analysis helps illustrate the significant performance improvements achieved by parallelization across the different GO namespaces and mappings.
+    \begin{figure}[tbph]
+        \centering
+        \includegraphics[width=0.9\textwidth]{figures/GOEnrichment/runtime-breakdown}
+        \caption{Detailed runtime breakdown for GO/Ensembl mappings across GO namespaces, measured with parallelization enabled and disabled on a Ryzen 5 3600 (16GB RAM) system. Each configuration was executed 10 times, and the results were averaged, with error bars representing the standard deviation. Parallelization affects only the enrichment calculation, overlap calculation, and, by nature, the total runtime. These components are presented separately for parallel and non-parallel runtimes, while the remaining metrics are averaged over both settings. The y-axis is displayed on a $\log_{10}$ scale. It is clear that the parallelization optimization is highly effective, considerably reducing the runtime across all namespaces and mappings.}
+        \label{fig:runtime-breakdown}
+    \end{figure}
+
     \subsection[GO Namespace Analysis]{Gene Ontology Namespace Analysis}\label{subsec:gene-ontology-namespace-analysis}
     To quantify how the different GO Namespaces differ, various graph metrics can be explored. A \texttt{-analysis} parameter was added to the program that calculates and outputs the following metrics:
     \begin{itemize}
