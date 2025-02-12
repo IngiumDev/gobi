@@ -532,6 +532,19 @@ named arguments:
 
 
     \section{Supplement}\label{sec:supplement}
+    \subsection{Supplementary Figures}
+
+    The supplementary figures provided in the \texttt{plots/} folder of the submission directory further analyze the results of our gene set enrichment analysis. The analysis was performed on gene sets filtered to include only those with sizes between 50 and 500. The figures are summarized as follows:
+
+    \begin{itemize}
+        \item \textbf{Distribution of Significant Genes (SGs):} A histogram (with kernel density estimation) showing the distribution of the number of significant genes (\texttt{noverlap}) across the gene sets.
+        \item \textbf{Enrichment Score and p-value Distributions:} A multi-panel figure displaying histograms of the enrichment score (KS statistic) and the p-values from the hypergeometric test, Fischer's exact test, and KS test.
+        \item \textbf{Scatter Plot of KS Statistic vs. Gene Set Size:} A scatter plot illustrating the relationship between the gene set size and the enrichment score (KS statistic).
+        \item \textbf{Scatter Plot of KS p-value vs. Gene Set Size:} A scatter plot demonstrating how the KS test p-value varies with gene set size.
+        \item \textbf{Scatter Plots of p-value vs. FDR:} For each statistical test (hypergeometric, Fischer's exact, and KS), scatter plots comparing raw p-values against FDR-corrected values are provided. Each plot includes a reference line (i.e., $y=x$) to facilitate visual assessment of the relationship.
+    \end{itemize}
+
+    These plots offer a comprehensive overview of the key metrics derived from our enrichment analysis.
 
     \subsection{WebGestalt Parameters}\label{subsec:webgestalt-paramaters}
     Enrichment method: GSEA Organism: hsapiens\\
