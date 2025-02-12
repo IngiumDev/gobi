@@ -41,11 +41,6 @@
 ]{geometry}
 \usepackage{mathtools}
 \usepackage{blindtext}
-\usepackage{graphicx}
-\usepackage{graphicx}
-\usepackage{graphicx}
-\usepackage{biblatex}
-\usepackage{graphicx}
 
 \addbibresource{GOEnrichment.bib}
 \DeclareFieldFormat{urldate}{%
@@ -75,7 +70,7 @@
     \renewcommand{\abstractname}{}
     \begin{abstract}
         \large
-
+This report presents GOEnrich, a Java-based tool developed to perform Gene Set Enrichment Analysis (GSEA) on differential expression data using the Gene Ontology. GOEnrich integrates multiple statistical tests, including the hypergeometric test, Fisher’s exact test with jackknifing, and the Kolmogorov–Smirnov test, to compute enrichment scores and correct for multiple testing via the Benjamini–Hochberg procedure. In addition to standard enrichment statistics, GOEnrich performs an analysis of the GO Directed Acyclic Graph (DAG), including gene association propagation, shortest path calculation to known standard-of-truth GO terms, and DAG overlap analysis. Benchmarking against established tools such as g:Profiler and WebGestalt show differences in performance, while underlining that the results are difficult to compare.
     \end{abstract}
     \hrule
     \tableofcontents
@@ -87,12 +82,6 @@
 
     \section{Introduction}\label{sec:introduction}
 
-    \todo{Mention that precision recall curves might be better}
-    \todo{Move time usage to a bar plots and show the time without parallelizing somehow}
-    \todo{Abstract}
-    \todo{Mention that some sot terms don't even show up in the ensembl mapping}
-    \todo{Mention how long it took on the submission server}
-    \todo{Add urldate to sources}
 
     High-throughput experiments, such as differential expression analyses, generate extensive candidate gene lists, presenting significant data interpretation challenges. A key strategy for addressing these challenges involves leveraging biological knowledge bases to annotate and functionally characterize the gene lists. In this project, a Java program, \texttt{GOEnrich}, is developed to integrate differential expression data with structured biological information, enabling the identification of over-represented functional gene sets.
 
